@@ -1,0 +1,58 @@
+<navigation-bar title="帮助与反馈" back="{{true}}" color="#202824" background="#f8f5f3"></navigation-bar>
+
+<view class="help-scroll">
+  <view class="help-stage">
+    <view class="help-page">
+      <view class="section-title">
+        <image class="section-icon section-icon--cloud" src="/assets/icons/feedback-cloud.png" mode="aspectFit"></image>
+        <text class="section-title__text poem-display">常见问题</text>
+      </view>
+
+      <view class="support-card">
+        <view
+          wx:for="{{faqs}}"
+          wx:key="key"
+          class="faq-item {{expandedFaq === item.key ? 'faq-item--expanded' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="toggleFaq"
+          hover-class="support-row--pressed"
+          aria-role="button"
+          aria-expanded="{{expandedFaq === item.key}}"
+        >
+          <view class="support-row">
+            <image class="row-icon" src="{{item.icon}}" mode="aspectFit"></image>
+            <text class="row-label poem-display">{{item.question}}</text>
+            <image
+              class="row-arrow {{expandedFaq === item.key ? 'row-arrow--open' : ''}}"
+              src="/assets/icons/common-chevron-right.png"
+              mode="aspectFit"
+            ></image>
+          </view>
+          <view wx:if="{{expandedFaq === item.key}}" class="faq-answer">
+            <text>{{item.answer}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-title section-title--feedback">
+        <image class="section-icon section-icon--leaf" src="/assets/icons/help-leaf.png" mode="aspectFit"></image>
+        <text class="section-title__text poem-display">联系我们</text>
+      </view>
+
+      <view class="support-card">
+        <view
+          class="support-row feedback-row"
+          bindtap="openFeedback"
+          hover-class="support-row--pressed"
+          aria-role="button"
+        >
+          <image class="row-icon" src="/assets/icons/help-feedback.png" mode="aspectFit"></image>
+          <text class="row-label poem-display">意见反馈</text>
+          <image class="row-arrow" src="/assets/icons/common-chevron-right.png" mode="aspectFit"></image>
+        </view>
+      </view>
+    </view>
+
+    <image class="help-landscape" src="/assets/images/help-bottom.png" mode="widthFix"></image>
+  </view>
+</view>

@@ -1,0 +1,142 @@
+<navigation-bar
+  title="创作结果"
+  back="{{true}}"
+  custom-back="{{true}}"
+  bindback="handleBack"
+  color="#202824"
+  background="#faf9f5"
+></navigation-bar>
+
+<scroll-view class="result-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{creation}}" class="result-page">
+    <view class="result-heading">
+      <view class="result-mark poem-display">诗云</view>
+      <text class="result-eyebrow">本次创作</text>
+      <text wx:if="{{quotaRemaining !== null}}" class="quota-copy">
+        今日还可创作 {{quotaRemaining}} 次
+      </text>
+    </view>
+
+    <view class="poem-paper">
+      <view class="paper-cloud paper-cloud--left">⌁</view>
+      <view class="paper-cloud paper-cloud--right">⌁</view>
+      <input
+        class="poem-title-input poem-display"
+        value="{{title}}"
+        maxlength="100"
+        bindinput="handleTitleInput"
+        disabled="{{creation.saved}}"
+      />
+      <view class="title-rule"></view>
+      <text class="poem-content poem-display" user-select>{{creation.result.content}}</text>
+      <view class="poem-foot">
+        <text>
+          {{creation.result.category === 'CLASSICAL' ? '古体诗' : creation.result.category === 'MODERN' ? '现代诗' : '词'}}
+        </text>
+        <text wx:if="{{creation.saved}}" class="saved-state">已收入作品</text>
+      </view>
+    </view>
+
+    <view class="result-actions">
+      <view wx:if="{{!creation.saved}}" class="save-actions">
+        <button
+          class="native-button-reset native-button-reset--flex action-secondary poem-display {{creation.draftSaved || isSavingDraft || isSaving ? 'action-disabled' : ''}}"
+          disabled="{{creation.draftSaved || isSavingDraft || isSaving}}"
+          bindtap="handleSaveDraft"
+        >{{creation.draftSaved ? '已存草稿' : isSavingDraft ? '正在保存…' : '存为草稿'}}</button>
+        <button
+          class="native-button-reset native-button-reset--flex action-primary poem-display {{isSaving || isSavingDraft ? 'action-disabled' : ''}}"
+          disabled="{{isSaving || isSavingDraft}}"
+          bindtap="handleSave"
+        >{{isSaving ? '正在保存…' : '保存作品'}}</button>
+      </view>
+      <button
+        wx:if="{{creation.saved && !creation.published}}"
+        class="native-button-reset native-button-reset--block action-primary poem-display {{isPublishing ? 'action-disabled' : ''}}"
+        disabled="{{isPublishing}}"
+        bindtap="handlePublish"
+      >{{isPublishing ? '正在发布…' : '发布到诗词圈'}}</button>
+      <view wx:if="{{creation.published}}" class="published-state poem-display">已发布到诗词圈</view>
+      <text wx:if="{{!creation.saved && creation.draftSaved}}" class="action-hint">
+        {{creation.localDraftId ? '草稿已保存在本机，登录后可保存为作品' : '草稿已同步，可继续保存为作品'}}
+      </text>
+      <text wx:elif="{{!creation.saved}}" class="action-hint">
+        游客也可以先创作，保存时再登录
+      </text>
+      <text wx:else class="action-hint">
+        作品已经保存，可继续公开发布
+      </text>
+    </view>
+  </view>
+
+  <view wx:else class="empty-result">
+    <text class="empty-result__title poem-display">未找到创作结果</text>
+    <text class="empty-result__copy">返回创作页重新写一首吧</text>
+  </view>
+</scroll-view>
+
+<view wx:if="{{showProfileSetup}}" class="profile-setup-overlay" catchtouchmove="preventMove">
+  <view class="profile-setup-dialog">
+    <text class="profile-setup-title poem-display">完善微信资料</text>
+    <text class="profile-setup-copy poem-display">让诗友更好地认识你</text>
+
+    <button
+      class="avatar-picker"
+      size="mini"
+      open-type="chooseAvatar"
+      bindchooseavatar="handleChooseAvatar"
+      hover-class="avatar-picker--pressed"
+      aria-label="选择微信头像"
+    >
+      <image
+        wx:if="{{pendingAvatarUrl}}"
+        class="avatar-picker__image"
+        src="{{pendingAvatarUrl}}"
+        mode="aspectFill"
+      ></image>
+      <view wx:else class="avatar-picker__placeholder">
+        <view class="avatar-picker__placeholder-head"></view>
+        <view class="avatar-picker__placeholder-body"></view>
+      </view>
+      <view class="avatar-picker__camera">
+        <view class="avatar-picker__camera-body">
+          <view class="avatar-picker__camera-lens"></view>
+        </view>
+      </view>
+    </button>
+    <text class="avatar-picker__label poem-display">点击更换头像</text>
+
+    <view class="nickname-field">
+      <text class="nickname-field__label poem-display">昵称</text>
+      <view class="nickname-field__control">
+        <input
+          class="nickname-field__input poem-display"
+          type="nickname"
+          maxlength="24"
+          value="{{pendingNickname}}"
+          placeholder="请输入昵称"
+          bindinput="handleNicknameInput"
+          bindchange="handleNicknameInput"
+          bindblur="handleNicknameInput"
+        />
+      </view>
+    </view>
+
+    <view class="profile-setup-actions">
+      <view
+        class="profile-setup-skip"
+        bindtap="handleProfileSetupSkip"
+        hover-class="profile-setup-skip--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >稍后再说</view>
+      <view
+        class="profile-setup-save {{isSavingProfile ? 'profile-setup-save--disabled' : ''}}"
+        bindtap="handleProfileSetupSave"
+        hover-class="profile-setup-save--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >{{isSavingProfile ? '保存中…' : '保存资料'}}</view>
+    </view>
+  </view>
+</view>

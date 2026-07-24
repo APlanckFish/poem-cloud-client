@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/create/index",
+    "pages/create-result/index",
+    "pages/community/index",
+    "pages/publication-detail/index",
+    "pages/profile/index",
+    "pages/my-works/index",
+    "pages/my-drafts/index",
+    "pages/help/index",
+    "pages/feedback/index",
+    "pages/about/index"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom",
+    "backgroundColor": "#f7f5ef",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8c918d",
+    "selectedColor": "#3f6758",
+    "backgroundColor": "#fffefa",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/create/index",
+        "text": "创作"
+      },
+      {
+        "pagePath": "pages/community/index",
+        "text": "诗词圈"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

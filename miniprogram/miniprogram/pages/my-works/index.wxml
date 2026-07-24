@@ -1,0 +1,81 @@
+<navigation-bar title="我的作品" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#fbfaf7"></navigation-bar>
+
+<view class="filter-tabs">
+  <view
+    wx:for="{{tabs}}"
+    wx:key="code"
+    class="filter-tab poem-display {{activeFilter === item.code ? 'filter-tab--active' : ''}}"
+    data-code="{{item.code}}"
+    bindtap="selectFilter"
+    aria-role="button"
+  >{{item.label}}</view>
+</view>
+
+<scroll-view class="works-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{visibleWorks.length > 0}}" class="works-list">
+    <view wx:for="{{visibleWorks}}" wx:key="id" class="work-card">
+      <image class="work-cover" src="{{item.cover}}" mode="aspectFill"></image>
+      <view class="work-copy">
+        <text class="work-title poem-display">{{item.title}}</text>
+        <text class="work-description">{{item.description}}</text>
+        <text class="work-date">{{item.date}}</text>
+        <view class="work-status {{item.stateClass}}">{{item.stateLabel}}</view>
+      </view>
+      <view
+        class="more-button"
+        data-id="{{item.id}}"
+        catchtap="openActions"
+        aria-role="button"
+        aria-label="作品操作"
+      >
+        <image src="/assets/icons/action-more.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+    <image class="mountain-wash" src="/assets/images/mountain-wash.png" mode="widthFix"></image>
+  </view>
+
+  <view wx:elif="{{hasLoaded && !isLoading}}" class="empty-state">
+    <image class="empty-illustration empty-illustration--works" src="/assets/images/empty-works.png" mode="aspectFit"></image>
+    <text class="empty-title poem-display">还没有作品</text>
+    <text class="empty-copy">完成一次创作后，作品会收藏在这里</text>
+    <view class="empty-primary poem-display" bindtap="startCreating" aria-role="button">去创作</view>
+    <image class="empty-mountain" src="/assets/images/mountain-wash.png" mode="widthFix"></image>
+  </view>
+</scroll-view>
+
+<view wx:if="{{actionWork}}" class="sheet-overlay" catchtouchmove="preventMove" bindtap="closeActions">
+  <view class="sheet-stack" catchtap="preventMove">
+    <view class="action-sheet">
+      <view class="sheet-heading">
+        <image class="sheet-cover" src="{{actionWork.cover}}" mode="aspectFill"></image>
+        <text class="sheet-title poem-display">{{actionWork.title}}</text>
+      </view>
+
+      <view class="sheet-action" bindtap="viewWork">
+        <image src="/assets/icons/action-eye.svg" mode="aspectFit"></image>
+        <text class="poem-display">查看作品</text>
+      </view>
+      <view
+        wx:if="{{actionWork.state === 'UNPUBLISHED' || actionWork.state === 'HIDDEN'}}"
+        class="sheet-action"
+        bindtap="publishWork"
+      >
+        <image src="/assets/icons/tab-community-active.svg" mode="aspectFit"></image>
+        <text class="poem-display">发布到诗词圈</text>
+      </view>
+      <view
+        wx:if="{{actionWork.state === 'PUBLISHED'}}"
+        class="sheet-action"
+        bindtap="changeVisibility"
+      >
+        <image src="/assets/icons/action-lock.svg" mode="aspectFit"></image>
+        <text class="poem-display">设为仅自己可见</text>
+      </view>
+      <view class="sheet-action sheet-action--danger" bindtap="confirmDelete">
+        <image src="/assets/icons/action-trash.svg" mode="aspectFit"></image>
+        <text class="poem-display">删除作品</text>
+      </view>
+    </view>
+    <view class="sheet-cancel poem-display" bindtap="closeActions">取消</view>
+  </view>
+</view>

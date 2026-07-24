@@ -1,0 +1,142 @@
+<navigation-bar title="创作" back="{{false}}" color="#202824" background="#faf9f5"></navigation-bar>
+
+<scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="create-page">
+    <view class="hero">
+      <image class="hero-image" src="/assets/images/create-hero.jpg" mode="aspectFill"></image>
+      <view class="hero-veil"></view>
+      <text class="hero-title poem-display">把此刻，写成诗</text>
+      <view class="hero-cloud">⌁</view>
+      <view class="quota-pill">
+        今日可创作
+        <text>{{quotaLoaded ? quota.remaining + '/' + quota.limit : '—/—'}}</text>
+      </view>
+    </view>
+
+    <view class="create-content">
+      <view class="prompt-card">
+        <textarea
+          class="prompt-input"
+          value="{{prompt}}"
+          placeholder="写下心情、故事或想表达的画面..."
+          placeholder-class="prompt-placeholder"
+          maxlength="500"
+          auto-height="{{false}}"
+          bindinput="handlePromptInput"
+        ></textarea>
+        <view class="material-actions">
+          <button
+            class="material-button {{isUploading || imageCount >= maxImageCount ? 'material-button--disabled' : ''}}"
+            size="mini"
+            disabled="{{isUploading || imageCount >= maxImageCount}}"
+            bindtap="handleAddImage"
+            hover-class="button-pressed"
+            aria-label="添加图片，最多3张"
+          >
+            <image class="material-icon" src="/assets/icons/media-image.svg" mode="aspectFit"></image>
+            <text>添加图片</text>
+            <text wx:if="{{imageCount > 0}}" class="material-count">{{imageCount}}/3</text>
+          </button>
+          <button
+            class="material-button {{isUploading || videoCount >= maxVideoCount ? 'material-button--disabled' : ''}}"
+            size="mini"
+            disabled="{{isUploading || videoCount >= maxVideoCount}}"
+            bindtap="handleAddVideo"
+            hover-class="button-pressed"
+            aria-label="添加视频，最多1个且时长不超过15秒"
+          >
+            <image class="material-icon" src="/assets/icons/media-video.svg" mode="aspectFit"></image>
+            <text>添加视频</text>
+            <text class="material-note">15秒内</text>
+            <text wx:if="{{videoCount > 0}}" class="material-count">{{videoCount}}</text>
+          </button>
+        </view>
+
+        <view wx:if="{{materials.length > 0}}" class="material-list">
+          <view wx:for="{{materials}}" wx:key="id" class="material-item">
+            <view class="material-preview" data-id="{{item.id}}" bindtap="previewMaterial">
+              <image
+                wx:if="{{item.previewUrl}}"
+                class="material-preview__image"
+                src="{{item.previewUrl}}"
+                mode="aspectFill"
+              ></image>
+              <view wx:else class="material-preview__fallback">
+                <image src="/assets/icons/media-video.svg" mode="aspectFit"></image>
+              </view>
+              <view wx:if="{{item.kind === 'VIDEO'}}" class="material-preview__video">
+                <text class="material-preview__play">▶</text>
+                <text>{{item.durationLabel}}</text>
+              </view>
+            </view>
+            <view
+              class="material-remove"
+              data-id="{{item.id}}"
+              catchtap="removeMaterial"
+              aria-role="button"
+              aria-label="移除素材"
+            >×</view>
+          </view>
+        </view>
+      </view>
+
+      <text class="section-title poem-display">选择诗歌类型</text>
+
+      <view class="category-grid">
+        <button
+          wx:for="{{categories}}"
+          wx:key="code"
+          class="native-button-reset native-button-reset--flex category-card {{selectedCategory === item.code ? 'category-card--active' : ''}}"
+          data-code="{{item.code}}"
+          bindtap="selectCategory"
+          hover-class="button-pressed"
+        >
+          <image
+            class="category-icon"
+            src="/assets/icons/category-{{item.icon}}.svg"
+            mode="aspectFit"
+          ></image>
+          <text class="category-name poem-display">{{item.name}}</text>
+        </button>
+      </view>
+
+      <view wx:if="{{selectedCategory === 'CLASSICAL'}}" class="subtype-panel">
+        <text class="subtype-label">选择体裁</text>
+        <view class="subtype-options">
+          <button
+            wx:for="{{classicalForms}}"
+            wx:key="code"
+            class="native-button-reset subtype-chip {{selectedClassicalForm === item.code ? 'subtype-chip--active' : ''}}"
+            data-code="{{item.code}}"
+            bindtap="selectClassicalForm"
+          >{{item.name}}</button>
+        </view>
+      </view>
+
+      <view wx:if="{{selectedCategory === 'CI'}}" class="subtype-panel">
+        <text class="subtype-label">选择词牌</text>
+        <picker
+          mode="selector"
+          range="{{tunePatterns}}"
+          range-key="name"
+          value="{{selectedTuneIndex}}"
+          bindchange="handleTunePatternChange"
+        >
+          <view class="tune-picker">
+            <text class="poem-display">{{tunePatterns[selectedTuneIndex].name}}</text>
+            <text class="tune-picker__arrow">⌄</text>
+          </view>
+        </picker>
+      </view>
+
+      <view
+        class="primary-button poem-display {{isCreating || isUploading ? 'primary-button--disabled' : ''}}"
+        bindtap="startCreation"
+        hover-class="primary-button--pressed"
+        aria-role="button"
+      >
+        {{isCreating ? '正在创作…' : '开始创作'}}
+      </view>
+    </view>
+  </view>
+</scroll-view>

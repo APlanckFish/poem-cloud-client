@@ -1,0 +1,461 @@
+.result-scroll {
+  height: calc(100vh - 44px - env(safe-area-inset-top));
+  background: #faf9f5;
+}
+
+.result-page {
+  min-height: 100%;
+  padding: 34rpx 34rpx calc(62rpx + env(safe-area-inset-bottom));
+}
+
+.result-heading {
+  position: relative;
+  display: flex;
+  min-height: 58rpx;
+  align-items: center;
+  padding-left: 82rpx;
+}
+
+.result-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 60rpx;
+  height: 60rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #b66b57;
+  color: #a95643;
+  font-size: 19rpx;
+  letter-spacing: 2rpx;
+}
+
+.result-eyebrow {
+  color: #4e5a54;
+  font-size: 23rpx;
+  letter-spacing: 3rpx;
+}
+
+.quota-copy {
+  margin-left: auto;
+  color: #929995;
+  font-size: 20rpx;
+}
+
+.poem-paper {
+  position: relative;
+  min-height: 690rpx;
+  margin-top: 30rpx;
+  overflow: hidden;
+  padding: 70rpx 54rpx 42rpx;
+  border: 1rpx solid rgba(63, 103, 88, 0.1);
+  border-radius: 5rpx;
+  background:
+    linear-gradient(90deg, transparent 0, rgba(63, 103, 88, 0.018) 50%, transparent 100%),
+    #fffef9;
+  box-shadow: 0 14rpx 38rpx rgba(39, 51, 45, 0.07);
+}
+
+.paper-cloud {
+  position: absolute;
+  color: rgba(182, 142, 83, 0.2);
+  font-family: serif;
+  font-size: 72rpx;
+}
+
+.paper-cloud--left {
+  top: 18rpx;
+  left: 24rpx;
+}
+
+.paper-cloud--right {
+  right: 24rpx;
+  bottom: 18rpx;
+  transform: rotate(180deg);
+}
+
+.poem-title-input {
+  width: 100%;
+  height: 78rpx;
+  color: #23483a;
+  font-size: 39rpx;
+  font-weight: 600;
+  letter-spacing: 5rpx;
+  line-height: 78rpx;
+  text-align: center;
+}
+
+.title-rule {
+  width: 74rpx;
+  height: 2rpx;
+  margin: 22rpx auto 42rpx;
+  background: #bd9960;
+}
+
+.poem-content {
+  display: block;
+  color: #2c3732;
+  font-size: 29rpx;
+  letter-spacing: 2rpx;
+  line-height: 2.05;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.poem-foot {
+  position: absolute;
+  right: 38rpx;
+  bottom: 32rpx;
+  left: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #969c98;
+  font-size: 19rpx;
+}
+
+.saved-state {
+  color: #527565;
+}
+
+.result-actions {
+  margin-top: 34rpx;
+}
+
+.save-actions {
+  display: flex;
+}
+
+.save-actions .action-primary,
+.save-actions .action-secondary {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.save-actions .action-primary {
+  margin-left: 16rpx !important;
+}
+
+.action-primary {
+  display: flex;
+  width: 100%;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  background: #2f6653;
+  color: #fff;
+  font-size: 29rpx;
+  letter-spacing: 3rpx;
+  box-shadow: 0 10rpx 24rpx rgba(47, 96, 79, 0.13);
+}
+
+.action-primary.action-disabled {
+  background: #9baaa3;
+  box-shadow: none;
+}
+
+.action-secondary {
+  display: flex;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #557666;
+  border-radius: 999rpx;
+  background: #f7f6f0;
+  color: #315d4c;
+  font-size: 29rpx;
+  letter-spacing: 3rpx;
+}
+
+.action-secondary.action-disabled {
+  border-color: #c7d0cb;
+  background: #f1f1ed;
+  color: #94a099;
+}
+
+.action-hint {
+  display: block;
+  margin-top: 18rpx;
+  color: #969c98;
+  font-size: 20rpx;
+  text-align: center;
+}
+
+.published-state {
+  display: flex;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #94aa9e;
+  border-radius: 999rpx;
+  color: #315d4c;
+  font-size: 28rpx;
+}
+
+.empty-result {
+  display: flex;
+  height: 70vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-result__title {
+  color: #385747;
+  font-size: 34rpx;
+}
+
+.empty-result__copy {
+  margin-top: 16rpx;
+  color: #929995;
+  font-size: 23rpx;
+}
+
+.profile-setup-overlay {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0 calc(24rpx + env(safe-area-inset-bottom));
+  background: rgba(19, 24, 22, 0.43);
+}
+
+.profile-setup-dialog {
+  width: 500rpx;
+  min-height: 610rpx;
+  padding: 49rpx 40rpx 42rpx;
+  border: 1rpx solid rgba(31, 42, 37, 0.08);
+  border-radius: 22rpx;
+  background: #fffefb;
+  box-shadow: 0 20rpx 60rpx rgba(17, 23, 20, 0.16);
+}
+
+.profile-setup-title {
+  display: block;
+  color: #17201c;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 35rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.profile-setup-copy {
+  display: block;
+  margin-top: 13rpx;
+  color: #46675a;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+  line-height: 1.3;
+  text-align: center;
+}
+
+button.avatar-picker {
+  position: relative;
+  display: block;
+  width: 138rpx;
+  min-width: 138rpx;
+  max-width: 138rpx;
+  height: 138rpx;
+  min-height: 138rpx;
+  max-height: 138rpx;
+  margin: 34rpx auto 0;
+  padding: 0;
+  overflow: visible;
+  border-radius: 50%;
+  background: transparent;
+  line-height: 1;
+}
+
+.avatar-picker--pressed {
+  opacity: 0.68;
+}
+
+.avatar-picker__image,
+.avatar-picker__placeholder {
+  width: 138rpx;
+  height: 138rpx;
+  border-radius: 50%;
+}
+
+.avatar-picker__image {
+  display: block;
+  border: 1rpx solid rgba(51, 67, 59, 0.1);
+}
+
+.avatar-picker__placeholder {
+  position: relative;
+  overflow: hidden;
+  border: 1rpx solid rgba(51, 67, 59, 0.08);
+  background: linear-gradient(145deg, #edf0ed, #dfe5e1);
+}
+
+.avatar-picker__placeholder-head {
+  position: absolute;
+  top: 30rpx;
+  left: 50%;
+  width: 40rpx;
+  height: 40rpx;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #aeb9b3;
+}
+
+.avatar-picker__placeholder-body {
+  position: absolute;
+  bottom: 18rpx;
+  left: 50%;
+  width: 78rpx;
+  height: 47rpx;
+  transform: translateX(-50%);
+  border-radius: 52rpx 52rpx 20rpx 20rpx;
+  background: #aeb9b3;
+}
+
+.avatar-picker__camera {
+  position: absolute;
+  right: -2rpx;
+  bottom: -2rpx;
+  display: flex;
+  width: 43rpx;
+  height: 43rpx;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid #fffefb;
+  border-radius: 50%;
+  background: #2f6d55;
+}
+
+.avatar-picker__camera-body {
+  position: relative;
+  width: 21rpx;
+  height: 16rpx;
+  border-radius: 4rpx;
+  background: #fff;
+}
+
+.avatar-picker__camera-body::before {
+  position: absolute;
+  top: -4rpx;
+  left: 6rpx;
+  width: 9rpx;
+  height: 5rpx;
+  border-radius: 3rpx 3rpx 0 0;
+  background: #fff;
+  content: "";
+}
+
+.avatar-picker__camera-lens {
+  position: absolute;
+  top: 4rpx;
+  left: 7rpx;
+  width: 7rpx;
+  height: 7rpx;
+  border: 2rpx solid #2f6d55;
+  border-radius: 50%;
+}
+
+.avatar-picker__label {
+  display: block;
+  margin-top: 13rpx;
+  color: #4f665c;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 21rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.nickname-field {
+  margin-top: 28rpx;
+}
+
+.nickname-field__label {
+  display: block;
+  color: #49514d;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 22rpx;
+  line-height: 1.25;
+}
+
+.nickname-field__control {
+  display: flex;
+  width: 100%;
+  height: 65rpx;
+  align-items: center;
+  margin-top: 10rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid rgba(32, 40, 36, 0.18);
+  border-radius: 10rpx;
+  background: #fffefc;
+}
+
+.nickname-field__input {
+  width: 100%;
+  height: 63rpx;
+  flex: 1;
+  color: #17201c;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 26rpx;
+  line-height: 63rpx;
+}
+
+.profile-setup-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 33rpx;
+}
+
+.profile-setup-save,
+.profile-setup-skip {
+  display: flex;
+  height: 56rpx;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  line-height: 1;
+}
+
+.profile-setup-skip {
+  border: 1rpx solid #315f4d;
+  background: #fffefb;
+  color: #315f4d;
+}
+
+.profile-setup-save {
+  background: linear-gradient(100deg, #315f4d 0%, #2c6c52 100%);
+  color: #fff;
+  font-weight: 500;
+}
+
+.profile-setup-save--pressed,
+.profile-setup-skip--pressed {
+  opacity: 0.72;
+}
+
+.profile-setup-save--disabled {
+  opacity: 0.55;
+}
+
+@media (max-height: 700px) {
+  .poem-paper {
+    min-height: 590rpx;
+    padding-top: 48rpx;
+  }
+
+  .poem-content {
+    font-size: 27rpx;
+    line-height: 1.85;
+  }
+}

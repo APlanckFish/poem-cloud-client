@@ -1,0 +1,125 @@
+<navigation-bar title="意见反馈" back="{{true}}" color="#202824" background="#f8f5f1"></navigation-bar>
+
+<view class="feedback-scroll">
+  <view wx:if="{{!submitted}}" class="feedback-page">
+    <view class="feedback-section">
+      <view class="field-heading">
+        <image class="field-heading__cloud" src="/assets/icons/feedback-cloud.png" mode="aspectFit"></image>
+        <text class="field-title poem-display">问题类型</text>
+      </view>
+      <view class="type-list">
+        <view
+          wx:for="{{types}}"
+          wx:key="*this"
+          class="type-chip {{selectedType === item ? 'type-chip--selected' : ''}}"
+          data-type="{{item}}"
+          bindtap="selectType"
+          hover-class="type-chip--pressed"
+          aria-role="button"
+        >
+          <image
+            wx:if="{{selectedType === item}}"
+            class="selected-check"
+            src="/assets/icons/feedback-selected.png"
+            mode="aspectFit"
+          ></image>
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="textarea-shell">
+      <textarea
+        class="feedback-textarea poem-display"
+        maxlength="500"
+        value="{{content}}"
+        placeholder="请描述你遇到的问题或建议..."
+        placeholder-class="input-placeholder"
+        bindinput="handleContentInput"
+      ></textarea>
+      <text class="character-count">{{content.length}}/500</text>
+    </view>
+
+    <view class="feedback-section feedback-section--images">
+      <view class="field-heading">
+        <image class="field-heading__image" src="/assets/icons/feedback-image.png" mode="aspectFit"></image>
+        <text class="field-title poem-display">添加截图</text>
+        <text class="field-note poem-display">（最多3张）</text>
+      </view>
+      <view class="image-list">
+        <view wx:for="{{images}}" wx:key="*this" class="image-item">
+          <image
+            class="image-preview"
+            src="{{item}}"
+            mode="aspectFill"
+            data-src="{{item}}"
+            bindtap="previewImage"
+          ></image>
+          <view class="image-remove" data-index="{{index}}" catchtap="removeImage">×</view>
+        </view>
+        <view
+          wx:if="{{images.length < 3}}"
+          class="image-picker"
+          bindtap="chooseImages"
+          hover-class="image-picker--pressed"
+          aria-role="button"
+        >
+          <image class="image-picker__plus" src="/assets/icons/feedback-add.png" mode="aspectFit"></image>
+        </view>
+      </view>
+    </view>
+
+    <view class="feedback-section feedback-section--email">
+      <view class="field-heading">
+        <image class="field-heading__contact" src="/assets/icons/feedback-contact.png" mode="aspectFit"></image>
+        <text class="field-title poem-display">联系邮箱</text>
+        <text class="field-note poem-display">（选填）</text>
+      </view>
+      <view class="email-shell">
+        <input
+          class="email-input poem-display"
+          type="text"
+          value="{{email}}"
+          maxlength="120"
+          placeholder="邮箱地址（选填）"
+          placeholder-class="input-placeholder"
+          bindinput="handleEmailInput"
+        />
+      </view>
+    </view>
+
+    <view
+      class="submit-button {{submitting ? 'submit-button--disabled' : ''}}"
+      bindtap="submitFeedback"
+      hover-class="submit-button--pressed"
+      aria-role="button"
+      aria-label="提交反馈"
+      aria-disabled="{{submitting}}"
+    >
+      <image src="/assets/images/feedback-submit-button.png" mode="scaleToFill"></image>
+    </view>
+    <image class="feedback-landscape" src="/assets/images/feedback-bottom.png" mode="widthFix"></image>
+  </view>
+
+  <view wx:else class="success-page">
+    <image class="success-landscape" src="/assets/images/feedback-success-bottom.png" mode="widthFix"></image>
+    <image class="success-image" src="/assets/images/feedback-success.png" mode="aspectFit"></image>
+    <text class="success-title poem-display">反馈已提交</text>
+    <text class="success-copy poem-display">感谢你的建议，我们会认真阅读并持续改进。</text>
+    <view
+      class="success-primary"
+      bindtap="returnToHelp"
+      hover-class="success-primary--pressed"
+      aria-role="button"
+      aria-label="返回帮助与反馈"
+    >
+      <image src="/assets/images/feedback-return-button.png" mode="scaleToFill"></image>
+    </view>
+    <view
+      class="success-secondary poem-display"
+      bindtap="continueFeedback"
+      hover-class="success-secondary--pressed"
+      aria-role="button"
+    >继续反馈</view>
+  </view>
+</view>

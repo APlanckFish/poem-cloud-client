@@ -1,0 +1,79 @@
+<navigation-bar title="我的草稿" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#fbfaf7"></navigation-bar>
+
+<scroll-view class="drafts-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{drafts.length > 0}}" class="drafts-list">
+    <view wx:for="{{drafts}}" wx:key="id" class="swipe-shell">
+      <view
+        wx:if="{{item.offset < 0}}"
+        class="swipe-delete"
+        data-id="{{item.id}}"
+        bindtap="openDeleteConfirm"
+        aria-role="button"
+        aria-label="删除草稿"
+      >
+        <image src="/assets/icons/action-trash.svg" mode="aspectFit"></image>
+        <text class="poem-display">删除</text>
+      </view>
+      <view
+        class="draft-card"
+        data-id="{{item.id}}"
+        style="transform: translateX({{item.offset}}px)"
+        bindtouchstart="handleTouchStart"
+        catchtouchmove="handleTouchMove"
+        bindtouchend="handleTouchEnd"
+        bindtouchcancel="handleTouchEnd"
+      >
+        <image class="draft-cover" src="{{item.cover}}" mode="aspectFill"></image>
+        <view class="draft-copy">
+          <text class="draft-title poem-display">{{item.title}}</text>
+          <text class="draft-edited">最后编辑： {{item.editedAt}}</text>
+          <text class="draft-description">{{item.description}}</text>
+          <view class="material-counts">
+            <view wx:if="{{item.imageCount > 0}}" class="material-count">
+              <image src="/assets/icons/action-image-count.svg" mode="aspectFit"></image>
+              <text>{{item.imageCount}}</text>
+            </view>
+            <view wx:if="{{item.videoCount > 0}}" class="material-count">
+              <image src="/assets/icons/action-video-count.svg" mode="aspectFit"></image>
+              <text>{{item.videoCount}}</text>
+            </view>
+          </view>
+          <view
+            class="continue-button poem-display"
+            data-id="{{item.id}}"
+            catchtap="continueDraft"
+            aria-role="button"
+          >继续创作</view>
+        </view>
+        <image class="drag-icon" src="/assets/icons/action-drag.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="swipe-hint">
+      <image src="/assets/icons/action-trash.svg" mode="aspectFit"></image>
+      <text>左滑可删除草稿</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{hasLoaded && !isLoading}}" class="empty-state">
+    <image class="empty-illustration" src="/assets/images/empty-drafts.png" mode="aspectFit"></image>
+    <text class="empty-title poem-display">暂无草稿</text>
+    <text class="empty-copy">未完成的创作会暂存在这里</text>
+    <view class="empty-outline poem-display" bindtap="startCreating" aria-role="button">开始创作</view>
+    <view class="device-note">
+      <view class="shield-icon">✓</view>
+      <text>匿名草稿仅保存在当前设备</text>
+    </view>
+  </view>
+</scroll-view>
+
+<view wx:if="{{pendingDelete}}" class="dialog-overlay" catchtouchmove="preventMove">
+  <view class="delete-dialog">
+    <text class="dialog-title poem-display">删除这篇草稿？</text>
+    <text class="dialog-copy">删除后将无法恢复，请谨慎操作。</text>
+    <view class="dialog-actions">
+      <view class="dialog-cancel poem-display" bindtap="closeDeleteConfirm">取消</view>
+      <view class="dialog-confirm poem-display" bindtap="confirmDelete">删除</view>
+    </view>
+  </view>
+</view>

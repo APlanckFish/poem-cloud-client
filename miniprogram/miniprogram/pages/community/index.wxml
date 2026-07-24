@@ -1,0 +1,155 @@
+<navigation-bar title="诗词圈" back="{{false}}" color="#202824" background="#faf9f5"></navigation-bar>
+
+<view class="category-tabs">
+  <view
+    wx:for="{{tabs}}"
+    wx:key="code"
+    class="category-tab poem-display {{activeCategory === item.code ? 'category-tab--active' : ''}}"
+    aria-role="button"
+    aria-label="筛选{{item.name}}作品"
+    data-code="{{item.code}}"
+    bindtap="selectCategory"
+  >{{item.name}}</view>
+</view>
+
+<scroll-view
+  wx:if="{{activeCategory === 'CLASSICAL'}}"
+  class="subfilter-scroll"
+  scroll-x
+  enhanced
+  show-scrollbar="{{false}}"
+>
+  <view class="subfilter-row">
+    <view
+      wx:for="{{classicalForms}}"
+      wx:key="code"
+      class="subfilter-chip {{activeClassicalForm === item.code ? 'subfilter-chip--active' : ''}}"
+      data-code="{{item.code}}"
+      bindtap="selectClassicalForm"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<view wx:if="{{activeCategory === 'CI'}}" class="tune-filter" bindtap="openTunePicker">
+  <view class="tune-filter__value">
+    <text class="tune-filter__label poem-display">词牌：</text>
+    <text class="tune-filter__name poem-display">{{selectedTuneName}}</text>
+    <image class="tune-filter__arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+  </view>
+</view>
+
+<scroll-view
+  class="feed-scroll {{activeCategory === 'CLASSICAL' ? 'feed-scroll--classical' : ''}} {{activeCategory === 'CI' ? 'feed-scroll--ci' : ''}}"
+  scroll-y
+  enhanced
+  show-scrollbar="{{false}}"
+  lower-threshold="180"
+  bindscrolltolower="loadMore"
+>
+  <view class="feed-shell">
+    <view class="feed-column">
+      <view wx:for="{{leftColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
+        <image class="poem-cover" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
+        <view class="poem-card__body">
+          <view class="poem-card__heading">
+            <text class="poem-title poem-display">{{item.title}}</text>
+            <text class="poem-tag">{{item.category}}</text>
+          </view>
+          <text class="poem-excerpt poem-display">{{item.excerpt}}</text>
+          <view class="poem-meta">
+            <view class="author-avatar poem-display">
+              <image wx:if="{{item.authorAvatarUrl}}" src="{{item.authorAvatarUrl}}" mode="aspectFill"></image>
+              <text wx:else>{{item.authorInitial}}</text>
+            </view>
+            <text class="author-name">{{item.author}}</text>
+            <image
+              class="like-icon"
+              src="{{item.likedByMe ? '/assets/icons/heart-filled.png' : '/assets/icons/heart-outline.png'}}"
+              mode="aspectFit"
+            ></image>
+            <text class="like-count {{item.likedByMe ? 'like-count--liked' : ''}}">{{item.likes}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="feed-column">
+      <view wx:for="{{rightColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
+        <image class="poem-cover poem-cover--right" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
+        <view class="poem-card__body">
+          <view class="poem-card__heading">
+            <text class="poem-title poem-display">{{item.title}}</text>
+            <text class="poem-tag">{{item.category}}</text>
+          </view>
+          <text class="poem-excerpt poem-display">{{item.excerpt}}</text>
+          <view class="poem-meta">
+            <view class="author-avatar poem-display">
+              <image wx:if="{{item.authorAvatarUrl}}" src="{{item.authorAvatarUrl}}" mode="aspectFill"></image>
+              <text wx:else>{{item.authorInitial}}</text>
+            </view>
+            <text class="author-name">{{item.author}}</text>
+            <image
+              class="like-icon"
+              src="{{item.likedByMe ? '/assets/icons/heart-filled.png' : '/assets/icons/heart-outline.png'}}"
+              mode="aspectFit"
+            ></image>
+            <text class="like-count {{item.likedByMe ? 'like-count--liked' : ''}}">{{item.likes}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{isLoading && !hasLoaded}}" class="empty-state">
+      <text class="empty-title poem-display">正在寻诗</text>
+      <text class="empty-copy">翻开诗词圈的一页</text>
+    </view>
+
+    <view wx:elif="{{hasLoaded && leftColumn.length === 0 && rightColumn.length === 0}}" class="empty-state">
+      <text class="empty-title poem-display">此处尚无诗作</text>
+      <text class="empty-copy">成为第一个发布的人吧</text>
+    </view>
+  </view>
+</scroll-view>
+
+<view
+  wx:if="{{showTunePicker}}"
+  class="tune-picker-overlay"
+  catchtouchmove="preventMove"
+  bindtap="closeTunePicker"
+>
+  <view class="tune-picker-sheet" catchtap="preventMove">
+    <view class="tune-picker-head">
+      <view class="tune-picker-spacer"></view>
+      <text class="tune-picker-title poem-display">选择词牌</text>
+      <text class="tune-picker-reset poem-display" bindtap="resetTunePicker">重置</text>
+    </view>
+
+    <view class="tune-search">
+      <view class="tune-search__icon"></view>
+      <input
+        class="tune-search__input poem-display"
+        value="{{tuneSearch}}"
+        placeholder="搜索词牌名"
+        placeholder-class="tune-search__placeholder"
+        bindinput="handleTuneSearch"
+      />
+    </view>
+
+    <scroll-view class="tune-options-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="tune-options">
+        <view
+          wx:for="{{visibleTunePatterns}}"
+          wx:key="code"
+          class="tune-option poem-display {{pendingTuneCode === item.code ? 'tune-option--active' : ''}}"
+          data-code="{{item.code}}"
+          bindtap="selectPendingTune"
+        >{{item.name}}</view>
+      </view>
+      <view wx:if="{{visibleTunePatterns.length === 0}}" class="tune-no-result poem-display">
+        没有找到相关词牌
+      </view>
+    </scroll-view>
+
+    <view class="tune-confirm poem-display" bindtap="confirmTunePicker">确定</view>
+  </view>
+</view>

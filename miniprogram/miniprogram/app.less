@@ -1,0 +1,66 @@
+page {
+  min-height: 100%;
+  background: #f7f5ef;
+  color: #202824;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+}
+
+view,
+text,
+button,
+input,
+textarea,
+image,
+scroll-view {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button::after {
+  border: 0;
+}
+
+page button.native-button-reset:not([size="mini"]) {
+  width: auto !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+page button.native-button-reset.native-button-reset--flex:not([size="mini"]) {
+  width: 0 !important;
+  min-width: 0;
+  flex: 1;
+}
+
+page button.native-button-reset.native-button-reset--block:not([size="mini"]) {
+  width: 100% !important;
+}
+
+.poem-display {
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+
+.page-scroll {
+  height: 100vh;
+}
+
+.page-content {
+  padding: 0 32rpx calc(164rpx + env(safe-area-inset-bottom));
+}
+
+.card {
+  border: 1rpx solid rgba(63, 103, 88, 0.1);
+  border-radius: 28rpx;
+  background: rgba(255, 254, 250, 0.96);
+  box-shadow: 0 10rpx 34rpx rgba(45, 58, 51, 0.055);
+}

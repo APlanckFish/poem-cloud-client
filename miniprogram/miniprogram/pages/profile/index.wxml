@@ -1,0 +1,230 @@
+<navigation-bar title="我的" back="{{false}}" color="#202824" background="#fbfaf7"></navigation-bar>
+
+<scroll-view
+  class="page-scroll"
+  scroll-y
+  enhanced
+  bounces="{{false}}"
+  refresher-enabled="{{false}}"
+  show-scrollbar="{{false}}"
+>
+  <view class="page-content profile-page">
+    <view class="identity-section">
+      <view class="profile-main {{isLoggedIn ? 'profile-main--logged' : 'profile-main--guest'}}">
+        <view class="avatar-shell">
+          <image
+            wx:if="{{isLoggedIn && displayAvatarUrl}}"
+            class="avatar-image"
+            src="{{displayAvatarUrl}}"
+            mode="aspectFill"
+          ></image>
+          <view wx:else class="avatar-default">
+            <view class="default-head"></view>
+            <view class="default-body"></view>
+          </view>
+        </view>
+
+        <view class="profile-copy">
+          <block wx:if="{{isLoggedIn}}">
+            <view class="profile-name-row">
+              <text class="profile-name poem-display">{{user.nickname}}</text>
+              <view
+                class="profile-edit-button"
+                bindtap="openProfileSetup"
+                hover-class="profile-edit-button--pressed"
+                aria-role="button"
+                aria-label="编辑个人资料"
+              >
+                <image class="edit-mark" src="/assets/icons/common-edit.svg" mode="aspectFit"></image>
+              </view>
+            </view>
+            <view class="account-tag">
+              <text class="account-tag__copy">{{rankLabel}}</text>
+            </view>
+          </block>
+          <block wx:else>
+            <text class="profile-name poem-display">诗云访客</text>
+            <text class="profile-subtitle">登录后同步作品与草稿</text>
+            <view
+              class="login-button {{isLoggingIn ? 'login-button--disabled' : ''}}"
+              bindtap="handleLogin"
+              hover-class="login-button--pressed"
+              aria-role="button"
+              aria-label="登录"
+              aria-disabled="{{isLoggingIn}}"
+            >登录</view>
+          </block>
+        </view>
+
+        <view
+          wx:if="{{isLoggedIn}}"
+          class="logout-button"
+          bindtap="handleLogout"
+          hover-class="logout-button--pressed"
+          aria-role="button"
+          aria-label="登出当前账号"
+        >登出</view>
+      </view>
+
+      <view wx:if="{{isLoggedIn}}" class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value poem-display">{{isLoggedIn ? stats.works : '—'}}</text>
+          <text class="stat-label">作品</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value poem-display">{{isLoggedIn ? stats.drafts : '—'}}</text>
+          <text class="stat-label">草稿</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value poem-display">{{isLoggedIn ? stats.likes : '—'}}</text>
+          <text class="stat-label">获赞</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value poem-display">{{isLoggedIn ? stats.following : '—'}}</text>
+          <text class="stat-label">关注</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="quota-card">
+      <view class="quota-copy">
+        <text class="quota-label poem-display">今日可创作</text>
+        <view class="quota-value-row">
+          <text class="quota-value">{{quotaLoaded ? quota.remaining : '—'}}</text>
+          <text class="quota-unit">次</text>
+        </view>
+      </view>
+      <view class="quota-meter">
+        <view class="quota-ring {{quotaRingClass}}">
+          <view class="quota-ring__inner">
+            <text class="quota-ring__value">{{quotaLoaded ? quota.remaining + '/' + quota.limit : '—/—'}}</text>
+          </view>
+        </view>
+        <text class="quota-ring__label">{{quotaLoaded ? '每日 ' + quota.limit + ' 次' : '正在同步'}}</text>
+      </view>
+    </view>
+
+    <view class="menu-card">
+      <view
+        wx:for="{{libraryMenus}}"
+        wx:key="key"
+        class="menu-row"
+        data-key="{{item.key}}"
+        data-protected="{{item.protected}}"
+        bindtap="handleMenu"
+        hover-class="menu-row--pressed"
+        aria-role="button"
+      >
+        <image class="menu-icon" src="/assets/icons/menu-{{item.key}}.svg" mode="aspectFit"></image>
+        <text class="menu-label">{{item.label}}</text>
+        <text wx:if="{{isLoggedIn && item.key === 'works'}}" class="menu-value">{{stats.works}}</text>
+        <text wx:if="{{item.key === 'drafts' && (isLoggedIn || stats.drafts > 0)}}" class="menu-value">{{stats.drafts}}</text>
+        <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="menu-card">
+      <view
+        wx:for="{{accountMenus}}"
+        wx:key="key"
+        class="menu-row"
+        data-key="{{item.key}}"
+        data-protected="{{item.protected}}"
+        bindtap="handleMenu"
+        hover-class="menu-row--pressed"
+        aria-role="button"
+      >
+        <image class="menu-icon" src="/assets/icons/menu-{{item.key}}.svg" mode="aspectFit"></image>
+        <text class="menu-label">{{item.label}}</text>
+        <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="menu-card">
+      <view
+        wx:for="{{supportMenus}}"
+        wx:key="key"
+        class="menu-row"
+        data-key="{{item.key}}"
+        data-protected="{{item.protected}}"
+        bindtap="handleMenu"
+        hover-class="menu-row--pressed"
+        aria-role="button"
+      >
+        <image class="menu-icon" src="/assets/icons/menu-{{item.key}}.svg" mode="aspectFit"></image>
+        <text class="menu-label">{{item.label}}</text>
+        <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+
+  </view>
+</scroll-view>
+
+<view wx:if="{{showProfileSetup}}" class="profile-setup-overlay" catchtouchmove="preventMove">
+  <view class="profile-setup-dialog">
+    <text class="profile-setup-title poem-display">完善微信资料</text>
+    <text class="profile-setup-copy poem-display">让诗友更好地认识你</text>
+
+    <button
+      class="avatar-picker"
+      size="mini"
+      open-type="chooseAvatar"
+      bindchooseavatar="handleChooseAvatar"
+      hover-class="avatar-picker--pressed"
+      aria-label="选择微信头像"
+    >
+      <image
+        wx:if="{{pendingAvatarUrl}}"
+        class="avatar-picker__image"
+        src="{{pendingAvatarUrl}}"
+        mode="aspectFill"
+      ></image>
+      <view wx:else class="avatar-picker__placeholder">
+        <view class="avatar-picker__placeholder-head"></view>
+        <view class="avatar-picker__placeholder-body"></view>
+      </view>
+      <view class="avatar-picker__camera">
+        <view class="avatar-picker__camera-body">
+          <view class="avatar-picker__camera-lens"></view>
+        </view>
+      </view>
+    </button>
+    <text class="avatar-picker__label poem-display">点击更换头像</text>
+
+    <view class="nickname-field">
+      <text class="nickname-field__label poem-display">昵称</text>
+      <view class="nickname-field__control">
+        <input
+          class="nickname-field__input poem-display"
+          type="nickname"
+          maxlength="24"
+          value="{{pendingNickname}}"
+          placeholder="请输入昵称"
+          bindinput="handleNicknameInput"
+          bindchange="handleNicknameInput"
+          bindblur="handleNicknameInput"
+        />
+      </view>
+    </view>
+
+    <view class="profile-setup-actions">
+      <view
+        class="profile-setup-skip"
+        bindtap="handleProfileSetupSkip"
+        hover-class="profile-setup-skip--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >稍后再说</view>
+      <view
+        class="profile-setup-save {{isSavingProfile ? 'profile-setup-save--disabled' : ''}}"
+        bindtap="handleProfileSetupSave"
+        hover-class="profile-setup-save--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >{{isSavingProfile ? '保存中…' : '保存资料'}}</view>
+    </view>
+  </view>
+</view>

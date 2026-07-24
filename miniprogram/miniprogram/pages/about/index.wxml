@@ -1,0 +1,31 @@
+<navigation-bar title="关于诗云" back="{{true}}" color="#202824" background="#f5f1ea"></navigation-bar>
+
+<view class="about-scroll">
+  <view class="about-stage">
+    <view class="about-page">
+      <view class="brand-block">
+        <image class="brand-mark" src="/assets/images/about-mark.jpg" mode="aspectFill"></image>
+        <text class="brand-name poem-display">诗云</text>
+        <text class="brand-slogan poem-display">把此刻，写成诗</text>
+        <text class="brand-version">版本 {{version}}</text>
+      </view>
+
+      <view class="document-card">
+        <view
+          wx:for="{{documents}}"
+          wx:key="key"
+          class="document-row"
+          bindtap="handleDocumentTap"
+          hover-class="document-row--pressed"
+          aria-role="button"
+        >
+          <image class="document-icon" src="{{item.icon}}" mode="aspectFit"></image>
+          <text class="document-label poem-display">{{item.label}}</text>
+          <image class="document-arrow" src="/assets/icons/common-chevron-right.png" mode="aspectFit"></image>
+        </view>
+      </view>
+    </view>
+
+    <image class="about-bottom" src="/assets/images/about-bottom.png" mode="widthFix"></image>
+  </view>
+</view>

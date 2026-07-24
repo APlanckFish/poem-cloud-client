@@ -1,0 +1,87 @@
+<navigation-bar title="作品详情" back="{{true}}" color="#202824" background="#fffefa"></navigation-bar>
+
+<scroll-view class="detail-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{publication}}" class="detail-page">
+    <view class="detail-paper">
+      <view class="detail-paper__scene">
+        <image class="detail-paper__scene-image" src="{{coverUrl}}" mode="aspectFill"></image>
+        <view class="detail-paper__scene-fade"></view>
+      </view>
+
+      <text class="detail-title poem-display">{{publication.title}}</text>
+      <view class="detail-type poem-display">{{categoryName}}</view>
+
+      <view class="detail-author">
+        <view class="detail-author__avatar poem-display">
+          <image
+            wx:if="{{publication.author.avatarUrl}}"
+            src="{{publication.author.avatarUrl}}"
+            mode="aspectFill"
+          ></image>
+          <text wx:else>{{authorInitial}}</text>
+        </view>
+        <view class="detail-author__copy">
+          <text class="detail-author__name poem-display">{{publication.author.nickname}}</text>
+          <text
+            wx:if="{{publishedDate}}"
+            class="detail-author__date"
+          >{{publishedDate}}</text>
+        </view>
+      </view>
+
+      <text class="detail-content poem-display" user-select>{{publication.content}}</text>
+    </view>
+
+    <view
+      wx:if="{{isPublic}}"
+      class="detail-actions"
+    >
+      <button
+        class="native-button-reset detail-action detail-action--like {{publication.likedByMe ? 'detail-action--liked' : ''}}"
+        bindtap="toggleLike"
+      >
+        <view class="detail-like__summary">
+          <view class="like-anchor">
+            <image
+              class="heart-icon {{showLikeBurst ? 'heart-icon--pop' : ''}}"
+              src="{{publication.likedByMe ? '/assets/icons/heart-filled.png' : '/assets/icons/heart-outline.png'}}"
+              mode="aspectFit"
+            ></image>
+            <view wx:if="{{showLikeBurst}}" class="like-burst">
+              <view class="like-burst__ring"></view>
+              <view class="like-burst__particle like-burst__particle--1"></view>
+              <view class="like-burst__particle like-burst__particle--2"></view>
+              <view class="like-burst__particle like-burst__particle--3"></view>
+              <view class="like-burst__particle like-burst__particle--4"></view>
+              <view class="like-burst__particle like-burst__particle--5"></view>
+              <view class="like-burst__particle like-burst__particle--6"></view>
+            </view>
+          </view>
+          <text class="detail-like-count">{{publication.likeCount}}</text>
+        </view>
+        <view class="detail-like__state">{{publication.likedByMe ? '已点赞' : '点赞'}}</view>
+      </button>
+      <button class="native-button-reset native-button-reset--block detail-action detail-action--share" open-type="share">
+        <image src="/assets/icons/action-wechat.png" mode="aspectFit"></image>
+        <text>分享给好友</text>
+      </button>
+      <view
+        wx:if="{{canFollow}}"
+        class="detail-action detail-action--follow {{followedByMe ? 'detail-action--followed' : ''}}"
+        bindtap="toggleFollow"
+      >
+        <image src="/assets/icons/action-follow.png" mode="aspectFit"></image>
+        <text>{{followedByMe ? '已关注' : '关注作者'}}</text>
+      </view>
+    </view>
+
+    <view class="creation-foot poem-display">
+      <text class="creation-foot__leaf">〽</text>
+      <text>创作于</text>
+      <text class="creation-foot__place">诗云</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{isLoading}}" class="detail-empty poem-display">正在展开诗笺…</view>
+  <view wx:else class="detail-empty poem-display">这首诗暂时无法查看</view>
+</scroll-view>
