@@ -135,7 +135,7 @@
         hover-class="primary-button--pressed"
         aria-role="button"
       >
-        {{isCreating ? '正在创作…' : '开始创作'}}
+        {{isCreating ? '正在创作…' : (isCheckingPreferences ? '正在准备…' : '开始创作')}}
       </view>
     </view>
   </view>

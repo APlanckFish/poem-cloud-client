@@ -1,0 +1,262 @@
+.preference-page {
+  position: relative;
+  height: calc(100vh - 44px - env(safe-area-inset-top));
+  overflow: hidden;
+  background: #faf9f5;
+}
+
+.progress {
+  position: relative;
+  z-index: 2;
+  padding: 36rpx 40rpx 0;
+  background: #faf9f5;
+}
+
+.progress__text {
+  color: #315f4d;
+  font-size: 27rpx;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2rpx;
+}
+
+.progress__track {
+  height: 5rpx;
+  margin-top: 18rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: #e0e4e1;
+}
+
+.progress__value {
+  height: 100%;
+  border-radius: inherit;
+  background: #315f4d;
+  transition: width 180ms ease;
+}
+
+.question-scroll {
+  height: calc(100% - 104rpx);
+}
+
+.question {
+  padding: 76rpx 40rpx calc(164rpx + env(safe-area-inset-bottom));
+}
+
+.question__title {
+  display: block;
+  color: #202824;
+  font-size: 46rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  line-height: 1.45;
+}
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+  margin-top: 66rpx;
+}
+
+.option-list--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22rpx 26rpx;
+}
+
+.option {
+  min-height: 96rpx;
+  padding: 0 28rpx;
+  border: 1rpx solid rgba(32, 40, 36, 0.18);
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.option--described {
+  padding-top: 2rpx;
+}
+
+.option--selected {
+  border-color: #315f4d;
+  background: #eff4f0;
+  color: #315f4d;
+}
+
+.option--pressed {
+  opacity: 0.7;
+}
+
+.option__main {
+  display: flex;
+  min-height: 94rpx;
+  align-items: center;
+}
+
+.option__label {
+  flex: 1;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 30rpx;
+  line-height: 1.35;
+}
+
+.option__info {
+  display: flex;
+  width: 32rpx;
+  height: 32rpx;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12rpx;
+  border: 1rpx solid #8c948f;
+  border-radius: 50%;
+  color: #7b837f;
+  font-family: Georgia, serif;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.option__check {
+  margin-left: 16rpx;
+  color: #315f4d;
+  font-size: 31rpx;
+}
+
+.option__description {
+  display: block;
+  margin: -6rpx 0 24rpx;
+  color: #747c78;
+  font-size: 22rpx;
+  line-height: 1.55;
+}
+
+.custom {
+  margin-top: 42rpx;
+}
+
+.custom__row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.custom__input {
+  height: 86rpx;
+  min-width: 0;
+  flex: 1;
+  padding: 0 25rpx;
+  border: 1rpx solid rgba(32, 40, 36, 0.25);
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.76);
+  color: #202824;
+  font-size: 27rpx;
+}
+
+.custom__add {
+  display: flex;
+  width: 126rpx;
+  height: 86rpx;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #315f4d;
+  border-radius: 16rpx;
+  color: #315f4d;
+  font-size: 27rpx;
+}
+
+.custom__add--pressed {
+  background: #eff4f0;
+}
+
+.custom__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.custom__tag {
+  display: flex;
+  height: 62rpx;
+  align-items: center;
+  gap: 13rpx;
+  padding: 0 21rpx;
+  border: 1rpx solid rgba(32, 40, 36, 0.2);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #202824;
+  font-size: 25rpx;
+}
+
+.custom__remove {
+  color: #818783;
+  font-size: 30rpx;
+  font-weight: 300;
+}
+
+.footer {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  padding: 22rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid rgba(32, 40, 36, 0.06);
+  background: #faf9f5;
+}
+
+.footer__previous {
+  display: flex;
+  width: 142rpx;
+  height: 94rpx;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: #315f4d;
+  font-size: 28rpx;
+}
+
+.footer__primary {
+  display: flex;
+  height: 94rpx;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22rpx;
+  background: #315f4d;
+  color: #fff;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 31rpx;
+  letter-spacing: 2rpx;
+}
+
+.footer__primary--full {
+  width: 100%;
+}
+
+.footer__primary--pressed,
+.footer__previous--pressed {
+  opacity: 0.68;
+}
+
+.footer__primary--disabled {
+  opacity: 0.55;
+}
+
+.state-view {
+  display: flex;
+  height: 72%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28rpx;
+  color: #737a76;
+  font-size: 27rpx;
+}
+
+.retry-button {
+  padding: 16rpx 34rpx;
+  border: 1rpx solid #315f4d;
+  border-radius: 999rpx;
+  color: #315f4d;
+}

@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/create/index",
+    "pages/creation-preferences/index",
     "pages/create-result/index",
     "pages/community/index",
     "pages/publication-detail/index",

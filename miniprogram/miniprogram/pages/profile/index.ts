@@ -280,10 +280,17 @@ Page({
       return
     }
     const key = String(event.currentTarget.dataset.key)
-    if (key === 'works' || key === 'drafts' || key === 'feedback' || key === 'about') {
+    if (
+      key === 'works'
+      || key === 'drafts'
+      || key === 'preferences'
+      || key === 'feedback'
+      || key === 'about'
+    ) {
       const pageByKey: Record<string, string> = {
         works: '/pages/my-works/index',
         drafts: '/pages/my-drafts/index',
+        preferences: '/pages/creation-preferences/index',
         feedback: '/pages/help/index',
         about: '/pages/about/index',
       }

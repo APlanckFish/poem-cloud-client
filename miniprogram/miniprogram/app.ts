@@ -24,6 +24,7 @@ function resetTestDataOnce(): void {
     STORAGE_KEYS.localCreationDrafts,
     STORAGE_KEYS.creationNeedsReset,
     STORAGE_KEYS.communityNeedsRefresh,
+    STORAGE_KEYS.creationResumeAfterPreferences,
   ]
   keysToClear.forEach((key) => wx.removeStorageSync(key))
   wx.setStorageSync(STORAGE_KEYS.clientDataResetVersion, CLIENT_DATA_RESET_VERSION)

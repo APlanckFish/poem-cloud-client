@@ -11,7 +11,9 @@ import {
   savePendingCreation,
 } from '../../services/creation'
 import { ensureInstallation } from '../../services/installation'
+import { loadCreationPreferences } from '../../services/preferences'
 import { loadCreationQuota } from '../../services/profile'
+import { STORAGE_KEYS } from '../../config/api'
 
 interface ValueChangeEvent {
   detail: {
@@ -131,6 +133,9 @@ Page({
     maxVideoCount: MAX_VIDEO_COUNT,
     isUploading: false,
     isCreating: false,
+    isCheckingPreferences: false,
+    preferenceCheckPassed: false,
+    preferenceAnswers: {} as Record<string, string[]>,
     editingWorkId: '',
     editingVersion: 0,
     quota: {
@@ -213,6 +218,23 @@ Page({
       })
     }
     void this.refreshQuota()
+    const preferenceResume = wx.getStorageSync(STORAGE_KEYS.creationResumeAfterPreferences)
+    if (preferenceResume && typeof preferenceResume === 'object') {
+      wx.removeStorageSync(STORAGE_KEYS.creationResumeAfterPreferences)
+      const poemType = String(preferenceResume.poemType || '')
+      const selectedCategory = ['CLASSICAL', 'MODERN', 'CI'].includes(poemType)
+        ? poemType as PoemCategory
+        : this.data.selectedCategory
+      this.setData({
+        selectedCategory,
+        preferenceCheckPassed: true,
+        preferenceAnswers: {
+          poemType: poemType ? [poemType] : [],
+          styles: Array.isArray(preferenceResume.styles) ? preferenceResume.styles : [],
+        },
+      })
+      setTimeout(() => void this.startCreation(), 80)
+    }
   },
 
   async refreshQuota() {
@@ -372,7 +394,32 @@ Page({
   },
 
   async startCreation() {
-    if (this.data.isCreating || this.data.isUploading) return
+    if (this.data.isCreating || this.data.isUploading || this.data.isCheckingPreferences) return
+    const prompt = this.data.prompt.trim()
+    if (!prompt) {
+      wx.showToast({ title: '先写下想表达的内容', icon: 'none' })
+      return
+    }
+    if (!this.data.preferenceCheckPassed) {
+      this.setData({ isCheckingPreferences: true })
+      try {
+        await ensureInstallation()
+        const preferenceState = await loadCreationPreferences()
+        if (!preferenceState.completed) {
+          wx.navigateTo({ url: '/pages/creation-preferences/index?returnTo=create' })
+          return
+        }
+        this.setData({
+          preferenceCheckPassed: true,
+          preferenceAnswers: preferenceState.preference?.answers ?? {},
+        })
+      } catch (error) {
+        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        return
+      } finally {
+        this.setData({ isCheckingPreferences: false })
+      }
+    }
     if (this.data.quotaLoaded && this.data.quota.remaining <= 0) {
       if (hasAccessToken()) {
         wx.showToast({ title: '今日创作次数已用完', icon: 'none' })
@@ -390,11 +437,6 @@ Page({
         wx.hideLoading()
       }
     }
-    const prompt = this.data.prompt.trim()
-    if (!prompt) {
-      wx.showToast({ title: '先写下想表达的内容', icon: 'none' })
-      return
-    }
     const tunePattern = this.data.tunePatterns[this.data.selectedTuneIndex]
     if (this.data.selectedCategory === 'CI' && !tunePattern) {
       wx.showToast({ title: '请选择词牌', icon: 'none' })
@@ -406,7 +448,7 @@ Page({
       classicalFormCode:
         this.data.selectedCategory === 'CLASSICAL' ? this.data.selectedClassicalForm : null,
       tunePatternCode: this.data.selectedCategory === 'CI' ? tunePattern?.code ?? null : null,
-      styleTags: [],
+      styleTags: (this.data.preferenceAnswers.styles ?? []).slice(0, 10),
       lengthHint: null,
     }
 
@@ -447,7 +489,7 @@ Page({
       wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
     } finally {
       wx.hideLoading()
-      this.setData({ isCreating: false })
+      this.setData({ isCreating: false, preferenceCheckPassed: false })
     }
   },
 })

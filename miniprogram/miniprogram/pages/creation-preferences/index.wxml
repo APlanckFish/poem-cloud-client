@@ -1,0 +1,108 @@
+<navigation-bar title="创作偏好" back="{{true}}" color="#202824" background="#faf9f5"></navigation-bar>
+
+<view class="preference-page">
+  <view wx:if="{{isLoading}}" class="state-view">
+    <text>正在加载…</text>
+  </view>
+
+  <view wx:elif="{{loadFailed}}" class="state-view">
+    <text>暂时无法加载偏好问卷</text>
+    <view class="retry-button" bindtap="retryLoad" aria-role="button">重新加载</view>
+  </view>
+
+  <block wx:elif="{{currentQuestion}}">
+    <view class="progress">
+      <text class="progress__text">{{progressText}}</text>
+      <view class="progress__track">
+        <view class="progress__value" style="width: {{progressWidth}}"></view>
+      </view>
+    </view>
+
+    <scroll-view class="question-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="question">
+        <text class="question__title poem-display">{{currentQuestion.title}}</text>
+
+        <view class="option-list {{currentQuestion.type === 'multiple' ? 'option-list--grid' : ''}}">
+          <view
+            wx:for="{{currentQuestion.options}}"
+            wx:key="value"
+            class="option {{item.selected ? 'option--selected' : ''}} {{item.description ? 'option--described' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            hover-class="option--pressed"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >
+            <view class="option__main">
+              <text class="option__label">{{item.label}}</text>
+              <view
+                wx:if="{{item.description}}"
+                class="option__info"
+                data-value="{{item.value}}"
+                catchtap="toggleOptionInfo"
+                aria-role="button"
+                aria-label="查看说明"
+              >i</view>
+              <text wx:if="{{item.selected}}" class="option__check">✓</text>
+            </view>
+            <text
+              wx:if="{{item.description && expandedOption === item.value}}"
+              class="option__description"
+            >{{item.description}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{currentQuestion.allowCustom}}" class="custom">
+          <view class="custom__row">
+            <input
+              class="custom__input"
+              value="{{customInput}}"
+              maxlength="40"
+              placeholder="{{currentQuestion.customPlaceholder || '输入其他选项'}}"
+              bindinput="handleCustomInput"
+              bindconfirm="addCustomValue"
+              confirm-type="done"
+            />
+            <view
+              class="custom__add"
+              bindtap="addCustomValue"
+              hover-class="custom__add--pressed"
+              aria-role="button"
+            >添加</view>
+          </view>
+          <view wx:if="{{customValues.length}}" class="custom__tags">
+            <view
+              wx:for="{{customValues}}"
+              wx:key="*this"
+              class="custom__tag"
+              data-value="{{item}}"
+              bindtap="removeCustomValue"
+              aria-role="button"
+              aria-label="删除{{item}}"
+            >
+              <text>{{item}}</text>
+              <text class="custom__remove">×</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="footer">
+      <view
+        wx:if="{{currentIndex > 0}}"
+        class="footer__previous"
+        bindtap="previousQuestion"
+        hover-class="footer__previous--pressed"
+        aria-role="button"
+      >上一步</view>
+      <view
+        class="footer__primary {{currentIndex === 0 ? 'footer__primary--full' : ''}} {{isSaving ? 'footer__primary--disabled' : ''}}"
+        bindtap="nextQuestion"
+        hover-class="footer__primary--pressed"
+        aria-role="button"
+        aria-disabled="{{isSaving}}"
+      >{{primaryText}}</view>
+    </view>
+  </block>
+</view>
