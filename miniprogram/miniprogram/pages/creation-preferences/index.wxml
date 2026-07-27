@@ -26,29 +26,28 @@
           <view
             wx:for="{{currentQuestion.options}}"
             wx:key="value"
-            class="option {{item.selected ? 'option--selected' : ''}} {{item.description ? 'option--described' : ''}}"
-            data-value="{{item.value}}"
-            bindtap="selectOption"
-            hover-class="option--pressed"
-            aria-role="button"
-            aria-checked="{{item.selected}}"
+            class="option-slot {{item.description ? 'option-slot--described' : ''}}"
           >
-            <view class="option__main">
-              <text class="option__label">{{item.label}}</text>
+            <view
+              class="option {{item.selected ? 'option--selected' : ''}} {{item.description ? 'option--described' : ''}}"
+              data-value="{{item.value}}"
+              bindtap="selectOption"
+              hover-class="option--pressed"
+              aria-role="button"
+              aria-checked="{{item.selected}}"
+            >
+              <view class="option__main">
+                <text class="option__label">{{item.label}}</text>
+                <text wx:if="{{item.selected}}" class="option__check">✓</text>
+              </view>
               <view
                 wx:if="{{item.description}}"
-                class="option__info"
-                data-value="{{item.value}}"
-                catchtap="toggleOptionInfo"
-                aria-role="button"
-                aria-label="查看说明"
-              >i</view>
-              <text wx:if="{{item.selected}}" class="option__check">✓</text>
+                class="option__description-shell {{expandedOption === item.value ? 'option__description-shell--open' : ''}}"
+                aria-hidden="{{expandedOption !== item.value}}"
+              >
+                <text class="option__description">{{item.description}}</text>
+              </view>
             </view>
-            <text
-              wx:if="{{item.description && expandedOption === item.value}}"
-              class="option__description"
-            >{{item.description}}</text>
           </view>
         </view>
 
@@ -89,20 +88,23 @@
     </scroll-view>
 
     <view class="footer">
-      <view
-        wx:if="{{currentIndex > 0}}"
-        class="footer__previous"
-        bindtap="previousQuestion"
-        hover-class="footer__previous--pressed"
-        aria-role="button"
-      >上一步</view>
-      <view
-        class="footer__primary {{currentIndex === 0 ? 'footer__primary--full' : ''}} {{isSaving ? 'footer__primary--disabled' : ''}}"
-        bindtap="nextQuestion"
-        hover-class="footer__primary--pressed"
-        aria-role="button"
-        aria-disabled="{{isSaving}}"
-      >{{primaryText}}</view>
+      <view class="footer__actions">
+        <view
+          wx:if="{{currentIndex > 0}}"
+          class="footer__previous"
+          bindtap="previousQuestion"
+          hover-class="footer__previous--pressed"
+          aria-role="button"
+        >上一步</view>
+        <view
+          class="footer__primary {{currentIndex === 0 ? 'footer__primary--full' : ''}} {{isSaving ? 'footer__primary--disabled' : ''}}"
+          bindtap="nextQuestion"
+          hover-class="footer__primary--pressed"
+          aria-role="button"
+          aria-disabled="{{isSaving}}"
+        >{{primaryText}}</view>
+      </view>
+      <view class="footer__safe-area"></view>
     </view>
   </block>
 </view>

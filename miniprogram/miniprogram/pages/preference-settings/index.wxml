@@ -1,0 +1,135 @@
+<navigation-bar title="创作偏好" back="{{true}}" color="#202824" background="#faf9f5"></navigation-bar>
+
+<view class="settings-page">
+  <view wx:if="{{isLoading}}" class="state-view">
+    <text>正在加载…</text>
+  </view>
+
+  <view wx:elif="{{loadFailed}}" class="state-view">
+    <text>暂时无法加载创作偏好</text>
+    <view class="retry-button" bindtap="retryLoad" aria-role="button">重新加载</view>
+  </view>
+
+  <scroll-view wx:else class="settings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="settings-content">
+      <view class="setting-card">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-type.png" mode="aspectFit"></image>
+          <text class="poem-display">默认诗词类型</text>
+        </view>
+        <view class="segment-control">
+          <view
+            wx:for="{{poemTypeOptions}}"
+            wx:key="value"
+            class="segment-control__item {{item.selected ? 'segment-control__item--selected' : ''}}"
+            data-key="poemType"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >{{item.label}}</view>
+        </view>
+        <text class="setting-card__hint">设定默认的诗词类型，创作时可随时切换</text>
+      </view>
+
+      <view class="setting-card">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-rhyme.png" mode="aspectFit"></image>
+          <text class="poem-display">默认韵表</text>
+        </view>
+        <view class="segment-control segment-control--rhyme">
+          <view
+            wx:for="{{rhymeSchemeOptions}}"
+            wx:key="value"
+            class="segment-control__item segment-control__item--rhyme {{item.selected ? 'segment-control__item--selected' : ''}}"
+            data-key="rhymeScheme"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >{{item.label}}</view>
+        </view>
+        <text class="setting-card__hint">{{selectedRhymeDescription}}</text>
+      </view>
+
+      <view class="setting-card">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-poets.png" mode="aspectFit"></image>
+          <text class="poem-display">喜欢的诗人</text>
+        </view>
+        <view class="chip-grid">
+          <view
+            wx:for="{{poetOptions}}"
+            wx:key="value"
+            class="preference-chip {{item.selected ? 'preference-chip--selected' : ''}}"
+            data-key="poets"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >{{item.label}}</view>
+          <view
+            class="preference-chip preference-chip--add"
+            data-key="poets"
+            bindtap="addCustomOption"
+            aria-role="button"
+          >＋ 自定义</view>
+        </view>
+        <text class="setting-card__hint">可多选，用于理解你偏好的表达方式</text>
+      </view>
+
+      <view class="setting-card">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-style.png" mode="aspectFit"></image>
+          <text class="poem-display">默认风格</text>
+        </view>
+        <view class="chip-grid">
+          <view
+            wx:for="{{styleOptions}}"
+            wx:key="value"
+            class="preference-chip {{item.selected ? 'preference-chip--selected' : ''}}"
+            data-key="styles"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >{{item.label}}</view>
+          <view
+            class="preference-chip preference-chip--add"
+            data-key="styles"
+            bindtap="addCustomOption"
+            aria-role="button"
+          >＋ 自定义</view>
+        </view>
+        <text class="setting-card__hint">设定默认的风格倾向，创作时仍可调整</text>
+      </view>
+
+      <view class="setting-card setting-card--generation">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-generation.png" mode="aspectFit"></image>
+          <text class="poem-display">生成偏好</text>
+        </view>
+        <view class="switch-row">
+          <text class="switch-row__label">自动生成作品海报图</text>
+          <switch
+            class="settings-switch"
+            checked="{{autoGeneratePoster}}"
+            color="#3f6758"
+            bindchange="toggleAutoPoster"
+          />
+        </view>
+        <text class="setting-card__hint setting-card__hint--generation">开启后，将自动为作品生成便于分享的海报图</text>
+      </view>
+
+      <text class="settings-note">偏好仅作为默认选项，创作时仍可调整</text>
+      <view
+        class="save-button {{isSaving ? 'save-button--disabled' : ''}}"
+        bindtap="savePreferences"
+        hover-class="save-button--pressed"
+        aria-role="button"
+        aria-disabled="{{isSaving}}"
+      >{{isSaving ? '正在保存…' : '保存偏好'}}</view>
+      <view class="bottom-safe-area"></view>
+    </view>
+  </scroll-view>
+</view>

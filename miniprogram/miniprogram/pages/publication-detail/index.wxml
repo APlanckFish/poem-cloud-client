@@ -1,6 +1,7 @@
+<view class="app-viewport detail-viewport">
 <navigation-bar title="作品详情" back="{{true}}" color="#202824" background="#fffefa"></navigation-bar>
 
-<scroll-view class="detail-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+<scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view wx:if="{{publication}}" class="detail-page">
     <view class="detail-paper">
       <view class="detail-paper__scene">
@@ -85,3 +86,4 @@
   <view wx:elif="{{isLoading}}" class="detail-empty poem-display">正在展开诗笺…</view>
   <view wx:else class="detail-empty poem-display">这首诗暂时无法查看</view>
 </scroll-view>
+</view>

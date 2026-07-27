@@ -290,7 +290,7 @@ Page({
       const pageByKey: Record<string, string> = {
         works: '/pages/my-works/index',
         drafts: '/pages/my-drafts/index',
-        preferences: '/pages/creation-preferences/index',
+        preferences: '/pages/preference-settings/index',
         feedback: '/pages/help/index',
         about: '/pages/about/index',
       }

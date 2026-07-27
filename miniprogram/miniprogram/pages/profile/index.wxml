@@ -1,3 +1,4 @@
+<view class="app-viewport profile-viewport">
 <navigation-bar title="我的" back="{{false}}" color="#202824" background="#fbfaf7"></navigation-bar>
 
 <scroll-view
@@ -227,4 +228,5 @@
       >{{isSavingProfile ? '保存中…' : '保存资料'}}</view>
     </view>
   </view>
+</view>
 </view>

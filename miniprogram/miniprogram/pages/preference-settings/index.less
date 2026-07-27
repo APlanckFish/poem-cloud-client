@@ -1,0 +1,204 @@
+.settings-page {
+  height: calc(100vh - 44px - env(safe-area-inset-top));
+  overflow: hidden;
+  background: #faf9f5;
+}
+
+.settings-scroll {
+  height: 100%;
+}
+
+.settings-content {
+  padding: 42rpx 40rpx 0;
+}
+
+.setting-card {
+  margin-bottom: 34rpx;
+  padding: 34rpx 30rpx 36rpx;
+  border: 1rpx solid rgba(61, 73, 67, 0.14);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.67);
+}
+
+.setting-card__title {
+  display: flex;
+  align-items: center;
+  gap: 21rpx;
+  color: #202824;
+  font-size: 31rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.setting-card__icon {
+  width: 45rpx;
+  height: 45rpx;
+  flex: none;
+}
+
+.segment-control {
+  display: flex;
+  height: 82rpx;
+  margin-top: 38rpx;
+  padding: 3rpx;
+  border: 1rpx solid rgba(50, 62, 56, 0.31);
+  border-radius: 22rpx;
+}
+
+.segment-control__item {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 19rpx;
+  color: #282e2b;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 28rpx;
+}
+
+.segment-control__item--selected {
+  background: #3f6758;
+  color: #fff;
+}
+
+.setting-card__hint {
+  display: block;
+  margin: 34rpx 5rpx 0;
+  color: #939995;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
+.segment-control--rhyme {
+  height: 92rpx;
+}
+
+.segment-control__item--rhyme {
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18rpx;
+  margin-top: 38rpx;
+}
+
+.preference-chip {
+  display: flex;
+  height: 72rpx;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1rpx solid rgba(50, 62, 56, 0.18);
+  border-radius: 18rpx;
+  color: #2e3431;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 24rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preference-chip--selected {
+  border-color: #3f6758;
+  background: #f1f5f2;
+  color: #315f4d;
+}
+
+.preference-chip--add {
+  border-style: dashed;
+  color: #75817b;
+}
+
+.setting-card--generation {
+  padding-bottom: 31rpx;
+}
+
+.switch-row {
+  display: flex;
+  min-height: 92rpx;
+  align-items: center;
+  margin-top: 24rpx;
+  padding: 18rpx 3rpx 0;
+}
+
+.switch-row__label {
+  min-width: 0;
+  flex: 1;
+  padding-right: 20rpx;
+  color: #252c28;
+  font-size: 28rpx;
+}
+
+.setting-card__hint--generation {
+  margin-top: 24rpx;
+}
+
+.settings-switch {
+  flex: none;
+  transform: scale(0.88);
+  transform-origin: right center;
+}
+
+.settings-note {
+  display: block;
+  margin: 45rpx 0 38rpx;
+  color: #9a9e9b;
+  font-size: 23rpx;
+  text-align: center;
+}
+
+.save-button {
+  display: flex;
+  height: 94rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  background: #3f6758;
+  color: #fff;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 31rpx;
+  letter-spacing: 3rpx;
+}
+
+.save-button--pressed {
+  opacity: 0.75;
+}
+
+.save-button--disabled {
+  opacity: 0.55;
+}
+
+.bottom-safe-area {
+  width: 100%;
+  // height: 68px;
+  // min-height: 68px;
+  // height: calc(env(safe-area-inset-bottom));
+  width: 100%;
+  height: 1px;
+  min-height: 148rpx;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.state-view {
+  display: flex;
+  height: 72%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28rpx;
+  color: #737a76;
+  font-size: 27rpx;
+}
+
+.retry-button {
+  padding: 16rpx 34rpx;
+  border: 1rpx solid #3f6758;
+  border-radius: 999rpx;
+  color: #3f6758;
+}

@@ -1,3 +1,4 @@
+<view class="app-viewport community-viewport">
 <navigation-bar title="诗词圈" back="{{false}}" color="#202824" background="#faf9f5"></navigation-bar>
 
 <view class="category-tabs">
@@ -17,6 +18,8 @@
   class="subfilter-scroll"
   scroll-x
   enhanced
+  bounces="{{false}}"
+  refresher-enabled="{{false}}"
   show-scrollbar="{{false}}"
 >
   <view class="subfilter-row">
@@ -42,6 +45,8 @@
   class="feed-scroll {{activeCategory === 'CLASSICAL' ? 'feed-scroll--classical' : ''}} {{activeCategory === 'CI' ? 'feed-scroll--ci' : ''}}"
   scroll-y
   enhanced
+  bounces="{{false}}"
+  refresher-enabled="{{false}}"
   show-scrollbar="{{false}}"
   lower-threshold="180"
   bindscrolltolower="loadMore"
@@ -152,4 +157,5 @@
 
     <view class="tune-confirm poem-display" bindtap="confirmTunePicker">确定</view>
   </view>
+</view>
 </view>

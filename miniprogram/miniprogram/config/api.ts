@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   localCreationDrafts: 'poem_cloud_local_creation_drafts',
   creationNeedsReset: 'poem_cloud_creation_needs_reset',
   communityNeedsRefresh: 'poem_cloud_community_needs_refresh',
+  creationResumeAfterPreferences: 'poem_cloud_creation_resume_after_preferences',
   clientDataResetVersion: 'poem_cloud_client_data_reset_version',
 } as const
 

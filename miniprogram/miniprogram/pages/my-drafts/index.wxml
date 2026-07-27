@@ -1,6 +1,7 @@
-<navigation-bar title="我的草稿" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#fbfaf7"></navigation-bar>
+<view class="app-viewport drafts-viewport">
+<navigation-bar title="我的草稿" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#f7f3f2"></navigation-bar>
 
-<scroll-view class="drafts-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+<scroll-view class="drafts-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view wx:if="{{drafts.length > 0}}" class="drafts-list">
     <view wx:for="{{drafts}}" wx:key="id" class="swipe-shell">
       <view
@@ -76,4 +77,5 @@
       <view class="dialog-confirm poem-display" bindtap="confirmDelete">删除</view>
     </view>
   </view>
+</view>
 </view>

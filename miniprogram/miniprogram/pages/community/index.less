@@ -1,8 +1,13 @@
+.community-viewport {
+  background: #f8f7f2;
+}
+
 .category-tabs {
   position: relative;
   z-index: 2;
   display: flex;
   height: 92rpx;
+  flex: none;
   padding: 0 24rpx;
   border-bottom: 1rpx solid rgba(32, 40, 36, 0.09);
   background: #faf9f5;
@@ -37,20 +42,23 @@
 }
 
 .feed-scroll {
-  height: calc(100vh - 92rpx - 44px - env(safe-area-inset-top));
+  height: 0;
+  min-height: 0;
+  flex: 1;
   background: #f8f7f2;
 }
 
 .feed-scroll--classical {
-  height: calc(100vh - 212rpx - 44px - env(safe-area-inset-top));
+  height: 0;
 }
 
 .feed-scroll--ci {
-  height: calc(100vh - 196rpx - 44px - env(safe-area-inset-top));
+  height: 0;
 }
 
 .subfilter-scroll {
   height: 120rpx;
+  flex: none;
   border-bottom: 1rpx solid rgba(32, 40, 36, 0.07);
   background: #faf9f5;
 }
@@ -89,6 +97,7 @@
 
 .tune-filter {
   height: 104rpx;
+  flex: none;
   border-bottom: 1rpx solid rgba(32, 40, 36, 0.07);
   background: #faf9f5;
   padding: 0 32rpx;

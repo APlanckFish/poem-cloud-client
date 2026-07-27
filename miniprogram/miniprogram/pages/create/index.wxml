@@ -1,6 +1,7 @@
+<view class="app-viewport create-viewport">
 <navigation-bar title="创作" back="{{false}}" color="#202824" background="#faf9f5"></navigation-bar>
 
-<scroll-view class="page-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+<scroll-view class="page-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view class="create-page">
     <view class="hero">
       <image class="hero-image" src="/assets/images/create-hero.jpg" mode="aspectFill"></image>
@@ -137,6 +138,8 @@
       >
         {{isCreating ? '正在创作…' : (isCheckingPreferences ? '正在准备…' : '开始创作')}}
       </view>
+      <view class="create-footer__safe-area"></view>
     </view>
   </view>
 </scroll-view>
+</view>

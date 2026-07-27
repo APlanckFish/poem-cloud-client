@@ -85,7 +85,7 @@ Page({
       },
       customValues: values.filter((value) => !configured.has(value)),
       customInput: '',
-      expandedOption: '',
+      expandedOption: question.key === 'rhymeScheme' ? (values[0] ?? '') : '',
       progressText: `${this.data.currentIndex + 1} / ${this.data.questions.length}`,
       progressWidth: `${((this.data.currentIndex + 1) / this.data.questions.length) * 100}%`,
       isLastQuestion,
@@ -112,13 +112,6 @@ Page({
       },
     })
     this.refreshQuestion()
-  },
-
-  toggleOptionInfo(event: WechatMiniprogram.TouchEvent) {
-    const value = String(event.currentTarget.dataset.value)
-    this.setData({
-      expandedOption: this.data.expandedOption === value ? '' : value,
-    })
   },
 
   handleCustomInput(event: ValueEvent) {
