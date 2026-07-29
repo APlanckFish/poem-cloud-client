@@ -50,6 +50,7 @@ Page({
     isPublishing: false,
     isEmpty: false,
     quotaRemaining: null as number | null,
+    quotaUnlimited: false,
     isLeaving: false,
     showProfileSetup: false,
     isSavingProfile: false,
@@ -91,7 +92,10 @@ Page({
   async refreshQuota() {
     try {
       const quota = await loadCreationQuota()
-      this.setData({ quotaRemaining: quota.remaining })
+      this.setData({
+        quotaRemaining: quota.remaining,
+        quotaUnlimited: quota.unlimited,
+      })
     } catch {
       // Keep the generation response value when the live quota is unavailable.
     }

@@ -44,6 +44,35 @@ function storedString(key: string): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+export function createApiHeaders(options: {
+  accept?: string
+  contentType?: string
+  authenticated?: boolean
+  includeInstallation?: boolean
+  idempotencyKey?: string
+} = {}): Record<string, string> {
+  const accessToken = storedString(STORAGE_KEYS.accessToken)
+  const installationToken = storedString(STORAGE_KEYS.installationToken)
+  const header: Record<string, string> = {
+    Accept: options.accept ?? 'application/json',
+    ...(options.contentType === undefined
+      ? { 'Content-Type': 'application/json' }
+      : options.contentType
+        ? { 'Content-Type': options.contentType }
+        : {}),
+  }
+  if (options.authenticated !== false && accessToken) {
+    header.Authorization = `Bearer ${accessToken}`
+  }
+  if (options.includeInstallation !== false && installationToken) {
+    header['X-Installation-Token'] = installationToken
+  }
+  if (options.idempotencyKey) {
+    header['Idempotency-Key'] = options.idempotencyKey
+  }
+  return header
+}
+
 export function hasAccessToken(): boolean {
   return storedString(STORAGE_KEYS.accessToken) !== null
 }
@@ -55,22 +84,7 @@ export function clearSessionStorage(): void {
 }
 
 export function request<T>(options: RequestOptions): Promise<T> {
-  const accessToken = storedString(STORAGE_KEYS.accessToken)
-  const installationToken = storedString(STORAGE_KEYS.installationToken)
-  const header: Record<string, string> = {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  }
-
-  if (options.authenticated !== false && accessToken) {
-    header.Authorization = `Bearer ${accessToken}`
-  }
-  if (options.includeInstallation !== false && installationToken) {
-    header['X-Installation-Token'] = installationToken
-  }
-  if (options.idempotencyKey) {
-    header['Idempotency-Key'] = options.idempotencyKey
-  }
+  const header = createApiHeaders(options)
 
   return new Promise<T>((resolve, reject) => {
     wx.request({

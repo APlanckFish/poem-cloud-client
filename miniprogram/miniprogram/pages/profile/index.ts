@@ -17,7 +17,13 @@ function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : '服务暂时不可用，请稍后重试'
 }
 
-function quotaRingClass(remaining: number, limit: number): string {
+function quotaRingClass(
+  remaining: number | null,
+  limit: number | null,
+  unlimited = false,
+): string {
+  if (unlimited) return 'quota-ring--3'
+  if (limit === null || remaining === null) return 'quota-ring--0'
   if (limit <= 0 || remaining <= 0) return 'quota-ring--0'
   const progress = Math.min(1, remaining / limit)
   if (progress <= 1 / 3) return 'quota-ring--1'
@@ -35,6 +41,7 @@ Page({
     pendingAvatarUrl: '',
     pendingNickname: '',
     user: null as PoemCloudUser | null,
+    isLevelZeroVip: false,
     avatarInitial: '云',
     displayAvatarUrl: '',
     rankLabel: '小诗弟',
@@ -45,9 +52,10 @@ Page({
       following: 0,
     },
     quota: {
-      limit: 0,
+      limit: null as number | null,
       used: 0,
-      remaining: 0,
+      remaining: null as number | null,
+      unlimited: false,
     },
     quotaLoaded: false,
     quotaRingClass: 'quota-ring--0',
@@ -84,10 +92,11 @@ Page({
     this.setData({
       isLoggedIn: true,
       user,
+      isLevelZeroVip: user.level === 0,
       avatarInitial: user.nickname.slice(0, 1) || '云',
       displayAvatarUrl: user.avatarUrl || '',
       rankLabel: user.level === 0
-        ? (user.gender === 2 ? '小诗妹' : '小诗弟')
+        ? '诗云黑金 SVIP'
         : `诗云 · 等级 ${user.level}`,
       'stats.following': user.followingCount,
     })
@@ -97,6 +106,7 @@ Page({
     this.setData({
       isLoggedIn: false,
       user: null,
+      isLevelZeroVip: false,
       avatarInitial: '云',
       displayAvatarUrl: '',
       rankLabel: '小诗弟',
@@ -106,7 +116,12 @@ Page({
         likes: 0,
         following: 0,
       },
-      quota: { limit: 0, used: 0, remaining: 0 },
+      quota: {
+        limit: null as number | null,
+        used: 0,
+        remaining: null as number | null,
+        unlimited: false,
+      },
       quotaLoaded: false,
       quotaRingClass: 'quota-ring--0',
     })
@@ -122,9 +137,10 @@ Page({
           limit: quota.limit,
           used: quota.used,
           remaining: quota.remaining,
+          unlimited: quota.unlimited,
         },
         quotaLoaded: true,
-        quotaRingClass: quotaRingClass(quota.remaining, quota.limit),
+        quotaRingClass: quotaRingClass(quota.remaining, quota.limit, quota.unlimited),
       })
     } catch {
       // Keep the quota placeholder when the endpoint is unavailable.
@@ -160,9 +176,14 @@ Page({
           limit: dashboard.quota.limit,
           used: dashboard.quota.used,
           remaining: dashboard.quota.remaining,
+          unlimited: dashboard.quota.unlimited,
         },
         quotaLoaded: true,
-        quotaRingClass: quotaRingClass(dashboard.quota.remaining, dashboard.quota.limit),
+        quotaRingClass: quotaRingClass(
+          dashboard.quota.remaining,
+          dashboard.quota.limit,
+          dashboard.quota.unlimited,
+        ),
       })
     } catch (error) {
       if (showError) {

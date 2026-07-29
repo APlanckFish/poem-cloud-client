@@ -3,6 +3,7 @@
     "pages/create/index",
     "pages/creation-preferences/index",
     "pages/preference-settings/index",
+    "pages/creating/index",
     "pages/create-result/index",
     "pages/community/index",
     "pages/publication-detail/index",

@@ -182,8 +182,7 @@ Page({
       })
       if (this.data.returnToCreate) {
         wx.setStorageSync(STORAGE_KEYS.creationResumeAfterPreferences, {
-          poemType: this.data.answers.poemType?.[0] ?? '',
-          styles: this.data.answers.styles ?? [],
+          answers: this.data.answers,
         })
       }
       wx.hideLoading()

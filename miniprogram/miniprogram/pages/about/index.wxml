@@ -4,10 +4,8 @@
   <view class="about-stage">
     <view class="about-page">
       <view class="brand-block">
-        <image class="brand-mark" src="/assets/images/about-mark.jpg" mode="aspectFill"></image>
-        <text class="brand-name poem-display">诗云</text>
-        <text class="brand-slogan poem-display">把此刻，写成诗</text>
-        <text class="brand-version">版本 {{version}}</text>
+        <image class="brand-mark" src="/assets/images/brand-icon.png" mode="aspectFit"></image>
+        <view class="brand-version">VERSION {{version}}</view>
       </view>
 
       <view class="document-card">

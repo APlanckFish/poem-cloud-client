@@ -1,7 +1,11 @@
+:host {
+  display: block;
+  flex: none;
+}
+
 .weui-navigation-bar {
   --weui-FG-0:rgba(0,0,0,.9);
   --height: 44px;
-  --left: 16px;
 }
 .weui-navigation-bar .android {
   --height: 48px;
@@ -29,17 +33,19 @@
 
 .weui-navigation-bar__left {
   position: relative;
-  padding-left: var(--left);
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  height: 100%;
+  height: var(--height);
+  align-items: center;
   box-sizing: border-box;
 }
 
 .weui-navigation-bar__btn_goback_wrapper {
-  padding: 11px 18px 11px 16px;
-  margin: -11px -18px -11px -16px;
+  display: flex;
+  width: 52px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 
 .weui-navigation-bar__btn_goback_wrapper.weui-active {
@@ -47,7 +53,7 @@
 }
 
 .weui-navigation-bar__btn_goback {
-  width: 20px;
+  width: 24px;
   height: 24px;
   display: block;
 }
@@ -63,7 +69,12 @@
   font-weight: bold;
   font-family: "Songti SC", "STSong", "SimSun", serif;
   flex: 1;
-  height: 100%;
+  height: var(--height);
+  line-height: var(--height);
+}
+
+.weui-navigation-bar__right {
+  height: var(--height);
 }
 
 .weui-navigation-bar__loading {

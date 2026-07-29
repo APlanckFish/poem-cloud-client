@@ -9,11 +9,14 @@ export type ClassicalFormCode =
   | 'QIYAN_JUEJU'
   | 'WUYAN_LVSHI'
   | 'QIYAN_LVSHI'
+  | 'DAYOU_SHI'
 
 export interface CreationPreferences {
   category: PoemCategory
   classicalFormCode: ClassicalFormCode | null
   tunePatternCode: string | null
+  rhymeScheme: 'TRADITIONAL' | 'NEW_CHINESE'
+  preferredPoets: string[]
   styleTags: string[]
   lengthHint: number | null
 }
@@ -24,21 +27,25 @@ export interface PoemResult {
   category: PoemCategory
   classicalFormCode: ClassicalFormCode | null
   tunePatternCode: string | null
+  rhymeScheme?: 'TRADITIONAL' | 'NEW_CHINESE'
+  writingScript?: 'TRADITIONAL' | 'SIMPLIFIED'
+  validation?: {
+    valid: boolean
+    issues: string[]
+    rhymeBook: '平水韵' | '词林正韵' | '中华新韵' | '不适用'
+    meterSummary: string
+    attempt: number
+    acceptedWithIssues?: boolean
+    marks?: PoemValidationMark[]
+  }
 }
 
-interface GenerationResponse {
-  id: string
-  workId: string | null
-  status: string
-  result: PoemResult | null
-  error: {
-    code: string
-    message: string | null
-  } | null
-  quota?: {
-    consumed: number
-    remaining: number
-  }
+export interface PoemValidationMark {
+  lineIndex: number
+  characterIndex: number
+  character: string
+  kind: 'TONE' | 'RHYME' | 'UNKNOWN_READING'
+  message: string
 }
 
 interface CreationResponse {
@@ -87,6 +94,102 @@ export interface PendingCreation {
   published: boolean
 }
 
+export interface ActiveCreationRun {
+  runId: string
+  eventsUrl: string
+  snapshotUrl: string
+  creationId: string | null
+  prompt: string
+  assetIds: string[]
+  assetKinds: Array<'IMAGE' | 'VIDEO'>
+  preferences: CreationPreferences
+  remainingQuota: number | null
+  lastEventId: string
+  queue: CreationQueueStatus | null
+}
+
+export interface SavedCreationRunDraft extends ActiveCreationRun {
+  localDraftId: string
+  localUpdatedAt: string
+}
+
+interface CreationRunResponse {
+  runId: string
+  generationId: string
+  creationId: string | null
+  coreStatus: string
+  posterStatus: string
+  eventsUrl: string
+  snapshotUrl: string
+  queue: CreationQueueStatus | null
+  quota: {
+    consumed: number
+    limit: number | null
+    remaining: number | null
+    unlimited: boolean
+  }
+}
+
+export interface CreationQueueStatus {
+  state: 'QUEUED'
+  ahead: number
+  position: number
+}
+
+export interface CreationRunSnapshot {
+  runId: string
+  generationId: string
+  baseGenerationId: string | null
+  creationId: string | null
+  coreStatus: string
+  posterStatus: string
+  currentStage: string
+  queue: CreationQueueStatus | null
+  result: PoemResult | null
+  materialAnalysis: {
+    summary?: string
+    publicNarrative?: string[]
+    symbols?: string[]
+    scenes?: string[]
+    mood?: string[]
+  } | null
+  input: {
+    prompt: string
+    assetIds: string[]
+    preferences: CreationPreferences | null
+    instruction: string
+  }
+  error: {
+    code: string
+    message: string | null
+  } | null
+  lastEventId: string
+  lastPublicEventSeq: number
+}
+
+export interface CreationTimelineEvent {
+  seq: number
+  event: string
+  data: Record<string, unknown>
+  occurredAt: string
+  schemaVersion: number
+}
+
+interface CreationTimelineResponse {
+  generationId: string
+  creationId: string | null
+  coreStatus: string
+  result: PoemResult | null
+  lastSeq: number
+  hasMore: boolean
+  items: CreationTimelineEvent[]
+}
+
+export interface CreationHistoryEntry {
+  snapshot: CreationRunSnapshot
+  events: CreationTimelineEvent[]
+}
+
 export interface LocalCreationDraft extends PendingCreation {
   localDraftId: string
   localUpdatedAt: string
@@ -96,24 +199,14 @@ export interface PoemTaxonomies {
   categories: Array<{
     code: PoemCategory
     name: string
-    forms?: Array<{ code: ClassicalFormCode; name: string }>
-    tunePatterns?: Array<{ code: string; name: string }>
+    forms?: Array<{ code: ClassicalFormCode; name: string; description?: string }>
+    tunePatterns?: Array<{ code: string; name: string; aliases?: string[] }>
   }>
 }
 
 function idempotencyKey(action: string): string {
   const random = Math.random().toString(36).slice(2, 12)
   return `${action}-${Date.now().toString(36)}-${random}`
-}
-
-function requireSuccessfulGeneration(generation: GenerationResponse): PoemResult {
-  if (generation.status === 'SUCCEEDED' && generation.result) {
-    return generation.result
-  }
-  throw new ApiError(
-    generation.error?.message || '诗词生成未完成，请稍后重试',
-    generation.error?.code || 'GENERATION_FAILED',
-  )
 }
 
 export function loadPoemTaxonomies(): Promise<PoemTaxonomies> {
@@ -139,79 +232,149 @@ async function createDraft(options: {
   })
 }
 
-export async function generatePoem(options: {
+export async function startCreationRun(options: {
   prompt: string
   assetIds: string[]
   assetKinds: Array<'IMAGE' | 'VIDEO'>
   preferences: CreationPreferences
   workId?: string
   version?: number
-}): Promise<PendingCreation> {
+  baseGenerationId?: string
+  instruction?: string
+}): Promise<ActiveCreationRun> {
   await ensureInstallation()
-  const requestOptions = {
+  const response = await request<CreationRunResponse>({
+    path: '/creation-runs',
+    method: 'POST',
+    data: {
+      ...(options.workId ? { creationId: options.workId } : {}),
+      ...(options.version ? { creationVersion: options.version } : {}),
+      ...(options.baseGenerationId ? { baseGenerationId: options.baseGenerationId } : {}),
+      prompt: options.prompt,
+      assetIds: options.assetIds,
+      preferences: options.preferences,
+      instruction: options.instruction?.trim() ?? '',
+      poster: {
+        enabled: true,
+        variants: ['BACKGROUND', 'COMPOSED'],
+      },
+    },
+    idempotencyKey: idempotencyKey('creation-run'),
+  })
+  const active: ActiveCreationRun = {
+    runId: response.runId,
+    eventsUrl: response.eventsUrl.replace(/^\/v1/, ''),
+    snapshotUrl: response.snapshotUrl.replace(/^\/v1/, ''),
+    creationId: response.creationId,
     prompt: options.prompt,
     assetIds: options.assetIds,
+    assetKinds: options.assetKinds,
     preferences: options.preferences,
+    remainingQuota: response.quota?.remaining ?? null,
+    lastEventId: '0-0',
+    queue: response.queue,
   }
-  let workId: string | null = null
-  let generation: GenerationResponse
+  wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
+  return active
+}
 
-  if (hasAccessToken()) {
-    let createdForGeneration = false
-    if (options.workId) {
-      const updated = await request<CreationResponse>({
-        path: `/creations/${options.workId}`,
-        method: 'PUT',
-        data: {
-          ...requestOptions,
-          ...(options.version ? { version: options.version } : {}),
-        },
-      })
-      workId = updated.id
-    } else {
-      const draft = await createDraft(requestOptions)
-      workId = draft.id
-      createdForGeneration = true
-    }
-    try {
-      generation = await request<GenerationResponse>({
-        path: `/creations/${workId}/generations`,
-        method: 'POST',
-        data: {},
-        idempotencyKey: idempotencyKey('generate-poem'),
-      })
-    } catch (error) {
-      if (createdForGeneration && workId) {
-        await request<void>({
-          path: `/creations/${workId}`,
-          method: 'DELETE',
-        }).catch(() => undefined)
-      }
-      throw error
-    }
-  } else {
-    generation = await request<GenerationResponse>({
-      path: '/guest/generations',
-      method: 'POST',
-      data: {
-        ...requestOptions,
-        instruction: '',
-      },
-      authenticated: false,
-      idempotencyKey: idempotencyKey('guest-generate-poem'),
+export function getActiveCreationRun(): ActiveCreationRun | null {
+  const value = wx.getStorageSync(STORAGE_KEYS.activeCreationRun)
+  return value && typeof value === 'object' ? value as ActiveCreationRun : null
+}
+
+export function updateActiveCreationCursor(lastEventId: string): void {
+  const active = getActiveCreationRun()
+  if (!active) return
+  wx.setStorageSync(STORAGE_KEYS.activeCreationRun, { ...active, lastEventId })
+}
+
+export function clearActiveCreationRun(): void {
+  wx.removeStorageSync(STORAGE_KEYS.activeCreationRun)
+}
+
+export function getSavedCreationRunDrafts(): SavedCreationRunDraft[] {
+  const value = wx.getStorageSync(STORAGE_KEYS.savedCreationRunDrafts)
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is SavedCreationRunDraft => (
+    item
+    && typeof item === 'object'
+    && typeof item.runId === 'string'
+    && typeof item.localDraftId === 'string'
+    && typeof item.localUpdatedAt === 'string'
+  ))
+}
+
+export function saveCreationRunDraft(active: ActiveCreationRun): SavedCreationRunDraft {
+  const localDraftId = `run-${active.runId}`
+  const updated: SavedCreationRunDraft = {
+    ...active,
+    localDraftId,
+    localUpdatedAt: new Date().toISOString(),
+  }
+  const drafts = getSavedCreationRunDrafts().filter((draft) => draft.runId !== active.runId)
+  wx.setStorageSync(STORAGE_KEYS.savedCreationRunDrafts, [updated, ...drafts])
+  return updated
+}
+
+export function activateSavedCreationRun(draft: SavedCreationRunDraft): void {
+  const { localDraftId: _localDraftId, localUpdatedAt: _localUpdatedAt, ...active } = draft
+  wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
+}
+
+export function deleteSavedCreationRunDraft(runId: string): void {
+  wx.setStorageSync(
+    STORAGE_KEYS.savedCreationRunDrafts,
+    getSavedCreationRunDrafts().filter((draft) => draft.runId !== runId),
+  )
+}
+
+export function loadCreationRunSnapshot(active: ActiveCreationRun): Promise<CreationRunSnapshot> {
+  return request<CreationRunSnapshot>({ path: active.snapshotUrl })
+}
+
+export function loadCreationRunSnapshotById(runId: string): Promise<CreationRunSnapshot> {
+  return request<CreationRunSnapshot>({
+    path: `/creation-runs/${encodeURIComponent(runId)}`,
+  })
+}
+
+export async function loadCreationTimeline(runId: string): Promise<CreationTimelineEvent[]> {
+  const events: CreationTimelineEvent[] = []
+  let afterSeq = 0
+  while (true) {
+    const response = await request<CreationTimelineResponse>({
+      path: `/creation-runs/${encodeURIComponent(runId)}/timeline?afterSeq=${afterSeq}&limit=500`,
     })
+    events.push(...response.items)
+    if (!response.hasMore || response.lastSeq <= afterSeq) return events
+    afterSeq = response.lastSeq
   }
+}
 
-  return {
-    ...options,
-    generationId: generation.id,
-    workId,
-    result: requireSuccessfulGeneration(generation),
-    remainingQuota: generation.quota?.remaining ?? null,
-    draftSaved: false,
-    saved: false,
-    published: false,
+export async function loadCreationHistory(runId: string): Promise<CreationHistoryEntry[]> {
+  const newestFirst: CreationHistoryEntry[] = []
+  const visited = new Set<string>()
+  let currentId: string | null = runId
+  while (currentId && newestFirst.length < 20 && !visited.has(currentId)) {
+    visited.add(currentId)
+    const snapshot = await loadCreationRunSnapshotById(currentId)
+    const events = await loadCreationTimeline(currentId)
+    newestFirst.push({ snapshot, events })
+    currentId = snapshot.baseGenerationId
   }
+  return newestFirst.reverse()
+}
+
+export function cancelCreationRun(active: ActiveCreationRun): Promise<{
+  coreStatus: string
+  cancellationRequested: boolean
+}> {
+  return request({
+    path: `/creation-runs/${active.runId}/cancel`,
+    method: 'POST',
+    data: {},
+  })
 }
 
 export function savePendingCreation(creation: PendingCreation): void {
@@ -310,7 +473,9 @@ export async function saveCreationAsDraft(
   creation: PendingCreation,
 ): Promise<PendingCreation> {
   if (!hasAccessToken()) {
-    return saveLocalCreationDraft(creation)
+    const updated = saveLocalCreationDraft(creation)
+    deleteSavedCreationRunDraft(creation.generationId)
+    return updated
   }
   let workId = creation.workId
   if (!workId) {
@@ -327,6 +492,7 @@ export async function saveCreationAsDraft(
     deleteLocalCreationDraft(creation.localDraftId)
   }
   savePendingCreation(updated)
+  deleteSavedCreationRunDraft(creation.generationId)
   return updated
 }
 
@@ -361,6 +527,7 @@ export async function saveCreationAsWork(
     deleteLocalCreationDraft(creation.localDraftId)
   }
   savePendingCreation(updated)
+  deleteSavedCreationRunDraft(creation.generationId)
   wx.setStorageSync(STORAGE_KEYS.creationNeedsReset, true)
   return updated
 }
@@ -374,6 +541,29 @@ export async function discardPendingCreation(creation: PendingCreation): Promise
   } else if (creation.assetIds.length > 0) {
     await Promise.all(creation.assetIds.map((assetId) => deleteAsset(assetId)))
   }
+  deleteSavedCreationRunDraft(creation.generationId)
+  clearPendingCreation()
+}
+
+export async function discardActiveCreationRun(active: ActiveCreationRun): Promise<void> {
+  try {
+    await cancelCreationRun(active)
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.code !== 'GENERATION_ALREADY_FINISHED') {
+      throw error
+    }
+  }
+  if (active.creationId && hasAccessToken()) {
+    await request<void>({
+      path: `/creations/${active.creationId}`,
+      method: 'DELETE',
+    })
+  } else if (active.assetIds.length > 0) {
+    await Promise.all(active.assetIds.map((assetId) => deleteAsset(assetId)))
+  }
+  deleteSavedCreationRunDraft(active.runId)
+  const current = getActiveCreationRun()
+  if (current?.runId === active.runId) clearActiveCreationRun()
   clearPendingCreation()
 }
 
@@ -404,4 +594,8 @@ export function consumeCreationReset(): boolean {
     wx.removeStorageSync(STORAGE_KEYS.creationNeedsReset)
   }
   return shouldReset
+}
+
+export function requestCreationReset(): void {
+  wx.setStorageSync(STORAGE_KEYS.creationNeedsReset, true)
 }

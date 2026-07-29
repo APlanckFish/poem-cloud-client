@@ -21,6 +21,7 @@ interface PoemCard {
 interface TunePatternItem {
   code: string
   name: string
+  aliases: string[]
 }
 
 interface ValueChangeEvent {
@@ -29,9 +30,19 @@ interface ValueChangeEvent {
   }
 }
 
-function categoryName(category: PoemCategory): string {
-  if (category === 'CLASSICAL') return '古体诗'
-  if (category === 'MODERN') return '现代诗'
+const CLASSICAL_FORM_NAMES: Record<string, string> = {
+  WUYAN_JUEJU: '五言绝句',
+  QIYAN_JUEJU: '七言绝句',
+  WUYAN_LVSHI: '五言律诗',
+  QIYAN_LVSHI: '七言律诗',
+  DAYOU_SHI: '打油诗',
+}
+
+function categoryName(publication: CommunityPublication): string {
+  if (publication.category === 'CLASSICAL') {
+    return CLASSICAL_FORM_NAMES[publication.classicalFormCode || ''] || '古体诗'
+  }
+  if (publication.category === 'MODERN') return '现代诗'
   return '词'
 }
 
@@ -45,18 +56,31 @@ function normalizePoemContent(value: string): string {
   return value.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n')
 }
 
+function normalizeTuneSearch(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, '')
+}
+
+function matchesTuneSearch(item: TunePatternItem, query: string): boolean {
+  return [item.name, ...item.aliases].some((candidate) =>
+    normalizeTuneSearch(candidate).includes(query),
+  )
+}
+
 function toCard(publication: CommunityPublication): PoemCard {
   return {
     id: publication.id,
     title: publication.title,
     excerpt: normalizePoemContent(publication.content).replace(/\n+/g, ' ').trim(),
-    category: categoryName(publication.category),
+    category: categoryName(publication),
     author: publication.author.nickname,
     authorInitial: publication.author.nickname.slice(0, 1) || '诗',
     authorAvatarUrl: publication.author.avatarUrl || '',
     likes: publication.likeCount,
     likedByMe: publication.likedByMe,
-    cover: publication.coverUrl || fallbackCover(publication.category),
+    cover:
+      publication.displayCoverUrl ||
+      publication.coverUrl ||
+      fallbackCover(publication.category),
   }
 }
 
@@ -93,9 +117,10 @@ Page({
       { code: 'QIYAN_JUEJU', name: '七言绝句' },
       { code: 'WUYAN_LVSHI', name: '五言律诗' },
       { code: 'QIYAN_LVSHI', name: '七言律诗' },
+      { code: 'DAYOU_SHI', name: '打油诗' },
     ],
-    tunePatterns: [{ code: 'ALL', name: '全部词牌' }] as TunePatternItem[],
-    visibleTunePatterns: [{ code: 'ALL', name: '全部词牌' }] as TunePatternItem[],
+    tunePatterns: [{ code: 'ALL', name: '全部词牌', aliases: [] }] as TunePatternItem[],
+    visibleTunePatterns: [{ code: 'ALL', name: '全部词牌', aliases: [] }] as TunePatternItem[],
     poems: [] as PoemCard[],
     leftColumn: [] as PoemCard[],
     rightColumn: [] as PoemCard[],
@@ -107,8 +132,11 @@ Page({
       .then((taxonomies) => {
         const ci = taxonomies.categories.find((category) => category.code === 'CI')
         const tunePatterns = [
-          { code: 'ALL', name: '全部词牌' },
-          ...(ci?.tunePatterns || []),
+          { code: 'ALL', name: '全部词牌', aliases: [] },
+          ...(ci?.tunePatterns || []).map((pattern) => ({
+            ...pattern,
+            aliases: Array.isArray(pattern.aliases) ? pattern.aliases : [],
+          })),
         ]
         this.setData({ tunePatterns, visibleTunePatterns: tunePatterns })
       })
@@ -224,11 +252,11 @@ Page({
 
   handleTuneSearch(event: ValueChangeEvent) {
     const tuneSearch = event.detail.value.trim()
-    const normalized = tuneSearch.toLowerCase()
+    const normalized = normalizeTuneSearch(tuneSearch)
     this.setData({
       tuneSearch,
       visibleTunePatterns: normalized
-        ? this.data.tunePatterns.filter((item) => item.name.toLowerCase().includes(normalized))
+        ? this.data.tunePatterns.filter((item) => matchesTuneSearch(item, normalized))
         : this.data.tunePatterns,
     })
   },

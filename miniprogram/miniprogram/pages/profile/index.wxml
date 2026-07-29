@@ -39,7 +39,7 @@
                 <image class="edit-mark" src="/assets/icons/common-edit.svg" mode="aspectFit"></image>
               </view>
             </view>
-            <view class="account-tag">
+            <view class="account-tag {{isLevelZeroVip ? 'account-tag--black-gold' : ''}}">
               <text class="account-tag__copy">{{rankLabel}}</text>
             </view>
           </block>
@@ -90,22 +90,38 @@
       </view>
     </view>
 
-    <view class="quota-card">
-      <view class="quota-copy">
-        <text class="quota-label poem-display">今日可创作</text>
-        <view class="quota-value-row">
-          <text class="quota-value">{{quotaLoaded ? quota.remaining : '—'}}</text>
-          <text class="quota-unit">次</text>
+    <view class="quota-card {{isLevelZeroVip ? 'quota-card--black-gold' : ''}}">
+      <block wx:if="{{isLevelZeroVip}}">
+        <view class="vip-copy">
+          <view class="vip-eyebrow">
+            <text class="vip-eyebrow__mark">SVIP</text>
+            <text class="vip-eyebrow__name">诗云黑金会员</text>
+          </view>
+          <text class="vip-title poem-display">无限创作特权</text>
+          <text class="vip-caption">至臻等级 · 尊享不限次数创作</text>
         </view>
-      </view>
-      <view class="quota-meter">
-        <view class="quota-ring {{quotaRingClass}}">
-          <view class="quota-ring__inner">
-            <text class="quota-ring__value">{{quotaLoaded ? quota.remaining + '/' + quota.limit : '—/—'}}</text>
+        <view class="vip-emblem">
+          <text class="vip-emblem__label">SVIP</text>
+          <text class="vip-emblem__infinity">∞</text>
+        </view>
+      </block>
+      <block wx:else>
+        <view class="quota-copy">
+          <text class="quota-label poem-display">今日可创作</text>
+          <view class="quota-value-row">
+            <text class="quota-value">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.remaining) : '—'}}</text>
+            <text wx:if="{{!quotaLoaded || !quota.unlimited}}" class="quota-unit">次</text>
           </view>
         </view>
-        <text class="quota-ring__label">{{quotaLoaded ? '每日 ' + quota.limit + ' 次' : '正在同步'}}</text>
-      </view>
+        <view class="quota-meter">
+          <view class="quota-ring {{quotaRingClass}}">
+            <view class="quota-ring__inner">
+              <text class="quota-ring__value">{{quotaLoaded ? (quota.unlimited ? '∞' : quota.remaining + '/' + quota.limit) : '—/—'}}</text>
+            </view>
+          </view>
+          <text class="quota-ring__label">{{quotaLoaded ? (quota.unlimited ? '无限创作' : '每日 ' + quota.limit + ' 次') : '正在同步'}}</text>
+        </view>
+      </block>
     </view>
 
     <view class="menu-card">

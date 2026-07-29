@@ -1,9 +1,10 @@
 import { request } from './api'
 
 export interface QuotaResponse {
-  limit: number
+  limit: number | null
   used: number
-  remaining: number
+  remaining: number | null
+  unlimited: boolean
   resetsAt: string | null
 }
 

@@ -5,10 +5,9 @@ import {
   type ClassicalFormCode,
   consumeCreationEditDraft,
   consumeCreationReset,
-  generatePoem,
   loadPoemTaxonomies,
   type PoemCategory,
-  savePendingCreation,
+  startCreationRun,
 } from '../../services/creation'
 import { ensureInstallation } from '../../services/installation'
 import { loadCreationPreferences } from '../../services/preferences'
@@ -21,17 +20,27 @@ interface ValueChangeEvent {
   }
 }
 
-interface PickerChangeEvent {
-  detail: {
-    value: string
-  }
-}
-
 type MaterialKind = 'IMAGE' | 'VIDEO'
 
 const MAX_IMAGE_COUNT = 3
 const MAX_VIDEO_COUNT = 1
-const DEFAULT_TUNE_PATTERNS = [{ code: 'shui_diao_ge_tou', name: '水调歌头' }]
+
+interface TunePatternItem {
+  code: string
+  name: string
+  aliases: string[]
+}
+
+const DEFAULT_TUNE_PATTERNS: TunePatternItem[] = [
+  { code: 'shui_diao_ge_tou', name: '水調歌頭', aliases: ['水调歌头'] },
+]
+const DEFAULT_CLASSICAL_FORMS: Array<{ code: ClassicalFormCode; name: string }> = [
+  { code: 'WUYAN_JUEJU', name: '五言绝句' },
+  { code: 'QIYAN_JUEJU', name: '七言绝句' },
+  { code: 'WUYAN_LVSHI', name: '五言律诗' },
+  { code: 'QIYAN_LVSHI', name: '七言律诗' },
+  { code: 'DAYOU_SHI', name: '打油诗' },
+]
 
 interface MaterialItem {
   id: string
@@ -43,6 +52,28 @@ interface MaterialItem {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : '素材上传失败，请稍后重试'
+}
+
+function normalizeTuneSearch(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, '')
+}
+
+function matchesTuneSearch(item: TunePatternItem, query: string): boolean {
+  return [item.name, ...item.aliases].some((candidate) =>
+    normalizeTuneSearch(candidate).includes(query),
+  )
+}
+
+function writingRuleHint(
+  category: PoemCategory,
+  answers: Record<string, string[]>,
+): string {
+  const traditional = answers.rhymeScheme?.[0] === 'TRADITIONAL'
+  if (category === 'MODERN') return '现代诗默认使用简体中文'
+  if (!traditional) return '使用中华新韵，默认以简体中文创作'
+  return category === 'CI'
+    ? '使用《词林正韵》，默认以繁体中文创作'
+    : '使用《平水韵》，默认以繁体中文创作'
 }
 
 function confirmQuotaLogin(): Promise<boolean> {
@@ -101,16 +132,19 @@ async function uploadWithLoginRetry<T>(
   }
 }
 
-function chooseMedia(kind: 'image' | 'video'): Promise<WechatMiniprogram.MediaFile | null> {
+function chooseMaterials(options: {
+  count: number
+  mediaType: Array<'image' | 'video'>
+}): Promise<WechatMiniprogram.ChooseMediaSuccessCallbackResult | null> {
   return new Promise((resolve, reject) => {
     wx.chooseMedia({
-      count: 1,
-      mediaType: [kind],
+      count: options.count,
+      mediaType: options.mediaType,
       sourceType: ['album', 'camera'],
-      sizeType: kind === 'image' ? ['compressed'] : undefined,
-      maxDuration: kind === 'video' ? 15 : undefined,
+      sizeType: ['compressed'],
+      maxDuration: 15,
       success(result) {
-        resolve(result.tempFiles[0] ?? null)
+        resolve(result)
       },
       fail(error) {
         if (error.errMsg.includes('cancel')) {
@@ -121,6 +155,19 @@ function chooseMedia(kind: 'image' | 'video'): Promise<WechatMiniprogram.MediaFi
       },
     })
   })
+}
+
+function selectedMediaKind(
+  media: WechatMiniprogram.MediaFile,
+  selectionType: string,
+): MaterialKind {
+  const path = media.tempFilePath.toLowerCase().split(/[?#]/, 1)[0] ?? ''
+  const isVideo =
+    selectionType === 'video'
+    || Boolean(media.thumbTempFilePath)
+    || Number(media.duration) > 0
+    || /\.(mp4|mov|m4v|avi|webm)$/.test(path)
+  return isVideo ? 'VIDEO' : 'IMAGE'
 }
 
 Page({
@@ -136,24 +183,28 @@ Page({
     isCheckingPreferences: false,
     preferenceCheckPassed: false,
     preferenceAnswers: {} as Record<string, string[]>,
+    writingRuleHint: '使用中华新韵，默认以简体中文创作',
     editingWorkId: '',
     editingVersion: 0,
     quota: {
-      limit: 0,
+      limit: null as number | null,
       used: 0,
-      remaining: 0,
+      remaining: null as number | null,
+      unlimited: false,
     },
     quotaLoaded: false,
     selectedCategory: 'CLASSICAL' as PoemCategory,
     selectedClassicalForm: 'WUYAN_JUEJU' as ClassicalFormCode,
+    selectedClassicalIndex: 0,
     selectedTuneIndex: 0,
+    selectedTuneCode: DEFAULT_TUNE_PATTERNS[0].code,
+    selectedTuneName: DEFAULT_TUNE_PATTERNS[0].name,
+    pendingTuneCode: DEFAULT_TUNE_PATTERNS[0].code,
+    tuneSearch: '',
+    showTunePicker: false,
     tunePatterns: DEFAULT_TUNE_PATTERNS,
-    classicalForms: [
-      { code: 'WUYAN_JUEJU', name: '五言绝句' },
-      { code: 'QIYAN_JUEJU', name: '七言绝句' },
-      { code: 'WUYAN_LVSHI', name: '五言律诗' },
-      { code: 'QIYAN_LVSHI', name: '七言律诗' },
-    ],
+    visibleTunePatterns: DEFAULT_TUNE_PATTERNS,
+    classicalForms: DEFAULT_CLASSICAL_FORMS,
     categories: [
       { code: 'CLASSICAL', name: '古体诗', icon: 'classical' },
       { code: 'MODERN', name: '现代诗', icon: 'modern' },
@@ -161,35 +212,54 @@ Page({
     ],
   },
 
+  preferenceSelectionVersion: 0,
+
   onLoad() {
     void loadPoemTaxonomies()
       .then((taxonomies) => {
+        const classical = taxonomies.categories.find(
+          (category) => category.code === 'CLASSICAL',
+        )
         const ci = taxonomies.categories.find((category) => category.code === 'CI')
-        if (ci?.tunePatterns && ci.tunePatterns.length > 0) {
-          this.setData({
-            tunePatterns: ci.tunePatterns,
-            selectedTuneIndex: 0,
-          })
-        }
+        const remoteClassicalForms = new Map(
+          (classical?.forms ?? []).map((form) => [form.code, form]),
+        )
+        const classicalForms = DEFAULT_CLASSICAL_FORMS.map(
+          (fallback) => remoteClassicalForms.get(fallback.code) ?? fallback,
+        )
+        const tunePatterns = (ci?.tunePatterns ?? []).map((pattern) => ({
+          code: pattern.code,
+          name: pattern.name,
+          aliases: Array.isArray(pattern.aliases) ? pattern.aliases : [],
+        }))
+        const selectedTuneIndex = Math.max(
+          0,
+          tunePatterns.findIndex((pattern) => pattern.code === this.data.selectedTuneCode),
+        )
+        const selectedTune = tunePatterns[selectedTuneIndex]
+        this.setData({
+          classicalForms,
+          ...(tunePatterns.length > 0
+            ? {
+                tunePatterns,
+                visibleTunePatterns: tunePatterns,
+                selectedTuneIndex,
+                selectedTuneCode: selectedTune?.code ?? tunePatterns[0].code,
+                selectedTuneName: selectedTune?.name ?? tunePatterns[0].name,
+              }
+            : {}),
+        })
       })
       .catch(() => undefined)
   },
 
   onShow() {
+    this.setData({ isCreating: false })
     const tabBar = this.getTabBar()
     if (tabBar) {
       tabBar.setData({ selected: 0 })
     }
-    if (consumeCreationReset()) {
-      this.setData({
-        prompt: '',
-        materials: [],
-        imageCount: 0,
-        videoCount: 0,
-        editingWorkId: '',
-        editingVersion: 0,
-      })
-    }
+    const shouldReset = consumeCreationReset()
     const editingDraft = consumeCreationEditDraft()
     if (editingDraft) {
       const materials: MaterialItem[] = editingDraft.assets.map((asset) => ({
@@ -212,28 +282,124 @@ Page({
         selectedCategory: editingDraft.preferences.category,
         selectedClassicalForm:
           editingDraft.preferences.classicalFormCode || 'WUYAN_JUEJU',
+        selectedClassicalIndex: Math.max(
+          0,
+          this.data.classicalForms.findIndex(
+            (form) => form.code === editingDraft.preferences.classicalFormCode,
+          ),
+        ),
         selectedTuneIndex: Math.max(0, tunePatternIndex),
+        selectedTuneCode:
+          editingDraft.preferences.tunePatternCode
+          || this.data.tunePatterns[Math.max(0, tunePatternIndex)]?.code
+          || DEFAULT_TUNE_PATTERNS[0].code,
+        selectedTuneName:
+          this.data.tunePatterns[Math.max(0, tunePatternIndex)]?.name
+          || DEFAULT_TUNE_PATTERNS[0].name,
         editingWorkId: editingDraft.workId,
         editingVersion: editingDraft.version,
       })
+    } else if (shouldReset) {
+      void this.resetCreationForm()
     }
     void this.refreshQuota()
     const preferenceResume = wx.getStorageSync(STORAGE_KEYS.creationResumeAfterPreferences)
     if (preferenceResume && typeof preferenceResume === 'object') {
       wx.removeStorageSync(STORAGE_KEYS.creationResumeAfterPreferences)
-      const poemType = String(preferenceResume.poemType || '')
+      const resumeAnswers =
+        preferenceResume.answers &&
+        typeof preferenceResume.answers === 'object'
+          ? preferenceResume.answers as Record<string, string[]>
+          : {}
+      const poemType = String(resumeAnswers.poemType?.[0] || '')
       const selectedCategory = ['CLASSICAL', 'MODERN', 'CI'].includes(poemType)
         ? poemType as PoemCategory
         : this.data.selectedCategory
       this.setData({
         selectedCategory,
         preferenceCheckPassed: true,
-        preferenceAnswers: {
-          poemType: poemType ? [poemType] : [],
-          styles: Array.isArray(preferenceResume.styles) ? preferenceResume.styles : [],
-        },
+        preferenceAnswers: resumeAnswers,
+        writingRuleHint: writingRuleHint(selectedCategory, resumeAnswers),
       })
       setTimeout(() => void this.startCreation(), 80)
+    }
+  },
+
+  async resetCreationForm() {
+    this.preferenceSelectionVersion += 1
+    const resetSelectionVersion = this.preferenceSelectionVersion
+    wx.removeStorageSync(STORAGE_KEYS.creationResumeAfterPreferences)
+    const defaultClassicalForm =
+      this.data.classicalForms.find((form) => form.code === 'WUYAN_JUEJU')
+      ?? this.data.classicalForms[0]
+      ?? DEFAULT_CLASSICAL_FORMS[0]
+    const defaultTune =
+      this.data.tunePatterns.find(
+        (pattern) => pattern.code === DEFAULT_TUNE_PATTERNS[0].code,
+      )
+      ?? this.data.tunePatterns[0]
+      ?? DEFAULT_TUNE_PATTERNS[0]
+    const applyReset = (
+      selectedCategory: PoemCategory,
+      preferenceAnswers: Record<string, string[]>,
+    ) => {
+      this.setData({
+        prompt: '',
+        materials: [],
+        imageCount: 0,
+        videoCount: 0,
+        isUploading: false,
+        isCreating: false,
+        isCheckingPreferences: false,
+        preferenceCheckPassed: false,
+        preferenceAnswers,
+        writingRuleHint: writingRuleHint(selectedCategory, preferenceAnswers),
+        editingWorkId: '',
+        editingVersion: 0,
+        selectedCategory,
+        selectedClassicalForm: defaultClassicalForm.code,
+        selectedClassicalIndex: Math.max(
+          0,
+          this.data.classicalForms.findIndex(
+            (form) => form.code === defaultClassicalForm.code,
+          ),
+        ),
+        selectedTuneIndex: Math.max(
+          0,
+          this.data.tunePatterns.findIndex(
+            (pattern) => pattern.code === defaultTune.code,
+          ),
+        ),
+        selectedTuneCode: defaultTune.code,
+        selectedTuneName: defaultTune.name,
+        pendingTuneCode: defaultTune.code,
+        tuneSearch: '',
+        showTunePicker: false,
+        visibleTunePatterns: this.data.tunePatterns,
+      })
+    }
+
+    applyReset('CLASSICAL', {})
+    wx.hideKeyboard()
+    try {
+      await ensureInstallation()
+      const preferenceState = await loadCreationPreferences()
+      const preferenceAnswers = preferenceState.preference?.answers ?? {}
+      const preferredCategory = String(preferenceAnswers.poemType?.[0] || '')
+      const selectedCategory: PoemCategory =
+        preferredCategory === 'MODERN'
+        || preferredCategory === 'CI'
+        || preferredCategory === 'CLASSICAL'
+          ? preferredCategory
+          : 'CLASSICAL'
+      if (this.preferenceSelectionVersion !== resetSelectionVersion) return
+      this.setData({
+        selectedCategory,
+        preferenceAnswers,
+        writingRuleHint: writingRuleHint(selectedCategory, preferenceAnswers),
+      })
+    } catch {
+      // 保留已经应用的本地默认值；开始创作时仍会再次校验服务端偏好。
     }
   },
 
@@ -247,6 +413,7 @@ Page({
           limit: quota.limit,
           used: quota.used,
           remaining: quota.remaining,
+          unlimited: quota.unlimited,
         },
         quotaLoaded: true,
       })
@@ -261,83 +428,203 @@ Page({
   },
 
   selectCategory(event: WechatMiniprogram.TouchEvent) {
+    const selectedCategory = String(event.currentTarget.dataset.code) as PoemCategory
+    this.preferenceSelectionVersion += 1
     this.setData({
-      selectedCategory: String(event.currentTarget.dataset.code) as PoemCategory,
+      selectedCategory,
+      writingRuleHint: writingRuleHint(selectedCategory, this.data.preferenceAnswers),
     })
   },
 
   selectClassicalForm(event: WechatMiniprogram.TouchEvent) {
+    const selectedClassicalForm = String(
+      event.currentTarget.dataset.code,
+    ) as ClassicalFormCode
     this.setData({
-      selectedClassicalForm: String(event.currentTarget.dataset.code) as ClassicalFormCode,
+      selectedClassicalForm,
+      selectedClassicalIndex: Math.max(
+        0,
+        this.data.classicalForms.findIndex((form) => form.code === selectedClassicalForm),
+      ),
     })
   },
 
-  handleTunePatternChange(event: PickerChangeEvent) {
-    this.setData({ selectedTuneIndex: Number(event.detail.value) })
+  openTunePicker() {
+    this.setData({
+      showTunePicker: true,
+      pendingTuneCode: this.data.selectedTuneCode,
+      tuneSearch: '',
+      visibleTunePatterns: this.data.tunePatterns,
+    })
   },
 
-  async handleAddImage() {
-    if (this.data.isUploading || this.data.imageCount >= MAX_IMAGE_COUNT) return
-    try {
-      const media = await chooseMedia('image')
-      if (!media) return
-      this.setData({ isUploading: true })
-      wx.showLoading({ title: '正在上传图片', mask: true })
-      const asset = await uploadWithLoginRetry(
-        () => uploadImageAsset(media.tempFilePath, 'IMAGE'),
-        '正在上传图片',
+  closeTunePicker() {
+    this.setData({
+      showTunePicker: false,
+      tuneSearch: '',
+    })
+  },
+
+  preventMove() {},
+
+  handleTuneSearch(event: ValueChangeEvent) {
+    const tuneSearch = event.detail.value
+    const query = normalizeTuneSearch(tuneSearch)
+    this.setData({
+      tuneSearch,
+      visibleTunePatterns: query
+        ? this.data.tunePatterns.filter((item) => matchesTuneSearch(item, query))
+        : this.data.tunePatterns,
+    })
+  },
+
+  selectPendingTune(event: WechatMiniprogram.TouchEvent) {
+    const selectedTuneCode = String(event.currentTarget.dataset.code)
+    if (!this.data.tunePatterns.some((item) => item.code === selectedTuneCode)) return
+    this.setData({ pendingTuneCode: selectedTuneCode })
+  },
+
+  resetTunePicker() {
+    const firstTune =
+      this.data.tunePatterns.find(
+        (item) => item.code === DEFAULT_TUNE_PATTERNS[0].code,
       )
-      const sourceUrl = asset.accessUrl || media.tempFilePath
-      this.appendMaterial({
-        id: asset.id,
-        kind: 'IMAGE',
-        sourceUrl,
-        previewUrl: sourceUrl,
-        durationLabel: '',
-      })
-      wx.showToast({ title: '图片已添加', icon: 'success' })
-    } catch (error) {
-      if (!(error instanceof ApiError && error.code === 'LOGIN_CANCELLED')) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
-      }
-    } finally {
-      wx.hideLoading()
-      this.setData({ isUploading: false })
-    }
+      ?? this.data.tunePatterns[0]
+      ?? DEFAULT_TUNE_PATTERNS[0]
+    this.setData({
+      pendingTuneCode: firstTune.code,
+      tuneSearch: '',
+      visibleTunePatterns: this.data.tunePatterns,
+    })
   },
 
-  async handleAddVideo() {
-    if (this.data.isUploading || this.data.videoCount >= MAX_VIDEO_COUNT) return
+  confirmTunePicker() {
+    const selectedTuneIndex = Math.max(
+      0,
+      this.data.tunePatterns.findIndex(
+        (item) => item.code === this.data.pendingTuneCode,
+      ),
+    )
+    const selectedTune = this.data.tunePatterns[selectedTuneIndex]
+    if (!selectedTune) return
+    this.setData({
+      selectedTuneIndex,
+      selectedTuneCode: selectedTune.code,
+      selectedTuneName: selectedTune.name,
+      showTunePicker: false,
+      tuneSearch: '',
+    })
+  },
+
+  async handleAddMaterial() {
+    if (this.data.isUploading) return
+    const remainingImages = MAX_IMAGE_COUNT - this.data.imageCount
+    const remainingVideos = MAX_VIDEO_COUNT - this.data.videoCount
+    if (remainingImages <= 0 && remainingVideos <= 0) {
+      wx.showToast({ title: '素材数量已达上限', icon: 'none' })
+      return
+    }
+
+    const mediaType: Array<'image' | 'video'> = []
+    if (remainingImages > 0) mediaType.push('image')
+    if (remainingVideos > 0) mediaType.push('video')
+
+    let uploadedMaterials: MaterialItem[] = []
     try {
-      const media = await chooseMedia('video')
-      if (!media) return
-      if (media.duration > 15) {
-        wx.showToast({ title: '请选择15秒以内的视频', icon: 'none' })
+      const selection = await chooseMaterials({
+        count: remainingImages + remainingVideos,
+        mediaType,
+      })
+      if (!selection || selection.tempFiles.length === 0) return
+
+      let availableImages = remainingImages
+      let availableVideos = remainingVideos
+      let ignoredByLimit = 0
+      let ignoredLongVideo = 0
+      const accepted = selection.tempFiles.flatMap((media) => {
+        const kind = selectedMediaKind(media, selection.type)
+        if (kind === 'VIDEO') {
+          if (Number(media.duration) > 15) {
+            ignoredLongVideo += 1
+            return []
+          }
+          if (availableVideos <= 0) {
+            ignoredByLimit += 1
+            return []
+          }
+          availableVideos -= 1
+        } else {
+          if (availableImages <= 0) {
+            ignoredByLimit += 1
+            return []
+          }
+          availableImages -= 1
+        }
+        return [{ media, kind }]
+      })
+
+      if (accepted.length === 0) {
+        wx.showToast({
+          title: ignoredLongVideo > 0 ? '请选择15秒以内的视频' : '素材数量已达上限',
+          icon: 'none',
+        })
         return
       }
+
       this.setData({ isUploading: true })
-      wx.showLoading({ title: '正在上传视频', mask: true })
-      const asset = await uploadWithLoginRetry(
-        () => uploadVideoAsset({
-          filePath: media.tempFilePath,
-          ...(media.thumbTempFilePath
-            ? { thumbnailFilePath: media.thumbTempFilePath }
-            : {}),
-          width: media.width,
-          height: media.height,
-          durationSeconds: media.duration,
-        }),
-        '正在上传视频',
-      )
-      this.appendMaterial({
-        id: asset.id,
-        kind: 'VIDEO',
-        sourceUrl: asset.accessUrl || media.tempFilePath,
-        previewUrl: asset.thumbnailUrl || media.thumbTempFilePath || '',
-        durationLabel: `${media.duration.toFixed(1)}s`,
+      for (let index = 0; index < accepted.length; index += 1) {
+        const { media, kind } = accepted[index]
+        const loadingTitle = `正在上传 ${index + 1}/${accepted.length}`
+        wx.showLoading({ title: loadingTitle, mask: true })
+        if (kind === 'IMAGE') {
+          const asset = await uploadWithLoginRetry(
+            () => uploadImageAsset(media.tempFilePath, 'IMAGE'),
+            loadingTitle,
+          )
+          const sourceUrl = asset.accessUrl || media.tempFilePath
+          uploadedMaterials.push({
+            id: asset.id,
+            kind,
+            sourceUrl,
+            previewUrl: sourceUrl,
+            durationLabel: '',
+          })
+          continue
+        }
+
+        const asset = await uploadWithLoginRetry(
+          () => uploadVideoAsset({
+            filePath: media.tempFilePath,
+            ...(media.thumbTempFilePath
+              ? { thumbnailFilePath: media.thumbTempFilePath }
+              : {}),
+            width: media.width,
+            height: media.height,
+            durationSeconds: media.duration,
+          }),
+          loadingTitle,
+        )
+        uploadedMaterials.push({
+          id: asset.id,
+          kind,
+          sourceUrl: asset.accessUrl || media.tempFilePath,
+          previewUrl: asset.thumbnailUrl || media.thumbTempFilePath || '',
+          durationLabel: `${media.duration.toFixed(1)}s`,
+        })
+      }
+
+      this.appendMaterials(uploadedMaterials)
+      uploadedMaterials = []
+      const hasIgnored = ignoredByLimit > 0 || ignoredLongVideo > 0
+      wx.showToast({
+        title: hasIgnored ? '已添加可用素材，超出限制的已忽略' : '素材已添加',
+        icon: hasIgnored ? 'none' : 'success',
+        duration: hasIgnored ? 2600 : 1500,
       })
-      wx.showToast({ title: '视频已添加', icon: 'success' })
     } catch (error) {
+      if (uploadedMaterials.length > 0) {
+        this.appendMaterials(uploadedMaterials)
+      }
       if (!(error instanceof ApiError && error.code === 'LOGIN_CANCELLED')) {
         wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
       }
@@ -347,8 +634,8 @@ Page({
     }
   },
 
-  appendMaterial(material: MaterialItem) {
-    const materials = [...this.data.materials, material]
+  appendMaterials(incoming: MaterialItem[]) {
+    const materials = [...this.data.materials, ...incoming]
     this.setData({
       materials,
       imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
@@ -412,6 +699,10 @@ Page({
         this.setData({
           preferenceCheckPassed: true,
           preferenceAnswers: preferenceState.preference?.answers ?? {},
+          writingRuleHint: writingRuleHint(
+            this.data.selectedCategory,
+            preferenceState.preference?.answers ?? {},
+          ),
         })
       } catch (error) {
         wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
@@ -420,7 +711,11 @@ Page({
         this.setData({ isCheckingPreferences: false })
       }
     }
-    if (this.data.quotaLoaded && this.data.quota.remaining <= 0) {
+    if (
+      this.data.quotaLoaded
+      && !this.data.quota.unlimited
+      && (this.data.quota.remaining ?? 0) <= 0
+    ) {
       if (hasAccessToken()) {
         wx.showToast({ title: '今日创作次数已用完', icon: 'none' })
         return
@@ -437,7 +732,11 @@ Page({
         wx.hideLoading()
       }
     }
-    const tunePattern = this.data.tunePatterns[this.data.selectedTuneIndex]
+    const tunePattern =
+      this.data.tunePatterns.find(
+        (pattern) => pattern.code === this.data.selectedTuneCode,
+      )
+      || this.data.tunePatterns[this.data.selectedTuneIndex]
     if (this.data.selectedCategory === 'CI' && !tunePattern) {
       wx.showToast({ title: '请选择词牌', icon: 'none' })
       return
@@ -448,14 +747,21 @@ Page({
       classicalFormCode:
         this.data.selectedCategory === 'CLASSICAL' ? this.data.selectedClassicalForm : null,
       tunePatternCode: this.data.selectedCategory === 'CI' ? tunePattern?.code ?? null : null,
-      styleTags: (this.data.preferenceAnswers.styles ?? []).slice(0, 10),
+      rhymeScheme:
+        this.data.preferenceAnswers.rhymeScheme?.[0] === 'TRADITIONAL'
+          ? 'TRADITIONAL' as const
+          : 'NEW_CHINESE' as const,
+      preferredPoets: (this.data.preferenceAnswers.poets ?? []).slice(0, 20),
+      styleTags: (this.data.preferenceAnswers.styles ?? [])
+        .filter((style) => style !== '打油诗')
+        .slice(0, 10),
       lengthHint: null,
     }
 
     this.setData({ isCreating: true })
     wx.showLoading({ title: '正在酝酿诗意', mask: true })
     try {
-      const creation = await generatePoem({
+      const run = await startCreationRun({
         prompt,
         assetIds: this.data.materials.map((material) => material.id),
         assetKinds: this.data.materials.map((material) => material.kind),
@@ -468,13 +774,12 @@ Page({
           : {}),
       })
       this.setData({
-        editingWorkId: creation.workId || '',
+        editingWorkId: run.creationId || '',
         editingVersion: 0,
       })
-      savePendingCreation(creation)
       await new Promise<void>((resolve, reject) => {
         wx.navigateTo({
-          url: '/pages/create-result/index',
+          url: `/pages/creating/index?runId=${encodeURIComponent(run.runId)}`,
           success: () => resolve(),
           fail: reject,
         })

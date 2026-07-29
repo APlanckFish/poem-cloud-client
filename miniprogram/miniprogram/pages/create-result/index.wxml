@@ -10,10 +10,14 @@
 <scroll-view class="result-scroll" scroll-y enhanced show-scrollbar="{{false}}">
   <view wx:if="{{creation}}" class="result-page">
     <view class="result-heading">
-      <view class="result-mark poem-display">诗云</view>
+      <image
+        class="result-brand-mark"
+        src="/assets/images/brand-icon.png"
+        mode="aspectFit"
+      ></image>
       <text class="result-eyebrow">本次创作</text>
-      <text wx:if="{{quotaRemaining !== null}}" class="quota-copy">
-        今日还可创作 {{quotaRemaining}} 次
+      <text wx:if="{{quotaUnlimited || quotaRemaining !== null}}" class="quota-copy">
+        {{quotaUnlimited ? 'SVIP 可无限创作' : '今日还可创作 ' + quotaRemaining + ' 次'}}
       </text>
     </view>
 
@@ -31,7 +35,7 @@
       <text class="poem-content poem-display" user-select>{{creation.result.content}}</text>
       <view class="poem-foot">
         <text>
-          {{creation.result.category === 'CLASSICAL' ? '古体诗' : creation.result.category === 'MODERN' ? '现代诗' : '词'}}
+          {{creation.result.classicalFormCode === 'DAYOU_SHI' ? '打油诗' : creation.result.category === 'CLASSICAL' ? '古体诗' : creation.result.category === 'MODERN' ? '现代诗' : '词'}}
         </text>
         <text wx:if="{{creation.saved}}" class="saved-state">已收入作品</text>
       </view>

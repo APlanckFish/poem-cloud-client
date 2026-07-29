@@ -1,0 +1,386 @@
+<view class="creating-viewport">
+  <navigation-bar
+    title="{{isReplayMode ? '创作手记' : coreReady ? '创作完成' : '正在创作'}}"
+    back="{{true}}"
+    custom-back="{{true}}"
+    bindback="handleBack"
+    color="#202824"
+    background="#faf9f5"
+  ></navigation-bar>
+
+  <scroll-view
+    class="creating-scroll"
+    scroll-y
+    enhanced
+    bounces="{{false}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="creating-page">
+      <image class="creating-landscape" src="/assets/images/mountain-wash.png" mode="aspectFill"></image>
+
+      <view class="process-heading">
+        <view>
+          <text class="process-eyebrow">创作手记</text>
+          <text class="process-title poem-display">你出现在我诗的每一页</text>
+        </view>
+        <view class="process-status {{!coreReady && !isFailed ? 'process-status--active' : ''}}">
+          <view wx:if="{{!coreReady && !isFailed}}" class="process-status__pulse"></view>
+          <text>{{isFailed ? '连接中断' : isReplayMode ? '完整回放' : coreReady ? '创作完成' : isQueued ? '等待资源' : '实时生成'}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{isQueued}}" class="queue-notice">
+        <view class="queue-notice__mark">
+          <view class="queue-notice__dot queue-notice__dot--one"></view>
+          <view class="queue-notice__dot queue-notice__dot--two"></view>
+          <view class="queue-notice__dot queue-notice__dot--three"></view>
+        </view>
+        <view class="queue-notice__content">
+          <text class="queue-notice__title poem-display">服务器资源紧张，正在排队中</text>
+          <text class="queue-notice__copy">{{queueAhead > 0 ? '前方还有 ' + queueAhead + ' 个创作任务，队列会自动更新' : '已排到队首，正在等待创作资源释放'}}</text>
+        </view>
+      </view>
+
+      <view class="stage-list">
+        <view wx:for="{{steps}}" wx:key="key" class="stage-item">
+          <view class="stage-rail">
+            <view class="stage-node stage-node--{{item.state}}">
+              <text wx:if="{{item.state === 'done'}}">✓</text>
+              <view wx:elif="{{item.state === 'active'}}" class="stage-spinner"></view>
+              <view wx:else class="stage-dot"></view>
+            </view>
+            <view wx:if="{{index < steps.length - 1}}" class="stage-line {{item.state === 'done' ? 'stage-line--done' : ''}}"></view>
+          </view>
+
+          <view class="stage-body">
+            <view
+              class="stage-header {{item.state === 'done' && item.traces.length ? 'stage-header--toggle' : ''}}"
+              data-index="{{index}}"
+              bindtap="toggleStage"
+              hover-class="stage-header--pressed"
+              aria-role="{{item.state === 'done' && item.traces.length ? 'button' : ''}}"
+            >
+              <text class="stage-title poem-display">{{item.title}}</text>
+              <view class="stage-summary">
+                <text>{{item.state === 'done' ? '已完成' : item.state === 'active' ? '进行中' : '等待中'}}</text>
+                <view
+                  wx:if="{{item.state === 'done' && item.traces.length}}"
+                  class="stage-chevron {{item.expanded ? 'stage-chevron--expanded' : ''}}"
+                ></view>
+              </view>
+            </view>
+
+            <view wx:if="{{item.expanded && (item.traces.length || item.liveProgress)}}" class="stage-trace">
+              <view wx:for="{{item.traces}}" wx:for-item="trace" wx:key="*this" class="stage-trace-row">
+                <text class="stage-trace-mark">·</text>
+                <text class="stage-trace-copy">{{trace}}</text>
+              </view>
+              <view wx:if="{{item.liveProgress}}" class="stage-trace-row stage-trace-row--live">
+                <text class="stage-trace-mark">·</text>
+                <text class="stage-trace-copy">{{item.liveProgress}}</text>
+              </view>
+            </view>
+            <text wx:elif="{{item.state !== 'done'}}" class="stage-detail">{{item.detail}}</text>
+
+            <view wx:if="{{item.key === 'POEM_GENERATION' && revisions.length}}" class="revision-list">
+              <view
+                wx:for="{{revisions}}"
+                wx:for-item="revision"
+                wx:for-index="revisionIndex"
+                wx:key="generationId"
+                class="revision-item revision-item--{{revision.state}}"
+              >
+                <view
+                  class="revision-header"
+                  data-index="{{revisionIndex}}"
+                  bindtap="toggleRevision"
+                  hover-class="revision-header--pressed"
+                  aria-role="button"
+                >
+                  <view class="revision-heading">
+                    <text class="revision-label poem-display">{{revision.label}}</text>
+                    <text class="revision-state">{{revision.state === 'done' ? '已完成' : revision.state === 'active' ? '创作中' : '等待中'}}</text>
+                  </view>
+                  <view
+                    wx:if="{{revision.traces.length}}"
+                    class="stage-chevron {{revision.expanded ? 'stage-chevron--expanded' : ''}}"
+                  ></view>
+                </view>
+                <view class="revision-requirement">
+                  <text class="revision-requirement__label">调整要求</text>
+                  <text class="revision-requirement__copy">{{revision.instruction}}</text>
+                </view>
+                <view wx:if="{{revision.expanded && (revision.traces.length || revision.liveProgress)}}" class="revision-trace">
+                  <view
+                    wx:for="{{revision.traces}}"
+                    wx:for-item="revisionTrace"
+                    wx:key="*this"
+                    class="stage-trace-row"
+                  >
+                    <text class="stage-trace-mark">·</text>
+                    <text class="stage-trace-copy">{{revisionTrace}}</text>
+                  </view>
+                  <view wx:if="{{revision.liveProgress}}" class="stage-trace-row stage-trace-row--live">
+                    <text class="stage-trace-mark">·</text>
+                    <text class="stage-trace-copy">{{revision.liveProgress}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{isFailed && !coreReady}}" class="stream-error">
+        <text class="stream-error-copy">{{streamMessage}}</text>
+        <view
+          class="stream-retry poem-display {{isRecreating ? 'stream-retry--disabled' : ''}}"
+          bindtap="handleFailureAction"
+          hover-class="stream-retry--pressed"
+          aria-role="button"
+          aria-disabled="{{isRecreating}}"
+        >{{isRecreating ? '正在重新创作…' : failureAction === 'RECREATE' ? '重新创作' : '重新连接'}}</view>
+      </view>
+
+      <view class="result-paper {{coreReady ? 'result-paper--ready' : 'result-paper--writing'}}">
+        <image
+          class="result-paper__bamboo"
+          src="/assets/images/result-bamboo.png"
+          mode="aspectFit"
+        ></image>
+        <text
+          wx:if="{{(poemTitle || coreReady) && (!coreReady || creation.saved)}}"
+          class="result-paper__title poem-display"
+        >{{coreReady ? title : poemTitle}}</text>
+        <textarea
+          wx:elif="{{coreReady}}"
+          class="result-paper__title result-paper__title-input poem-display"
+          value="{{title}}"
+          maxlength="100"
+          auto-height
+          show-confirm-bar="{{false}}"
+          bindinput="handleTitleInput"
+        ></textarea>
+        <view wx:if="{{poemTitle || coreReady}}" class="result-paper__form poem-display">
+          {{poemCategoryLabel}}
+        </view>
+        <text wx:if="{{poemContent}}" class="result-paper__poem poem-display" user-select><text
+          wx:for="{{poemDisplayRuns}}"
+          wx:key="index"
+          class="{{item.invalid ? 'result-paper__poem-error' : ''}}"
+        >{{item.text}}</text><text wx:if="{{isTyping}}" class="result-paper__caret">丨</text></text>
+        <view wx:if="{{coreReady}}" class="result-paper__signature poem-display">
+          <text>由你的文字与素材生成</text>
+          <image
+            class="result-paper__brand"
+            src="/assets/images/brand-icon.png"
+            mode="aspectFit"
+          ></image>
+        </view>
+      </view>
+
+      <view wx:if="{{coreReady && creation && !isReplayMode}}" class="result-actions">
+        <button
+          class="native-button-reset native-button-reset--block result-primary poem-display {{creation.saved ? 'result-primary--saved' : isSaving ? 'result-primary--loading' : ''}}"
+          disabled="{{creation.saved || isSaving}}"
+          bindtap="handleSave"
+        >
+          <text wx:if="{{creation.saved}}" class="result-primary__saved-mark">✓</text>
+          <text>{{creation.saved ? '已保存到我的作品' : isSaving ? '正在保存…' : '保存到我的作品'}}</text>
+        </button>
+
+        <view class="result-action-grid">
+          <button
+            wx:if="{{!creation.saved}}"
+            class="native-button-reset result-action poem-display {{isRecreating ? 'result-action--disabled' : ''}}"
+            disabled="{{isRecreating}}"
+            bindtap="handleRecreate"
+          >
+            <image class="result-action__icon" src="/assets/icons/result-recreate.png"></image>
+            <text>{{isRecreating ? '正在创作' : '重新创作'}}</text>
+          </button>
+          <button
+            wx:if="{{!creation.saved}}"
+            class="native-button-reset result-action poem-display"
+            bindtap="handleAdjustRequirements"
+          >
+            <image class="result-action__icon" src="/assets/icons/result-adjust.png"></image>
+            <text>调整要求</text>
+          </button>
+          <button
+            wx:if="{{creation.saved}}"
+            class="native-button-reset result-action poem-display"
+            open-type="share"
+          >
+            <image class="result-action__icon" src="/assets/icons/result-share.png"></image>
+            <text>分享给好友</text>
+          </button>
+          <button
+            wx:if="{{creation.saved}}"
+            class="native-button-reset result-action poem-display {{isPublishing || creation.published ? 'result-action--disabled' : ''}}"
+            disabled="{{isPublishing || creation.published}}"
+            bindtap="handlePublish"
+          >
+            <image class="result-action__icon" src="/assets/icons/result-publish.png"></image>
+            <text>{{creation.published ? '已发布' : isPublishing ? '正在发布' : '发布到诗词圈'}}</text>
+          </button>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<view
+  wx:if="{{showAdjustmentSheet}}"
+  class="adjustment-overlay"
+  catchtap="handleAdjustmentCancel"
+  catchtouchmove="preventMove"
+>
+  <view
+    class="adjustment-sheet {{keyboardHeight > 0 ? 'adjustment-sheet--keyboard' : ''}}"
+    style="bottom: {{keyboardHeight}}px; transition-duration: {{keyboardDuration}}ms;"
+    catchtap="preventMove"
+  >
+    <view class="adjustment-heading">
+      <text class="adjustment-title poem-display">想怎么调整这首诗？</text>
+      <view
+        class="adjustment-close"
+        bindtap="handleAdjustmentCancel"
+        hover-class="adjustment-close--pressed"
+        aria-role="button"
+        aria-label="关闭调整要求"
+      ></view>
+    </view>
+    <text class="adjustment-copy poem-display">可以修改意象、语气、用词或格律，本次创作的素材与上下文会保留。</text>
+
+    <view class="adjustment-field">
+      <textarea
+        class="adjustment-textarea poem-display"
+        value="{{adjustmentInstruction}}"
+        placeholder="例如：语气更含蓄一些，结尾保留月亮的意象…"
+        placeholder-class="adjustment-placeholder"
+        maxlength="200"
+        focus="{{adjustmentInputFocus}}"
+        adjust-position="{{false}}"
+        hold-keyboard
+        show-confirm-bar="{{false}}"
+        cursor-spacing="0"
+        bindinput="handleAdjustmentInput"
+        bindkeyboardheightchange="handleAdjustmentKeyboardHeight"
+      ></textarea>
+      <text class="adjustment-count">{{adjustmentInstruction.length}}/200</text>
+    </view>
+
+    <view class="adjustment-actions">
+      <view
+        class="adjustment-cancel poem-display"
+        bindtap="handleAdjustmentCancel"
+        hover-class="adjustment-action--pressed"
+        aria-role="button"
+      >取消</view>
+      <view
+        class="adjustment-submit poem-display {{!canSubmitAdjustment || isAdjusting ? 'adjustment-submit--disabled' : ''}}"
+        bindtap="handleAdjustmentSubmit"
+        hover-class="adjustment-action--pressed"
+        aria-role="button"
+        aria-disabled="{{!canSubmitAdjustment || isAdjusting}}"
+      >{{isAdjusting ? '正在重新创作…' : '按此要求重新创作'}}</view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{showExitDraftDialog}}" class="exit-draft-overlay" catchtouchmove="preventMove">
+  <view class="exit-draft-dialog">
+    <view
+      class="exit-draft-close {{isLeaving ? 'exit-draft-close--disabled' : ''}}"
+      bindtap="handleExitDialogClose"
+      hover-class="exit-draft-close--pressed"
+      aria-role="button"
+      aria-label="关闭"
+      aria-disabled="{{isLeaving}}"
+    ></view>
+    <image class="exit-draft-ornament" src="/assets/icons/exit-draft-cloud.png" mode="aspectFit"></image>
+    <text class="exit-draft-title poem-display">要离开本次创作吗？</text>
+    <text class="exit-draft-copy poem-display">{{openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '当前内容尚未完成，保存草稿后可在「我的草稿」中继续创作。'}}</text>
+    <view
+      class="exit-draft-primary poem-display {{isLeaving ? 'exit-draft-action--disabled' : ''}}"
+      bindtap="handleExitSave"
+      hover-class="exit-draft-action--pressed"
+      aria-role="button"
+      aria-disabled="{{isLeaving}}"
+    >保存草稿并退出</view>
+    <view
+      class="exit-draft-secondary poem-display {{isLeaving ? 'exit-draft-action--disabled' : ''}}"
+      bindtap="handleExitDiscard"
+      hover-class="exit-draft-action--pressed"
+      aria-role="button"
+      aria-disabled="{{isLeaving}}"
+    >不保存直接退出</view>
+  </view>
+</view>
+
+<view wx:if="{{showProfileSetup}}" class="profile-setup-overlay" catchtouchmove="preventMove">
+  <view class="profile-setup-dialog">
+    <text class="profile-setup-title poem-display">完善微信资料</text>
+    <text class="profile-setup-copy poem-display">让诗友更好地认识你</text>
+
+    <button
+      class="avatar-picker"
+      size="mini"
+      open-type="chooseAvatar"
+      bindchooseavatar="handleChooseAvatar"
+      hover-class="avatar-picker--pressed"
+      aria-label="选择微信头像"
+    >
+      <image
+        wx:if="{{pendingAvatarUrl}}"
+        class="avatar-picker__image"
+        src="{{pendingAvatarUrl}}"
+        mode="aspectFill"
+      ></image>
+      <view wx:else class="avatar-picker__placeholder">
+        <view class="avatar-picker__placeholder-head"></view>
+        <view class="avatar-picker__placeholder-body"></view>
+      </view>
+      <view class="avatar-picker__camera">
+        <view class="avatar-picker__camera-body">
+          <view class="avatar-picker__camera-lens"></view>
+        </view>
+      </view>
+    </button>
+    <text class="avatar-picker__label poem-display">点击更换头像</text>
+
+    <view class="nickname-field">
+      <text class="nickname-field__label poem-display">昵称</text>
+      <view class="nickname-field__control">
+        <input
+          class="nickname-field__input poem-display"
+          type="nickname"
+          maxlength="24"
+          value="{{pendingNickname}}"
+          placeholder="请输入昵称"
+          bindinput="handleNicknameInput"
+          bindchange="handleNicknameInput"
+          bindblur="handleNicknameInput"
+        />
+      </view>
+    </view>
+
+    <view class="profile-setup-actions">
+      <view
+        class="profile-setup-skip"
+        bindtap="handleProfileSetupSkip"
+        hover-class="profile-setup-skip--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >稍后再说</view>
+      <view
+        class="profile-setup-save {{isSavingProfile ? 'profile-setup-save--disabled' : ''}}"
+        bindtap="handleProfileSetupSave"
+        hover-class="profile-setup-save--pressed"
+        aria-role="button"
+        aria-disabled="{{isSavingProfile}}"
+      >{{isSavingProfile ? '保存中…' : '保存资料'}}</view>
+    </view>
+  </view>
+</view>

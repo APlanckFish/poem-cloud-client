@@ -3,83 +3,264 @@
 
 <scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view wx:if="{{publication}}" class="detail-page">
-    <view class="detail-paper">
-      <view class="detail-paper__scene">
-        <image class="detail-paper__scene-image" src="{{coverUrl}}" mode="aspectFill"></image>
-        <view class="detail-paper__scene-fade"></view>
+    <view class="detail-card-scene" style="height: {{cardHeightRpx}}rpx;">
+      <view
+        class="detail-flip-card {{isCardFlipped ? 'detail-flip-card--back' : ''}} {{isCardHinting ? 'detail-flip-card--hinting' : ''}}"
+        bindanimationend="handleCardHintEnd"
+      >
+        <view
+          class="detail-paper detail-card-face detail-card-front"
+          bindtap="toggleCreationCard"
+          aria-role="{{canViewCreationJourney ? 'button' : ''}}"
+          aria-label="{{canViewCreationJourney ? '翻看创作手记' : ''}}"
+        >
+          <view class="detail-paper__scene">
+            <image class="detail-paper__scene-image" src="{{coverUrl}}" mode="aspectFill"></image>
+            <view class="detail-paper__scene-fade"></view>
+          </view>
+
+          <text class="detail-title poem-display">{{publication.title}}</text>
+          <view class="detail-type poem-display">{{categoryName}}</view>
+
+          <view class="detail-author">
+            <view class="detail-author__avatar poem-display">
+              <image
+                wx:if="{{publication.author.avatarUrl}}"
+                src="{{publication.author.avatarUrl}}"
+                mode="aspectFill"
+              ></image>
+              <text wx:else>{{authorInitial}}</text>
+            </view>
+            <view class="detail-author__copy">
+              <text class="detail-author__name poem-display">{{publication.author.nickname}}</text>
+              <text
+                wx:if="{{publishedDate}}"
+                class="detail-author__date"
+              >{{publishedDate}}</text>
+            </view>
+          </view>
+
+          <text class="detail-content poem-display" user-select><text
+            wx:for="{{publicationContentRuns}}"
+            wx:key="index"
+            class="{{item.invalid ? 'detail-content__validation-error' : ''}}"
+          >{{item.text}}</text></text>
+        </view>
+
+        <view class="detail-card-face detail-journal">
+          <view
+            class="detail-journal__header"
+            bindtap="toggleCreationCard"
+            aria-role="button"
+            aria-label="翻回诗词正文"
+          >
+            <text class="detail-journal__title poem-display">创作手记</text>
+            <text class="detail-journal__subtitle poem-display">从一束光影，到一首诗</text>
+          </view>
+
+          <scroll-view
+            class="detail-journal__scroll"
+            scroll-y
+            enhanced
+            bounces="{{false}}"
+            show-scrollbar="{{false}}"
+            bindtap="toggleCreationCard"
+          >
+            <view wx:if="{{isJourneyLoading}}" class="detail-journal__state poem-display">
+              正在展开创作脉络…
+            </view>
+            <view wx:elif="{{journeyError}}" class="detail-journal__state detail-journal__state--error poem-display">
+              {{journeyError}}
+            </view>
+            <view wx:else class="detail-timeline">
+              <view wx:if="{{publication.materials.length > 0}}" class="detail-materials">
+                <view class="detail-timeline__rail">
+                  <view class="detail-timeline__node"></view>
+                  <view class="detail-timeline__line"></view>
+                </view>
+                <view class="detail-materials__body">
+                  <text class="detail-timeline__label poem-display">查看原始素材</text>
+                  <text class="detail-timeline__description">创作这首诗时使用的图片与视频</text>
+                  <scroll-view
+                    class="detail-materials__scroll"
+                    scroll-x
+                    enhanced
+                    bounces="{{false}}"
+                    show-scrollbar="{{false}}"
+                  >
+                    <view class="detail-materials__list">
+                      <view
+                        wx:for="{{publication.materials}}"
+                        wx:key="id"
+                        class="detail-materials__item"
+                        data-id="{{item.id}}"
+                        catchtap="previewOriginalMaterial"
+                        aria-role="button"
+                        aria-label="全屏查看原始素材"
+                      >
+                        <image
+                          class="detail-materials__image"
+                          src="{{item.thumbnailUrl || item.url}}"
+                          mode="aspectFill"
+                        ></image>
+                        <view wx:if="{{item.kind === 'VIDEO'}}" class="detail-materials__video">
+                          <view class="detail-materials__play"></view>
+                        </view>
+                      </view>
+                    </view>
+                  </scroll-view>
+                </view>
+              </view>
+              <view wx:if="{{journeyPrompt}}" class="detail-original-prompt">
+                <view class="detail-timeline__rail">
+                  <view class="detail-timeline__node"></view>
+                  <view class="detail-timeline__line"></view>
+                </view>
+                <view class="detail-original-prompt__body">
+                  <text class="detail-timeline__label poem-display">原始文字要求</text>
+                  <text class="detail-timeline__description">创作这首诗时写下的内容</text>
+                  <text
+                    class="detail-original-prompt__content poem-display"
+                    user-select
+                    catchtap="preventCardFlip"
+                  >{{journeyPrompt}}</text>
+                </view>
+              </view>
+              <view
+                wx:for="{{journeyMoments}}"
+                wx:key="id"
+                class="detail-timeline__moment {{index === journeyMoments.length - 1 ? 'detail-timeline__moment--last' : ''}}"
+              >
+                <view class="detail-timeline__rail">
+                  <view class="detail-timeline__node"></view>
+                  <view class="detail-timeline__line"></view>
+                </view>
+                <view class="detail-timeline__body">
+                  <view class="detail-timeline__heading">
+                    <view>
+                      <text class="detail-timeline__label poem-display">{{item.label}}</text>
+                      <text class="detail-timeline__description">{{item.description}}</text>
+                    </view>
+                    <text wx:if="{{item.time}}" class="detail-timeline__time">{{item.time}}</text>
+                  </view>
+                  <view class="detail-timeline__notes">
+                    <view
+                      wx:for="{{item.entries}}"
+                      wx:for-item="entry"
+                      wx:key="*this"
+                      class="detail-timeline__note"
+                    >
+                      <text class="detail-timeline__note-mark">·</text>
+                      <text>{{entry}}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
       </view>
+    </view>
 
-      <text class="detail-title poem-display">{{publication.title}}</text>
-      <view class="detail-type poem-display">{{categoryName}}</view>
-
-      <view class="detail-author">
-        <view class="detail-author__avatar poem-display">
+    <button
+      wx:if="{{isPublic}}"
+      class="native-button-reset detail-action detail-action--like {{publication.likedByMe ? 'detail-action--liked' : ''}}"
+      bindtap="toggleLike"
+    >
+      <view class="detail-like__summary">
+        <view class="like-anchor">
           <image
-            wx:if="{{publication.author.avatarUrl}}"
-            src="{{publication.author.avatarUrl}}"
-            mode="aspectFill"
+            class="heart-icon {{showLikeBurst ? 'heart-icon--pop' : ''}}"
+            src="{{publication.likedByMe ? '/assets/icons/heart-filled.png' : '/assets/icons/heart-outline.png'}}"
+            mode="aspectFit"
           ></image>
-          <text wx:else>{{authorInitial}}</text>
+          <view wx:if="{{showLikeBurst}}" class="like-burst">
+            <view class="like-burst__ring"></view>
+            <view class="like-burst__particle like-burst__particle--1"></view>
+            <view class="like-burst__particle like-burst__particle--2"></view>
+            <view class="like-burst__particle like-burst__particle--3"></view>
+            <view class="like-burst__particle like-burst__particle--4"></view>
+            <view class="like-burst__particle like-burst__particle--5"></view>
+            <view class="like-burst__particle like-burst__particle--6"></view>
+          </view>
         </view>
-        <view class="detail-author__copy">
-          <text class="detail-author__name poem-display">{{publication.author.nickname}}</text>
-          <text
-            wx:if="{{publishedDate}}"
-            class="detail-author__date"
-          >{{publishedDate}}</text>
+        <text class="detail-like-count">{{publication.likeCount}}</text>
+      </view>
+      <view class="detail-like__state">{{publication.likedByMe ? '已点赞' : '点赞'}}</view>
+    </button>
+
+    <view wx:if="{{canManagePublication}}" class="detail-display-settings">
+      <view class="detail-setting-row">
+        <text class="detail-setting-row__label poem-display">公开创作手记</text>
+        <switch
+          class="detail-setting-row__switch"
+          checked="{{creationJournalPublic}}"
+          disabled="{{isUpdatingSettings}}"
+          color="#3f6758"
+          bindchange="handleJournalVisibilityChange"
+        />
+      </view>
+      <view class="detail-setting-row">
+        <text class="detail-setting-row__label poem-display">卡片背景</text>
+        <view class="detail-cover-choice">
+          <view
+            class="detail-cover-choice__item poem-display {{coverSource === 'MATERIAL' ? 'detail-cover-choice__item--active' : ''}} {{!materialBackgroundReady ? 'detail-cover-choice__item--disabled' : ''}}"
+            data-source="MATERIAL"
+            bindtap="selectCoverSource"
+            aria-role="button"
+          >原始素材</view>
+          <view
+            class="detail-cover-choice__item poem-display {{coverSource === 'POSTER' ? 'detail-cover-choice__item--active' : ''}} {{!posterBackgroundReady ? 'detail-cover-choice__item--disabled' : ''}}"
+            data-source="POSTER"
+            bindtap="selectCoverSource"
+            aria-role="button"
+          >海报图</view>
         </view>
       </view>
-
-      <text class="detail-content poem-display" user-select>{{publication.content}}</text>
     </view>
 
     <view
-      wx:if="{{isPublic}}"
+      wx:if="{{showDetailActions}}"
       class="detail-actions"
     >
-      <button
-        class="native-button-reset detail-action detail-action--like {{publication.likedByMe ? 'detail-action--liked' : ''}}"
-        bindtap="toggleLike"
-      >
-        <view class="detail-like__summary">
-          <view class="like-anchor">
-            <image
-              class="heart-icon {{showLikeBurst ? 'heart-icon--pop' : ''}}"
-              src="{{publication.likedByMe ? '/assets/icons/heart-filled.png' : '/assets/icons/heart-outline.png'}}"
-              mode="aspectFit"
-            ></image>
-            <view wx:if="{{showLikeBurst}}" class="like-burst">
-              <view class="like-burst__ring"></view>
-              <view class="like-burst__particle like-burst__particle--1"></view>
-              <view class="like-burst__particle like-burst__particle--2"></view>
-              <view class="like-burst__particle like-burst__particle--3"></view>
-              <view class="like-burst__particle like-burst__particle--4"></view>
-              <view class="like-burst__particle like-burst__particle--5"></view>
-              <view class="like-burst__particle like-burst__particle--6"></view>
-            </view>
+      <view class="detail-actions__secondary">
+        <button
+          class="native-button-reset native-button-reset--flex detail-action detail-action--save {{!posterReady ? 'detail-action--disabled' : ''}}"
+          disabled="{{isSavingPoster}}"
+          bindtap="savePosterToAlbum"
+        >
+          <view class="detail-download-icon">
+            <view class="detail-download-icon__arrow"></view>
+            <view class="detail-download-icon__tray"></view>
           </view>
-          <text class="detail-like-count">{{publication.likeCount}}</text>
-        </view>
-        <view class="detail-like__state">{{publication.likedByMe ? '已点赞' : '点赞'}}</view>
-      </button>
-      <button class="native-button-reset native-button-reset--block detail-action detail-action--share" open-type="share">
-        <image src="/assets/icons/action-wechat.png" mode="aspectFit"></image>
-        <text>分享给好友</text>
+          <text>{{isSavingPoster ? '正在保存' : '保存到手机'}}</text>
+        </button>
+        <button
+          class="native-button-reset native-button-reset--flex detail-action detail-action--share {{!isPublic ? 'detail-action--disabled' : ''}}"
+          open-type="{{isPublic ? 'share' : ''}}"
+          disabled="{{!isPublic}}"
+        >
+          <image src="/assets/icons/result-share.png" mode="aspectFit"></image>
+          <text>分享给好友</text>
+        </button>
+      </view>
+      <button
+        wx:if="{{canPublish}}"
+        class="native-button-reset native-button-reset--block detail-action detail-action--publish"
+        disabled="{{isPublishing}}"
+        bindtap="publishToCommunity"
+      >
+        <image src="/assets/icons/result-publish.png" mode="aspectFit"></image>
+        <text>{{isPublishing ? '正在发布' : '发布到诗词圈'}}</text>
       </button>
       <view
-        wx:if="{{canFollow}}"
+        wx:if="{{isPublic && canFollow}}"
         class="detail-action detail-action--follow {{followedByMe ? 'detail-action--followed' : ''}}"
         bindtap="toggleFollow"
       >
         <image src="/assets/icons/action-follow.png" mode="aspectFit"></image>
         <text>{{followedByMe ? '已关注' : '关注作者'}}</text>
       </view>
-    </view>
-
-    <view class="creation-foot poem-display">
-      <text class="creation-foot__leaf">〽</text>
-      <text>创作于</text>
-      <text class="creation-foot__place">诗云</text>
     </view>
   </view>
 

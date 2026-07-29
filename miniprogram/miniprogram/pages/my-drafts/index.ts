@@ -1,12 +1,16 @@
 import { ApiError, hasAccessToken } from '../../services/api'
 import { deleteAsset } from '../../services/assets'
 import {
+  activateSavedCreationRun,
   deleteLocalCreationDraft,
+  discardActiveCreationRun,
+  getActiveCreationRun,
   getLocalCreationDrafts,
+  getSavedCreationRunDrafts,
   type LocalCreationDraft,
   type PendingCreation,
-  saveCreationEditDraft,
   savePendingCreation,
+  startCreationRun,
 } from '../../services/creation'
 import type { LibraryWork } from '../../services/library'
 import {
@@ -27,6 +31,7 @@ interface DraftCard {
   videoCount: number
   offset: number
   isLocal: boolean
+  resumeRunId: string | null
 }
 
 const COVERS = [
@@ -85,6 +90,7 @@ function toCard(work: LibraryWork, index: number, tunePatternNames: TunePatternN
     videoCount: knownVideos,
     offset: 0,
     isLocal: false,
+    resumeRunId: null,
   }
 }
 
@@ -108,6 +114,32 @@ function toLocalCard(
     videoCount: (draft.assetKinds || []).filter((kind) => kind === 'VIDEO').length,
     offset: 0,
     isLocal: true,
+    resumeRunId: null,
+  }
+}
+
+function toRunDraftCard(
+  draft: ReturnType<typeof getSavedCreationRunDrafts>[number],
+  index: number,
+  tunePatternNames: TunePatternNames,
+): DraftCard {
+  const prompt = draft.prompt.trim()
+  return {
+    id: draft.localDraftId,
+    title: prompt ? (prompt.length > 12 ? `${prompt.slice(0, 12)}…` : prompt) : '未命名草稿',
+    editedAt: editedLabel(draft.localUpdatedAt),
+    description: describeWorkType({
+      category: draft.preferences.category,
+      classicalFormCode: draft.preferences.classicalFormCode,
+      tunePatternCode: draft.preferences.tunePatternCode,
+      preferences: draft.preferences,
+    }, tunePatternNames),
+    cover: COVERS[index % COVERS.length],
+    imageCount: draft.assetKinds.filter((kind) => kind === 'IMAGE').length,
+    videoCount: draft.assetKinds.filter((kind) => kind === 'VIDEO').length,
+    offset: 0,
+    isLocal: true,
+    resumeRunId: draft.runId,
   }
 }
 
@@ -118,6 +150,7 @@ Page({
     isLoading: false,
     hasLoaded: false,
     isDeleting: false,
+    continuingDraftId: '',
   },
 
   onLoad() {
@@ -140,12 +173,19 @@ Page({
         loadTunePatternNames().catch(() => ({})),
       ])
       const localDrafts = getLocalCreationDrafts()
+      const completedGenerationIds = new Set(localDrafts.map((draft) => draft.generationId))
+      const runDrafts = getSavedCreationRunDrafts().filter(
+        (draft) => !draft.creationId && !completedGenerationIds.has(draft.runId),
+      )
       serverDrafts = new Map(response.items.map((work) => [work.id, work]))
       this.setData({
         drafts: [
-          ...localDrafts.map((draft, index) => toLocalCard(draft, index, tunePatternNames)),
+          ...runDrafts.map((draft, index) => toRunDraftCard(draft, index, tunePatternNames)),
+          ...localDrafts.map((draft, index) => (
+            toLocalCard(draft, index + runDrafts.length, tunePatternNames)
+          )),
           ...response.items.map((work, index) => (
-            toCard(work, index + localDrafts.length, tunePatternNames)
+            toCard(work, index + runDrafts.length + localDrafts.length, tunePatternNames)
           )),
         ],
         hasLoaded: true,
@@ -225,7 +265,12 @@ Page({
     this.setData({ isDeleting: true })
     wx.showLoading({ title: '正在删除', mask: true })
     try {
-      if (draft.isLocal) {
+      const savedRun = getSavedCreationRunDrafts().find(
+        (item) => item.localDraftId === draft.id || item.creationId === draft.id,
+      )
+      if (savedRun) {
+        await discardActiveCreationRun(savedRun)
+      } else if (draft.isLocal) {
         const localDrafts = getLocalCreationDrafts()
         const source = localDrafts.find((item) => item.localDraftId === draft.id)
         const retainedAssetIds = new Set(
@@ -257,14 +302,33 @@ Page({
     }
   },
 
-  continueDraft(event: WechatMiniprogram.TouchEvent) {
+  async continueDraft(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id)
-    if (!id) return
+    if (!id || this.data.continuingDraftId) return
     this.closeSwipes()
+    const savedRun = getSavedCreationRunDrafts().find(
+      (draft) => draft.localDraftId === id || draft.creationId === id,
+    )
+    if (savedRun) {
+      activateSavedCreationRun(savedRun)
+      wx.navigateTo({
+        url: `/pages/creating/index?runId=${encodeURIComponent(savedRun.runId)}&fromDraft=1`,
+      })
+      return
+    }
+    const currentRun = getActiveCreationRun()
+    if (currentRun?.creationId === id) {
+      wx.navigateTo({
+        url: `/pages/creating/index?runId=${encodeURIComponent(currentRun.runId)}&fromDraft=1`,
+      })
+      return
+    }
     const localDraft = getLocalCreationDrafts().find((draft) => draft.localDraftId === id)
     if (localDraft) {
       savePendingCreation(localDraft)
-      wx.navigateTo({ url: '/pages/create-result/index' })
+      wx.navigateTo({
+        url: `/pages/creating/index?generationId=${encodeURIComponent(localDraft.generationId)}&mode=draft`,
+      })
       return
     }
     const work = serverDrafts.get(id)
@@ -276,6 +340,8 @@ Page({
       category: work.category,
       classicalFormCode: work.classicalFormCode as PendingCreation['preferences']['classicalFormCode'],
       tunePatternCode: work.tunePatternCode,
+      rhymeScheme: 'NEW_CHINESE',
+      preferredPoets: [],
       styleTags: [],
       lengthHint: null,
     }
@@ -293,27 +359,31 @@ Page({
         saved: false,
         published: false,
       })
-      wx.navigateTo({ url: '/pages/create-result/index' })
+      wx.navigateTo({
+        url: `/pages/creating/index?generationId=${encodeURIComponent(work.latestGeneration.id)}&mode=draft`,
+      })
       return
     }
-    saveCreationEditDraft({
-      workId: work.id,
-      version: work.version,
-      prompt: work.prompt,
-      assetIds: work.assetIds || [],
-      assets: (work.assets || []).flatMap((asset) => (
-        asset.id && asset.accessUrl
-          ? [{
-              id: asset.id,
-              kind: asset.kind,
-              accessUrl: asset.accessUrl,
-              thumbnailUrl: asset.thumbnailUrl,
-            }]
-          : []
-      )),
-      preferences,
-    })
-    wx.switchTab({ url: '/pages/create/index' })
+    this.setData({ continuingDraftId: id })
+    wx.showLoading({ title: '正在继续创作', mask: true })
+    try {
+      const run = await startCreationRun({
+        prompt: work.prompt,
+        assetIds: work.assetIds || [],
+        assetKinds: (work.assets || []).map((asset) => asset.kind),
+        preferences,
+        workId: work.id,
+        version: work.version,
+      })
+      wx.navigateTo({
+        url: `/pages/creating/index?runId=${encodeURIComponent(run.runId)}&fromDraft=1`,
+      })
+    } catch (error) {
+      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+    } finally {
+      wx.hideLoading()
+      this.setData({ continuingDraftId: '' })
+    }
   },
 
   startCreating() {

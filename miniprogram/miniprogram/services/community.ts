@@ -1,10 +1,22 @@
 import { STORAGE_KEYS } from '../config/api'
 import { request } from './api'
-import type { PoemCategory } from './creation'
+import type { CreationTimelineEvent, PoemCategory } from './creation'
+import type { PoemValidationMark } from './creation'
+
+export type PublicationCoverSource = 'MATERIAL' | 'POSTER'
+
+export interface PublicationMaterial {
+  id: string
+  kind: 'IMAGE' | 'VIDEO'
+  url: string
+  thumbnailUrl: string
+}
 
 export interface CommunityPublication {
   id: string
   workId: string
+  status: 'PUBLISHED' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED'
+  visibility: 'PUBLIC' | 'UNLISTED'
   title: string
   content: string
   category: PoemCategory
@@ -13,15 +25,35 @@ export interface CommunityPublication {
   likeCount: number
   likedByMe: boolean
   posterUrl: string
+  posterReady: boolean
+  generatedBackgroundUrl: string | null
+  posterBackgroundReady: boolean
   coverUrl: string | null
+  displayCoverUrl: string | null
+  materials: PublicationMaterial[]
+  creationJournalPublic: boolean
+  coverSource: PublicationCoverSource
+  canViewCreationJournal: boolean
+  hasCreationJournal: boolean
   publishedAt: string | null
   createdAt: string
+  selectedGenerationId?: string | null
+  validationMarks?: PoemValidationMark[]
   author: {
     id: string
     nickname: string
     avatarAssetId?: string | null
     avatarUrl?: string | null
   }
+}
+
+export interface PublicationCreationJournalEntry {
+  generationId: string
+  baseGenerationId: string | null
+  prompt: string
+  instruction: string
+  materialNarrative: string[]
+  events: CreationTimelineEvent[]
 }
 
 interface FeedResponse {
@@ -66,6 +98,28 @@ export function getPublication(id: string): Promise<CommunityPublication> {
   return request<CommunityPublication>({
     path: `/community/publications/${id}`,
   })
+}
+
+export function updatePublicationSettings(
+  id: string,
+  settings: {
+    creationJournalPublic: boolean
+    coverSource: PublicationCoverSource
+  },
+): Promise<CommunityPublication> {
+  return request<CommunityPublication>({
+    path: `/community/publications/${encodeURIComponent(id)}/settings`,
+    method: 'PUT',
+    data: settings,
+  })
+}
+
+export function loadPublicationCreationJournal(
+  id: string,
+): Promise<PublicationCreationJournalEntry[]> {
+  return request<{ items: PublicationCreationJournalEntry[] }>({
+    path: `/community/publications/${encodeURIComponent(id)}/creation-journal`,
+  }).then((response) => response.items)
 }
 
 export function likePublication(id: string): Promise<void> {

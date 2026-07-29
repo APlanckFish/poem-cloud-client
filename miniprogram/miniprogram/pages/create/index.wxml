@@ -1,145 +1,205 @@
 <view class="app-viewport create-viewport">
-<navigation-bar title="创作" back="{{false}}" color="#202824" background="#faf9f5"></navigation-bar>
+<image
+  class="create-background"
+  src="/assets/images/create-home-landscape.jpg"
+  mode="aspectFill"
+  aria-hidden="true"
+></image>
 
-<scroll-view class="page-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
+<view class="create-navigation">
+  <navigation-bar title="" back="{{false}}" color="#202824" background="transparent">
+    <image
+      slot="center"
+      class="brand-logo"
+      src="/assets/images/brand-icon.png"
+      mode="aspectFit"
+    ></image>
+  </navigation-bar>
+</view>
+
+<scroll-view class="page-scroll create-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view class="create-page">
-    <view class="hero">
-      <image class="hero-image" src="/assets/images/create-hero.jpg" mode="aspectFill"></image>
-      <view class="hero-veil"></view>
-      <text class="hero-title poem-display">把此刻，写成诗</text>
-      <view class="hero-cloud">⌁</view>
-      <view class="quota-pill">
-        今日可创作
-        <text>{{quotaLoaded ? quota.remaining + '/' + quota.limit : '—/—'}}</text>
-      </view>
+    <view class="quota-pill poem-display">
+      <text>今日创作额度剩余</text>
+      <text class="quota-pill__number">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.remaining) : '--'}}</text>
+      <text wx:if="{{!quota.unlimited}}">次</text>
     </view>
 
     <view class="create-content">
       <view class="prompt-card">
-        <textarea
-          class="prompt-input"
-          value="{{prompt}}"
-          placeholder="写下心情、故事或想表达的画面..."
-          placeholder-class="prompt-placeholder"
-          maxlength="500"
-          auto-height="{{false}}"
-          bindinput="handlePromptInput"
-        ></textarea>
-        <view class="material-actions">
-          <button
-            class="material-button {{isUploading || imageCount >= maxImageCount ? 'material-button--disabled' : ''}}"
-            size="mini"
-            disabled="{{isUploading || imageCount >= maxImageCount}}"
-            bindtap="handleAddImage"
-            hover-class="button-pressed"
-            aria-label="添加图片，最多3张"
-          >
-            <image class="material-icon" src="/assets/icons/media-image.svg" mode="aspectFit"></image>
-            <text>添加图片</text>
-            <text wx:if="{{imageCount > 0}}" class="material-count">{{imageCount}}/3</text>
-          </button>
-          <button
-            class="material-button {{isUploading || videoCount >= maxVideoCount ? 'material-button--disabled' : ''}}"
-            size="mini"
-            disabled="{{isUploading || videoCount >= maxVideoCount}}"
-            bindtap="handleAddVideo"
-            hover-class="button-pressed"
-            aria-label="添加视频，最多1个且时长不超过15秒"
-          >
-            <image class="material-icon" src="/assets/icons/media-video.svg" mode="aspectFit"></image>
-            <text>添加视频</text>
-            <text class="material-note">15秒内</text>
-            <text wx:if="{{videoCount > 0}}" class="material-count">{{videoCount}}</text>
-          </button>
-        </view>
+        <view class="prompt-field">
+          <textarea
+            class="prompt-input poem-display"
+            value="{{prompt}}"
+            placeholder="写下此刻，或放入一段故事…"
+            placeholder-class="prompt-placeholder"
+            maxlength="300"
+            auto-height="{{false}}"
+            bindinput="handlePromptInput"
+          ></textarea>
 
-        <view wx:if="{{materials.length > 0}}" class="material-list">
-          <view wx:for="{{materials}}" wx:key="id" class="material-item">
-            <view class="material-preview" data-id="{{item.id}}" bindtap="previewMaterial">
-              <image
-                wx:if="{{item.previewUrl}}"
-                class="material-preview__image"
-                src="{{item.previewUrl}}"
-                mode="aspectFill"
-              ></image>
-              <view wx:else class="material-preview__fallback">
-                <image src="/assets/icons/media-video.svg" mode="aspectFit"></image>
+          <view wx:if="{{materials.length > 0}}" class="material-list">
+            <view wx:for="{{materials}}" wx:key="id" class="material-item">
+              <view class="material-preview" data-id="{{item.id}}" bindtap="previewMaterial">
+                <image
+                  wx:if="{{item.previewUrl}}"
+                  class="material-preview__image"
+                  src="{{item.previewUrl}}"
+                  mode="aspectFill"
+                ></image>
+                <view wx:else class="material-preview__fallback">
+                  <image src="/assets/icons/media-video.svg" mode="aspectFit"></image>
+                </view>
+                <view wx:if="{{item.kind === 'VIDEO'}}" class="material-preview__video">
+                  <text class="material-preview__play">▶</text>
+                  <text>{{item.durationLabel}}</text>
+                </view>
               </view>
-              <view wx:if="{{item.kind === 'VIDEO'}}" class="material-preview__video">
-                <text class="material-preview__play">▶</text>
-                <text>{{item.durationLabel}}</text>
-              </view>
+              <view
+                class="material-remove"
+                data-id="{{item.id}}"
+                catchtap="removeMaterial"
+                aria-role="button"
+                aria-label="移除素材"
+              >×</view>
             </view>
-            <view
-              class="material-remove"
-              data-id="{{item.id}}"
-              catchtap="removeMaterial"
-              aria-role="button"
-              aria-label="移除素材"
-            >×</view>
+          </view>
+
+          <view
+            class="material-entry {{isUploading || (imageCount >= maxImageCount && videoCount >= maxVideoCount) ? 'material-entry--disabled' : ''}}"
+            bindtap="handleAddMaterial"
+            hover-class="material-entry--pressed"
+            aria-role="button"
+            aria-label="添加图片或视频"
+            aria-disabled="{{isUploading || (imageCount >= maxImageCount && videoCount >= maxVideoCount)}}"
+          >
+            <view class="material-entry__main">
+              <image
+                class="material-entry__icon"
+                src="/assets/icons/create-upload.png"
+                mode="aspectFit"
+              ></image>
+              <text class="material-entry__label poem-display">{{isUploading ? '正在上传素材…' : '添加素材'}}</text>
+            </view>
+            <text class="material-entry__meta">
+              {{materials.length ? imageCount + '/3 图片 · ' + videoCount + '/1 视频' : '图片 3张 · 视频 15秒'}}
+            </text>
           </view>
         </view>
       </view>
 
-      <text class="section-title poem-display">选择诗歌类型</text>
+      <view class="selection-card {{selectedCategory === 'CI' ? 'selection-card--stacked' : ''}}">
+        <view class="type-row">
+          <text class="setting-label poem-display">诗词类型</text>
+          <view class="category-selector">
+            <view
+              wx:for="{{categories}}"
+              wx:key="code"
+              class="category-option {{selectedCategory === item.code ? 'category-option--active' : ''}}"
+              data-code="{{item.code}}"
+              bindtap="selectCategory"
+              hover-class="category-option--pressed"
+              aria-role="button"
+              aria-checked="{{selectedCategory === item.code}}"
+            >
+              <text class="control-text">{{item.name}}</text>
+            </view>
+          </view>
+        </view>
 
-      <view class="category-grid">
-        <button
-          wx:for="{{categories}}"
-          wx:key="code"
-          class="native-button-reset native-button-reset--flex category-card {{selectedCategory === item.code ? 'category-card--active' : ''}}"
-          data-code="{{item.code}}"
-          bindtap="selectCategory"
-          hover-class="button-pressed"
+        <view
+          wx:if="{{selectedCategory === 'CI'}}"
+          class="secondary-row"
+          bindtap="openTunePicker"
+          hover-class="secondary-row--pressed"
+          aria-role="button"
+          aria-label="选择词牌"
         >
-          <image
-            class="category-icon"
-            src="/assets/icons/category-{{item.icon}}.svg"
-            mode="aspectFit"
-          ></image>
-          <text class="category-name poem-display">{{item.name}}</text>
-        </button>
+          <text class="setting-label poem-display">词牌</text>
+          <view class="secondary-value">
+            <text class="control-text poem-display">{{selectedTuneName}}</text>
+            <text class="secondary-arrow">›</text>
+          </view>
+        </view>
       </view>
 
-      <view wx:if="{{selectedCategory === 'CLASSICAL'}}" class="subtype-panel">
-        <text class="subtype-label">选择体裁</text>
-        <view class="subtype-options">
-          <button
+      <view wx:if="{{selectedCategory === 'CLASSICAL'}}" class="classical-form-row">
+        <text class="setting-label poem-display">体裁</text>
+        <view class="classical-form-grid">
+          <view
             wx:for="{{classicalForms}}"
             wx:key="code"
-            class="native-button-reset subtype-chip {{selectedClassicalForm === item.code ? 'subtype-chip--active' : ''}}"
+            class="classical-form-option poem-display {{item.code === 'DAYOU_SHI' ? 'classical-form-option--doggerel' : ''}} {{selectedClassicalForm === item.code ? 'classical-form-option--active' : ''}}"
             data-code="{{item.code}}"
             bindtap="selectClassicalForm"
-          >{{item.name}}</button>
-        </view>
-      </view>
-
-      <view wx:if="{{selectedCategory === 'CI'}}" class="subtype-panel">
-        <text class="subtype-label">选择词牌</text>
-        <picker
-          mode="selector"
-          range="{{tunePatterns}}"
-          range-key="name"
-          value="{{selectedTuneIndex}}"
-          bindchange="handleTunePatternChange"
-        >
-          <view class="tune-picker">
-            <text class="poem-display">{{tunePatterns[selectedTuneIndex].name}}</text>
-            <text class="tune-picker__arrow">⌄</text>
+            hover-class="classical-form-option--pressed"
+            aria-role="button"
+            aria-checked="{{selectedClassicalForm === item.code}}"
+          >
+            <text class="control-text">{{item.name}}</text>
           </view>
-        </picker>
+        </view>
       </view>
 
       <view
-        class="primary-button poem-display {{isCreating || isUploading ? 'primary-button--disabled' : ''}}"
+        class="primary-button poem-display {{isCreating || isUploading || isCheckingPreferences ? 'primary-button--disabled' : ''}}"
         bindtap="startCreation"
         hover-class="primary-button--pressed"
         aria-role="button"
+        aria-disabled="{{isCreating || isUploading || isCheckingPreferences}}"
       >
-        {{isCreating ? '正在创作…' : (isCheckingPreferences ? '正在准备…' : '开始创作')}}
+        <text class="primary-button__text">{{isCreating ? '正在创作…' : (isCheckingPreferences ? '正在准备…' : '开始创作')}}</text>
       </view>
       <view class="create-footer__safe-area"></view>
     </view>
   </view>
 </scroll-view>
+
+<view
+  wx:if="{{showTunePicker}}"
+  class="tune-picker-overlay"
+  catchtouchmove="preventMove"
+  bindtap="closeTunePicker"
+>
+  <view class="tune-picker-sheet" catchtap="preventMove">
+    <view class="tune-picker-head">
+      <view class="tune-picker-spacer"></view>
+      <text class="tune-picker-title poem-display">选择词牌</text>
+      <text class="tune-picker-reset poem-display" bindtap="resetTunePicker">重置</text>
+    </view>
+
+    <view class="tune-search">
+      <view class="tune-search__icon"></view>
+      <input
+        class="tune-search__input poem-display"
+        value="{{tuneSearch}}"
+        placeholder="搜索词牌名"
+        placeholder-class="tune-search__placeholder"
+        bindinput="handleTuneSearch"
+        confirm-type="search"
+      />
+    </view>
+
+    <scroll-view class="tune-options-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="tune-options">
+        <view
+          wx:for="{{visibleTunePatterns}}"
+          wx:key="code"
+          class="tune-option poem-display {{pendingTuneCode === item.code ? 'tune-option--active' : ''}}"
+          data-code="{{item.code}}"
+          catchtap="selectPendingTune"
+        >
+          <text class="control-text">{{item.name}}</text>
+        </view>
+      </view>
+      <view wx:if="{{visibleTunePatterns.length === 0}}" class="tune-no-result poem-display">
+        没有找到相关词牌
+      </view>
+    </scroll-view>
+
+    <view class="tune-confirm poem-display" catchtap="confirmTunePicker">
+      <text class="control-text">确定</text>
+    </view>
+  </view>
+</view>
 </view>

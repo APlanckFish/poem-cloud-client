@@ -1,4 +1,4 @@
-export const DEFAULT_API_BASE_URL = 'http://9.134.132.210:3000/v1'
+export const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3000/v1'
 
 export const STORAGE_KEYS = {
   apiBaseUrl: 'poem_cloud_api_base_url',
@@ -10,10 +10,13 @@ export const STORAGE_KEYS = {
   installationId: 'poem_cloud_installation_id',
   installationToken: 'poem_cloud_installation_token',
   pendingCreation: 'poem_cloud_pending_creation',
+  activeCreationRun: 'poem_cloud_active_creation_run',
+  savedCreationRunDrafts: 'poem_cloud_saved_creation_run_drafts',
   editingCreation: 'poem_cloud_editing_creation',
   localCreationDrafts: 'poem_cloud_local_creation_drafts',
   creationNeedsReset: 'poem_cloud_creation_needs_reset',
   communityNeedsRefresh: 'poem_cloud_community_needs_refresh',
+  publicationFlipHints: 'poem_cloud_publication_flip_hints',
   creationResumeAfterPreferences: 'poem_cloud_creation_resume_after_preferences',
   clientDataResetVersion: 'poem_cloud_client_data_reset_version',
 } as const

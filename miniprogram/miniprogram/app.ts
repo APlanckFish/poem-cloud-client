@@ -20,6 +20,7 @@ function resetTestDataOnce(): void {
     STORAGE_KEYS.installationId,
     STORAGE_KEYS.installationToken,
     STORAGE_KEYS.pendingCreation,
+    STORAGE_KEYS.activeCreationRun,
     STORAGE_KEYS.editingCreation,
     STORAGE_KEYS.localCreationDrafts,
     STORAGE_KEYS.creationNeedsReset,

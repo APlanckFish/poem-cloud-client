@@ -5,11 +5,22 @@ import {
   type PoemCategory,
   type PoemResult,
 } from './creation'
+import type { PublicationCoverSource } from './community'
 
 export interface WorkPublication {
   id: string
   status: 'PUBLISHED' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED'
   likeCount: number
+  creationJournalPublic: boolean
+  coverSource: PublicationCoverSource
+}
+
+export interface WorkPoster {
+  id?: string
+  status: 'NOT_CREATED' | 'QUEUED' | 'GENERATING_BACKGROUND' | 'COMPOSING' | 'READY' | 'FAILED'
+  url: string
+  backgroundUrl?: string | null
+  isDefault: boolean
 }
 
 export interface LibraryWork {
@@ -23,6 +34,7 @@ export interface LibraryWork {
   tunePatternCode: string | null
   preferences?: CreationPreferences
   generationCount: number
+  selectedGenerationId?: string | null
   version: number
   publication: WorkPublication | null
   latestActivityAt?: string
@@ -53,6 +65,7 @@ const CLASSICAL_FORM_NAMES: Record<string, string> = {
   QIYAN_JUEJU: '七言绝句',
   WUYAN_LVSHI: '五言律诗',
   QIYAN_LVSHI: '七言律诗',
+  DAYOU_SHI: '打油诗',
 }
 
 const STYLE_TAG_NAMES: Record<string, string> = {
@@ -111,6 +124,12 @@ export function loadMyWorks(): Promise<ListResponse<LibraryWork>> {
 export function getLibraryWork(id: string): Promise<LibraryWork> {
   return request<LibraryWork>({
     path: `/works/${encodeURIComponent(id)}`,
+  })
+}
+
+export function getWorkPoster(id: string): Promise<WorkPoster> {
+  return request<WorkPoster>({
+    path: `/works/${encodeURIComponent(id)}/poster`,
   })
 }
 
