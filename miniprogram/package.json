@@ -1,15 +1,21 @@
 {
-  "name": "miniprogram-ts-less-quickstart",
+  "name": "poem-cloud-miniprogram",
   "version": "1.0.0",
-  "description": "",
+  "description": "诗云微信小程序",
+  "private": true,
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "mp:preview": "tsx scripts/preview.ts",
+    "mp:upload": "tsx scripts/upload.ts"
   },
   "keywords": [],
   "author": "",
   "license": "",
-  "dependencies": {
-  },
   "devDependencies": {
-    "miniprogram-api-typings": "^2.8.3-1"
+    "@types/node": "^22",
+    "miniprogram-api-typings": "^2.8.3-1",
+    "miniprogram-ci": "^2.1.31",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3"
   }
 }

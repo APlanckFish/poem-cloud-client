@@ -1,0 +1,11 @@
+node_modules/
+miniprogram_npm/
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# miniprogram-ci 产物与密钥，禁止入库
+.mp-ci/
+*.key
+private.*.key

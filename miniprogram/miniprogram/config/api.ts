@@ -1,4 +1,31 @@
-export const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3000/v1'
+/**
+ * 各环境的后端地址。
+ *
+ * 微信平台要求：体验版与正式版的 wx.request 目标必须是
+ * 「已备案的 HTTPS 域名」且已配置在小程序后台的 request 合法域名中，
+ * 不能使用 IP，也不能使用 http。因此仅 develop（开发者工具/本地调试）
+ * 允许使用本地地址。
+ */
+const API_BASE_URL_BY_ENV = {
+  /** 开发者工具、真机调试 */
+  develop: 'http://127.0.0.1:3000/v1',
+  /** 体验版：需替换为测试环境域名 */
+  trial: 'https://api-dev.poem-cloud.example.com/v1',
+  /** 正式版：需替换为生产环境域名 */
+  release: 'https://api.poem-cloud.example.com/v1',
+} as const
+
+function resolveEnvBaseUrl(): string {
+  try {
+    const { envVersion } = wx.getAccountInfoSync().miniProgram
+    return API_BASE_URL_BY_ENV[envVersion] ?? API_BASE_URL_BY_ENV.release
+  } catch {
+    // 极早期调用或接口不可用时回退到正式环境，避免误连本地地址
+    return API_BASE_URL_BY_ENV.release
+  }
+}
+
+export const DEFAULT_API_BASE_URL = API_BASE_URL_BY_ENV.develop
 
 export const STORAGE_KEYS = {
   apiBaseUrl: 'poem_cloud_api_base_url',
@@ -23,7 +50,8 @@ export const STORAGE_KEYS = {
 
 export function getApiBaseUrl(): string {
   const customBaseUrl = wx.getStorageSync(STORAGE_KEYS.apiBaseUrl)
-  return typeof customBaseUrl === 'string' && customBaseUrl.length > 0
-    ? customBaseUrl.replace(/\/$/, '')
-    : DEFAULT_API_BASE_URL
+  if (typeof customBaseUrl === 'string' && customBaseUrl.length > 0) {
+    return customBaseUrl.replace(/\/$/, '')
+  }
+  return resolveEnvBaseUrl().replace(/\/$/, '')
 }
