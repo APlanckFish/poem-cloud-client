@@ -1,0 +1,140 @@
+import type { MockPoem, UniverseNode } from '../types'
+
+export const DYNASTY_NODES: UniverseNode[] = [
+  {
+    id: 'tang',
+    kind: 'dynasty',
+    name: '唐',
+    subtitle: '盛唐星河 · 约五万七千首',
+    position: [-12, 0, -196],
+    color: '#d7ad63',
+    scale: 6.8,
+    featured: true,
+  },
+  {
+    id: 'song',
+    kind: 'dynasty',
+    name: '宋',
+    subtitle: '两宋云海 · 诗词相生',
+    position: [17, 13, -204],
+    color: '#79b8a1',
+    scale: 5.2,
+  },
+  {
+    id: 'yuan',
+    kind: 'dynasty',
+    name: '元',
+    subtitle: '曲入星尘 · 万籁新声',
+    position: [-2, 26, -202],
+    color: '#bb876b',
+    scale: 3.7,
+  },
+]
+
+// 诗人围绕唐云停泊中心 TANG_CENTER(-34,18,-510) 紧凑分布，
+// 保证停泊相机在 56° FOV 下能把李白居中、群星同框。
+export const TANG_POETS: UniverseNode[] = [
+  {
+    id: 'li-bai',
+    kind: 'poet',
+    name: '李白',
+    subtitle: '诗仙 · 约一千余首',
+    position: [-34, 17, -516],
+    color: '#f1e6ca',
+    scale: 5.8,
+    featured: true,
+  },
+  {
+    id: 'du-fu',
+    kind: 'poet',
+    name: '杜甫',
+    subtitle: '诗圣',
+    position: [-42, 23, -519],
+    color: '#d8a95d',
+    scale: 3.6,
+  },
+  {
+    id: 'wang-wei',
+    kind: 'poet',
+    name: '王维',
+    subtitle: '诗佛',
+    position: [-26, 22, -520],
+    color: '#72b39b',
+    scale: 3.2,
+  },
+  {
+    id: 'bai-juyi',
+    kind: 'poet',
+    name: '白居易',
+    position: [-40, 11, -515],
+    color: '#c58f61',
+    scale: 2.7,
+  },
+  {
+    id: 'meng-haoran',
+    kind: 'poet',
+    name: '孟浩然',
+    position: [-28, 10, -514],
+    color: '#8bb9a8',
+    scale: 2.5,
+  },
+]
+
+export const LI_BAI_POEMS: MockPoem[] = [
+  {
+    id: 'quiet-night',
+    title: '静夜思',
+    form: '五言绝句',
+    lines: ['床前明月光，', '疑是地上霜。', '举头望明月，', '低头思故乡。'],
+    position: [38, -6, -842],
+    color: '#f4ead5',
+    featured: true,
+  },
+  {
+    id: 'bring-in-the-wine',
+    title: '将进酒',
+    form: '乐府',
+    lines: [
+      '君不见黄河之水天上来，',
+      '奔流到海不复回。',
+      '君不见高堂明镜悲白发，',
+      '朝如青丝暮成雪。',
+    ],
+    position: [20, -17, -850],
+    color: '#d8a85b',
+    featured: true,
+  },
+  {
+    id: 'mount-lu-waterfall',
+    title: '望庐山瀑布',
+    form: '七言绝句',
+    lines: ['日照香炉生紫烟，', '遥看瀑布挂前川。', '飞流直下三千尺，', '疑是银河落九天。'],
+    position: [71, -15, -856],
+    color: '#75b7a0',
+    featured: true,
+  },
+  {
+    id: 'hard-road',
+    title: '行路难',
+    form: '乐府',
+    lines: ['金樽清酒斗十千，', '玉盘珍羞直万钱。', '停杯投箸不能食，', '拔剑四顾心茫然。'],
+    position: [39, -31, -840],
+    color: '#c58d62',
+  },
+  {
+    id: 'yellow-crane',
+    title: '黄鹤楼送孟浩然之广陵',
+    form: '七言绝句',
+    lines: ['故人西辞黄鹤楼，', '烟花三月下扬州。', '孤帆远影碧空尽，', '唯见长江天际流。'],
+    position: [65, 14, -859],
+    color: '#91bea9',
+  },
+  {
+    id: 'early-baidi',
+    title: '早发白帝城',
+    form: '七言绝句',
+    lines: ['朝辞白帝彩云间，', '千里江陵一日还。', '两岸猿声啼不住，', '轻舟已过万重山。'],
+    position: [28, 17, -838],
+    color: '#d3af6d',
+  },
+]

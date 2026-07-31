@@ -1,0 +1,22 @@
+{
+  "name": "poem-cloud-poetry-universe-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "visual-check": "pnpm build && node scripts/visual-check.mjs"
+  },
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "0.185.1",
+    "playwright-core": "^1.62.0",
+    "typescript": "7.0.2",
+    "vite": "8.1.5"
+  },
+  "packageManager": "pnpm@9.12.0"
+}

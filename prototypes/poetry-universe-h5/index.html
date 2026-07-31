@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#010706" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/assets/brand-icon.png" />
+    <title>诗云宇宙 · 沉浸式原型</title>
+  </head>
+  <body>
+    <main id="app">
+      <section id="universe" data-stage="intro" aria-label="诗云宇宙">
+        <canvas id="universe-canvas"></canvas>
+        <div class="cinematic-grade" aria-hidden="true"></div>
+
+        <header class="universe-header">
+          <img class="universe-logo" src="/assets/brand-icon.png" alt="诗云" />
+          <p id="chapter-label" class="universe-header__chapter">序章 · 光从一首诗里醒来</p>
+        </header>
+
+        <div id="star-labels" class="star-labels" aria-live="polite"></div>
+
+        <div id="stage-copy" class="stage-copy is-visible">
+          <p id="stage-kicker" class="stage-copy__kicker">一粒诗光</p>
+          <h1 id="stage-title" class="stage-copy__title">从此刻醒来</h1>
+          <p id="stage-description" class="stage-copy__description">
+            你写下的每一个此刻，<br />都曾在更早的星光里发生。
+          </p>
+        </div>
+
+        <div id="poem-sheet" class="poem-sheet" aria-hidden="true">
+          <button id="close-poem" class="poem-sheet__close" type="button" aria-label="收起诗笺">×</button>
+          <p class="poem-sheet__eyebrow">李白 · 唐</p>
+          <h2 id="poem-title" class="poem-sheet__title"></h2>
+          <div id="poem-content" class="poem-sheet__content"></div>
+          <button id="collapse-action" class="poem-sheet__action" type="button">
+            <span>带着这束光，开始创作</span>
+            <i aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <footer class="universe-guide">
+          <p id="guide-text">你，就是这团即将醒来的诗光</p>
+          <button id="primary-action" class="universe-guide__action" type="button">
+            <span id="primary-action-label">唤醒诗光</span>
+            <i aria-hidden="true"></i>
+          </button>
+          <p id="guide-hint" class="universe-guide__hint">先让镜头看见你，再把视角交还给你</p>
+        </footer>
+
+        <div id="transition-copy" class="transition-copy" aria-live="polite">
+          <p id="transition-title">正在穿越唐云</p>
+          <span id="transition-subtitle">前往李白星云</span>
+        </div>
+
+        <div id="singularity" class="singularity" aria-hidden="true">
+          <span class="singularity__light"></span>
+          <span class="singularity__ring singularity__ring--one"></span>
+          <span class="singularity__ring singularity__ring--two"></span>
+        </div>
+      </section>
+
+      <section id="creation-home" class="creation-home" aria-hidden="true">
+        <div class="creation-home__wash"></div>
+        <header class="creation-home__header">
+          <img src="/assets/brand-icon.png" alt="诗云" />
+        </header>
+        <div class="creation-home__quota">今日创作额度剩余 <strong>1</strong> 次</div>
+        <section class="creation-card">
+          <label for="creation-prompt">写下此刻，或放入一段故事</label>
+          <textarea id="creation-prompt" maxlength="300" placeholder="山川、故人、远行，皆可入诗……"></textarea>
+          <button class="creation-card__material" type="button">
+            <span class="creation-card__material-icon">＋</span>
+            <span>添加图片或视频</span>
+            <small>图片 3 张 · 视频 15 秒</small>
+          </button>
+        </section>
+        <section class="creation-options">
+          <div>
+            <span>诗词类型</span>
+            <button class="is-active" type="button">古体诗</button>
+            <button type="button">现代诗</button>
+            <button type="button">词</button>
+          </div>
+          <div>
+            <span>体裁</span>
+            <button class="is-active" type="button">五言绝句</button>
+            <button type="button">七言绝句</button>
+          </div>
+        </section>
+        <button class="creation-home__submit" type="button">开始创作</button>
+        <button id="replay-universe" class="creation-home__replay" type="button">重游诗云宇宙</button>
+      </section>
+
+      <div id="unsupported" class="unsupported" hidden>
+        <img src="/assets/brand-icon.png" alt="" />
+        <h1>这片诗云暂未抵达</h1>
+        <p>当前设备无法启用 WebGL，已为你保留常规创作入口。</p>
+        <button id="unsupported-continue" type="button">进入创作</button>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
