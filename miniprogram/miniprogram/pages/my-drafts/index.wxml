@@ -57,7 +57,7 @@
   </view>
 
   <view wx:elif="{{hasLoaded && !isLoading}}" class="empty-state">
-    <image class="empty-illustration" src="/assets/images/empty-drafts.png" mode="aspectFit"></image>
+    <image class="empty-illustration" src="/assets/images/empty-drafts.jpg" mode="aspectFit"></image>
     <text class="empty-title poem-display">暂无草稿</text>
     <text class="empty-copy">未完成的创作会暂存在这里</text>
     <view class="empty-outline poem-display" bindtap="startCreating" aria-role="button">开始创作</view>

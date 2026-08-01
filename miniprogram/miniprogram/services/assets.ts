@@ -1,4 +1,4 @@
-import { ApiError, request } from './api'
+import { ApiError, getUrlOrigin, request } from './api'
 import { ensureInstallation } from './installation'
 
 type ImageAssetKind = 'IMAGE' | 'AVATAR'
@@ -118,7 +118,15 @@ function putFile(url: string, headers: Record<string, string>, data: ArrayBuffer
         )
       },
       fail(error) {
-        reject(new ApiError(error.errMsg || '无法连接到 COS', 'COS_UPLOAD_FAILED'))
+        const message = error.errMsg || '无法连接到 COS'
+        reject(
+          new ApiError(
+            message.includes('url not in domain list')
+              ? `COS域名未生效，请检查 request 合法域名：${getUrlOrigin(url)}`
+              : message,
+            'COS_UPLOAD_FAILED',
+          ),
+        )
       },
     })
   })

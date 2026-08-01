@@ -127,16 +127,24 @@
         <text class="setting-label poem-display">体裁</text>
         <view class="classical-form-grid">
           <view
-            wx:for="{{classicalForms}}"
-            wx:key="code"
-            class="classical-form-option poem-display {{item.code === 'DAYOU_SHI' ? 'classical-form-option--doggerel' : ''}} {{selectedClassicalForm === item.code ? 'classical-form-option--active' : ''}}"
-            data-code="{{item.code}}"
-            bindtap="selectClassicalForm"
-            hover-class="classical-form-option--pressed"
-            aria-role="button"
-            aria-checked="{{selectedClassicalForm === item.code}}"
+            wx:for="{{classicalFormRows}}"
+            wx:key="key"
+            wx:for-item="formRow"
+            class="classical-form-line"
           >
-            <text class="control-text">{{item.name}}</text>
+            <view
+              wx:for="{{formRow.items}}"
+              wx:key="code"
+              wx:for-item="formItem"
+              class="classical-form-option poem-display {{formItem.code === 'DAYOU_SHI' ? 'classical-form-option--doggerel' : ''}} {{selectedClassicalForm === formItem.code ? 'classical-form-option--active' : ''}}"
+              data-code="{{formItem.code}}"
+              bindtap="selectClassicalForm"
+              hover-class="classical-form-option--pressed"
+              aria-role="button"
+              aria-checked="{{selectedClassicalForm === formItem.code}}"
+            >
+              <text class="control-text">{{formItem.name}}</text>
+            </view>
           </view>
         </view>
       </view>

@@ -1,5 +1,6 @@
 import { uploadImageAsset } from '../../services/assets'
 import { type FeedbackCategory, submitFeedback } from '../../services/feedback'
+import { showErrorToast } from '../../utils/error'
 
 type InputEvent = WechatMiniprogram.CustomEvent<{ value: string }>
 
@@ -86,8 +87,7 @@ Page({
       })
       this.setData({ submitting: false, submitted: true })
     } catch (error) {
-      const message = error instanceof Error && error.message ? error.message : '提交失败，请稍后重试'
-      wx.showToast({ title: message, icon: 'none' })
+      showErrorToast(error, { fallback: '提交失败，请稍后重试' })
       this.setData({ submitting: false })
     } finally {
       wx.hideLoading()

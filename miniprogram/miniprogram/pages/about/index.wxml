@@ -24,6 +24,6 @@
       </view>
     </view>
 
-    <image class="about-bottom" src="/assets/images/about-bottom.png" mode="widthFix"></image>
+    <image class="about-bottom" src="/assets/images/about-bottom.jpg" mode="widthFix"></image>
   </view>
 </view>

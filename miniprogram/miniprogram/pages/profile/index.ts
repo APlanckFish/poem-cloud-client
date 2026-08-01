@@ -1,4 +1,4 @@
-import { ApiError, hasAccessToken } from '../../services/api'
+import { hasAccessToken } from '../../services/api'
 import {
   cachedUser,
   loginWithWechat,
@@ -9,13 +9,10 @@ import {
 import { loadCreationQuota, loadProfileDashboard } from '../../services/profile'
 import { getLocalCreationDrafts } from '../../services/creation'
 import { ensureInstallation } from '../../services/installation'
+import { showErrorToast } from '../../utils/error'
 
 type AvatarChoiceEvent = WechatMiniprogram.CustomEvent<{ avatarUrl: string }>
 type ValueChangeEvent = WechatMiniprogram.CustomEvent<{ value: string }>
-
-function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : '服务暂时不可用，请稍后重试'
-}
 
 function quotaRingClass(
   remaining: number | null,
@@ -187,7 +184,7 @@ Page({
       })
     } catch (error) {
       if (showError) {
-        wx.showToast({ title: errorMessage(error), icon: 'none' })
+        showErrorToast(error)
       }
     } finally {
       this.setData({ isLoading: false })
@@ -207,7 +204,7 @@ Page({
       await this.refreshProfile(false)
       loggedInUser = this.data.user
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '登录失败，请稍后重试' })
     } finally {
       this.setData({ isLoggingIn: false })
       wx.hideLoading()
@@ -276,7 +273,7 @@ Page({
       this.setData({ showProfileSetup: false })
       wx.showToast({ title: '资料已保存', icon: 'success' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '资料保存失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isSavingProfile: false })
@@ -347,7 +344,7 @@ Page({
     } catch (error) {
       this.clearUser()
       wx.hideLoading()
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '退出登录失败，请稍后重试' })
     }
   },
 })

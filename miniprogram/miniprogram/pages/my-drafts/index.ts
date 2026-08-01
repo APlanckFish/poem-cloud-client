@@ -1,4 +1,4 @@
-import { ApiError, hasAccessToken } from '../../services/api'
+import { hasAccessToken } from '../../services/api'
 import { deleteAsset } from '../../services/assets'
 import {
   activateSavedCreationRun,
@@ -20,6 +20,7 @@ import {
   loadTunePatternNames,
   type TunePatternNames,
 } from '../../services/library'
+import { showErrorToast } from '../../utils/error'
 
 interface DraftCard {
   id: string
@@ -46,10 +47,6 @@ let touchStartY = 0
 let touchingDraftId = ''
 let deleteActionWidth = 72
 let serverDrafts = new Map<string, LibraryWork>()
-
-function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : '草稿加载失败，请稍后重试'
-}
 
 function draftTitle(work: LibraryWork): string {
   const generatedTitle = work.latestGeneration?.result?.title
@@ -192,7 +189,7 @@ Page({
       })
     } catch (error) {
       this.setData({ hasLoaded: true })
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '草稿加载失败，请稍后重试' })
     } finally {
       this.setData({ isLoading: false })
     }
@@ -295,7 +292,7 @@ Page({
       })
       wx.showToast({ title: '草稿已删除', icon: 'none' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '草稿删除失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isDeleting: false })
@@ -379,7 +376,7 @@ Page({
         url: `/pages/creating/index?runId=${encodeURIComponent(run.runId)}&fromDraft=1`,
       })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '继续创作失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ continuingDraftId: '' })

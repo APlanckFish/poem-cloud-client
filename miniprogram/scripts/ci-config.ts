@@ -13,6 +13,7 @@ import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 
 // miniprogram-ci 是 CommonJS 包，需以 require 方式加载才能拿到具名导出
 const require = createRequire(import.meta.url)
@@ -115,14 +116,130 @@ export function resolveMeta(args: Record<string, string>): ProjectMeta {
   }
 }
 
-export function createProject(appid: string) {
+export function createProject(appid: string, projectPath = PROJECT_ROOT) {
   return new ci.Project({
     appid,
     type: 'miniProgram',
-    projectPath: PROJECT_ROOT,
+    projectPath,
     privateKeyPath: resolvePrivateKeyPath(),
     ignores: ['node_modules/**/*'],
   })
+}
+
+export interface PreparedProject {
+  project: ReturnType<typeof createProject>
+  cleanup: () => void
+}
+
+function formatDiagnostic(diagnostic: ts.Diagnostic): string {
+  const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+  if (!diagnostic.file || diagnostic.start === undefined) return message
+  const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start)
+  const relativePath = path.relative(PROJECT_ROOT, diagnostic.file.fileName)
+  return `${relativePath}:${position.line + 1}:${position.character + 1} ${message}`
+}
+
+function collectJavaScriptFiles(directory: string): string[] {
+  const files: string[] = []
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) files.push(...collectJavaScriptFiles(entryPath))
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(entryPath)
+  }
+  return files
+}
+
+/**
+ * 微信 CI 的 TypeScript 插件会保留可选链等 ES2020 语法，但上传侧的语法
+ * 校验器仍可能拒绝这些语法。上传前先在临时目录显式编译到 ES2017，再让
+ * 微信 CI 只处理 JavaScript 和 Less，避免开发源码目录产生构建文件。
+ */
+export function createPreparedProject(appid: string): PreparedProject {
+  const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'poem-cloud-mp-build-'))
+  let cleaned = false
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    fs.rmSync(stagingRoot, { recursive: true, force: true })
+  }
+
+  try {
+    fs.cpSync(PROJECT_ROOT, stagingRoot, {
+      recursive: true,
+      filter(source) {
+        const relativePath = path.relative(PROJECT_ROOT, source)
+        if (!relativePath) return true
+        const topLevel = relativePath.split(path.sep)[0]
+        if (['node_modules', 'scripts', 'typings', '.git', '.mp-ci'].includes(topLevel)) {
+          return false
+        }
+        return !source.endsWith('.ts')
+      },
+    })
+
+    const configPath = path.join(PROJECT_ROOT, 'tsconfig.json')
+    const configResult = ts.readConfigFile(configPath, ts.sys.readFile)
+    if (configResult.error) throw new Error(formatDiagnostic(configResult.error))
+    const sourceRoot = path.join(PROJECT_ROOT, 'miniprogram')
+    const outputRoot = path.join(stagingRoot, 'miniprogram')
+    const parsedConfig = ts.parseJsonConfigFileContent(
+      configResult.config,
+      ts.sys,
+      PROJECT_ROOT,
+      {
+        noEmit: false,
+        sourceMap: false,
+        inlineSourceMap: false,
+        declaration: false,
+        target: ts.ScriptTarget.ES2017,
+        rootDir: sourceRoot,
+        outDir: outputRoot,
+      },
+      configPath,
+    )
+    const sourceFiles = parsedConfig.fileNames.filter(
+      (fileName) => fileName.startsWith(sourceRoot) && !fileName.endsWith('.d.ts'),
+    )
+    const program = ts.createProgram(parsedConfig.fileNames, parsedConfig.options)
+    const emitResult = program.emit()
+    const diagnostics = ts
+      .getPreEmitDiagnostics(program)
+      .concat(emitResult.diagnostics)
+      .filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error)
+    if (diagnostics.length > 0 || emitResult.emitSkipped) {
+      throw new Error(`小程序兼容构建失败：\n${diagnostics.map(formatDiagnostic).join('\n')}`)
+    }
+
+    const incompatibleFiles = collectJavaScriptFiles(outputRoot).filter((fileName) => {
+      const content = fs.readFileSync(fileName, 'utf8')
+      return content.includes('?.') || content.includes('??')
+    })
+    if (incompatibleFiles.length > 0) {
+      throw new Error(
+        `兼容构建后仍包含可选链或空值合并语法：${incompatibleFiles
+          .map((fileName) => path.relative(outputRoot, fileName))
+          .join(', ')}`,
+      )
+    }
+
+    const stagedConfigPath = path.join(stagingRoot, 'project.config.json')
+    const stagedConfig = readJson<{
+      setting?: { useCompilerPlugins?: string[] }
+    }>(stagedConfigPath)
+    if (stagedConfig.setting?.useCompilerPlugins) {
+      stagedConfig.setting.useCompilerPlugins = stagedConfig.setting.useCompilerPlugins.filter(
+        (plugin) => plugin !== 'typescript',
+      )
+    }
+    fs.writeFileSync(stagedConfigPath, `${JSON.stringify(stagedConfig, null, 2)}\n`)
+
+    console.log(`[mp-ci] 已生成 ES2017 兼容上传产物（${sourceFiles.length} 个 TypeScript 文件）`)
+    process.once('exit', cleanup)
+    return { project: createProject(appid, stagingRoot), cleanup }
+  } catch (error) {
+    cleanup()
+    throw error
+  }
 }
 
 /**

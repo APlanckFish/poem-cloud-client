@@ -1,4 +1,3 @@
-import { ApiError } from '../../services/api'
 import type { LibraryWork } from '../../services/library'
 import {
   deleteLibraryWork,
@@ -10,6 +9,7 @@ import {
   restoreLibraryWork,
   type TunePatternNames,
 } from '../../services/library'
+import { showErrorToast } from '../../utils/error'
 
 type WorkFilter = 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'HIDDEN'
 
@@ -31,10 +31,6 @@ const COVERS = [
   '/assets/images/cover-alley.jpg',
   '/assets/images/cover-sunrise.jpg',
 ]
-
-function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : '作品加载失败，请稍后重试'
-}
 
 function formatDate(value: string): string {
   const date = new Date(value)
@@ -115,7 +111,7 @@ Page({
       this.applyFilter(this.data.activeFilter, allWorks)
     } catch (error) {
       this.setData({ hasLoaded: true })
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '作品加载失败，请稍后重试' })
     } finally {
       this.setData({ isLoading: false })
     }
@@ -176,7 +172,7 @@ Page({
       await this.loadWorks()
       wx.showToast({ title: '已发布到诗词圈', icon: 'success' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '作品发布失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isOperating: false })
@@ -195,7 +191,7 @@ Page({
       await this.loadWorks()
       wx.showToast({ title: '已设为仅自己可见', icon: 'none' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '可见范围修改失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isOperating: false })
@@ -225,7 +221,7 @@ Page({
       await this.loadWorks()
       wx.showToast({ title: '作品已删除', icon: 'none' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '作品删除失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isOperating: false })

@@ -15,6 +15,7 @@ import {
   saveCreationAsWork,
 } from '../../services/creation'
 import { loadCreationQuota } from '../../services/profile'
+import { showErrorToast } from '../../utils/error'
 
 interface ValueChangeEvent {
   detail: {
@@ -23,10 +24,6 @@ interface ValueChangeEvent {
 }
 
 type AvatarChoiceEvent = WechatMiniprogram.CustomEvent<{ avatarUrl: string }>
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : '操作失败，请稍后重试'
-}
 
 function confirmLogin(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -137,7 +134,7 @@ Page({
       this.setData({ creation: updated })
       wx.navigateBack()
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '草稿保存失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isLeaving: false })
@@ -153,7 +150,7 @@ Page({
       await discardPendingCreation(creation)
       wx.navigateBack()
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '退出失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isLeaving: false })
@@ -169,7 +166,7 @@ Page({
         user = await loginWithWechat()
         await this.refreshQuota()
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '登录失败，请稍后重试' })
         return false
       } finally {
         wx.hideLoading()
@@ -179,7 +176,7 @@ Page({
         const session = await restoreSession()
         user = session?.user || null
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '登录状态恢复失败，请稍后重试' })
         return false
       }
     }
@@ -255,7 +252,7 @@ Page({
         void this.handleSave()
       }
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '资料保存失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isSavingProfile: false })
@@ -281,7 +278,7 @@ Page({
         icon: 'success',
       })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '草稿保存失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isSavingDraft: false })
@@ -306,7 +303,7 @@ Page({
       this.setData({ creation: updated })
       wx.showToast({ title: '作品已保存', icon: 'success' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '作品保存失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isSaving: false })
@@ -348,7 +345,7 @@ Page({
         wx.switchTab({ url: '/pages/community/index' })
       }, 700)
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '发布失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isPublishing: false })

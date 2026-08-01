@@ -32,6 +32,8 @@ import {
   updateActiveCreationCursor,
 } from '../../services/creation'
 import { type SseEvent, type SseSubscription, openSseStream } from '../../services/sse'
+import { getErrorMessage, showErrorToast } from '../../utils/error'
+import { isHanCharacter } from '../../utils/text'
 
 type StepState = 'waiting' | 'active' | 'done'
 type StepKey = 'MATERIAL_ANALYSIS' | 'POETIC_RETRIEVAL' | 'POEM_GENERATION'
@@ -116,7 +118,7 @@ function queuedInitialSteps(): CreatingStep[] {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : '创作暂时中断，请稍后重试'
+  return getErrorMessage(error, '创作暂时中断，请稍后重试')
 }
 
 function stripPoemLeadingWhitespace(value: string): string {
@@ -140,7 +142,7 @@ function buildPoemDisplayRuns(
   }
 
   for (const character of Array.from(content)) {
-    const isHan = /\p{Script=Han}/u.test(character)
+    const isHan = isHanCharacter(character)
     const invalid = isHan && markedPositions.has(`${lineIndex}:${characterIndex}`)
     append(character, invalid)
     if (isHan) {
@@ -1538,7 +1540,7 @@ Page({
       })
       wx.navigateBack()
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '草稿保存失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isLeaving: false })
@@ -1583,7 +1585,7 @@ Page({
       }
       wx.navigateBack()
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none' })
+      showErrorToast(error, { fallback: '退出失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isLeaving: false })
@@ -1598,7 +1600,7 @@ Page({
       try {
         user = await loginWithWechat()
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '登录失败，请稍后重试' })
         return false
       } finally {
         wx.hideLoading()
@@ -1608,7 +1610,7 @@ Page({
         const session = await restoreSession()
         user = session?.user || null
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '登录状态恢复失败，请稍后重试' })
         return false
       }
     }
@@ -1678,7 +1680,7 @@ Page({
       wx.showToast({ title: '资料已保存', icon: 'success' })
       if (shouldResumeSave) void this.handleSave()
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+      showErrorToast(error, { fallback: '资料保存失败，请稍后重试' })
     } finally {
       wx.hideLoading()
       this.setData({ isSavingProfile: false })
@@ -1712,7 +1714,7 @@ Page({
         icon: 'success',
       })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '草稿保存失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isSavingDraft: false })
@@ -1740,7 +1742,7 @@ Page({
       wx.showShareMenu({ menus: ['shareAppMessage'] })
       wx.showToast({ title: '作品已保存', icon: 'success' })
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '作品保存失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isSaving: false })
@@ -1921,7 +1923,7 @@ Page({
       this.connectStream()
       return true
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '重新创作失败，请稍后重试', duration: 2800 })
       return false
     } finally {
       wx.hideLoading()
@@ -1960,7 +1962,7 @@ Page({
         wx.switchTab({ url: '/pages/community/index' })
       }, 700)
     } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '发布失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isPublishing: false })

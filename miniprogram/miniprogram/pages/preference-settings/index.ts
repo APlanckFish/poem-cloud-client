@@ -1,4 +1,3 @@
-import { ApiError } from '../../services/api'
 import { ensureInstallation } from '../../services/installation'
 import {
   loadCreationPreferences,
@@ -6,6 +5,7 @@ import {
   type PreferenceQuestion,
   saveCreationPreferences,
 } from '../../services/preferences'
+import { showErrorToast } from '../../utils/error'
 
 type SettingOption = PreferenceOption & {
   selected: boolean
@@ -15,10 +15,6 @@ type SettingOption = PreferenceOption & {
 type SwitchEvent = WechatMiniprogram.CustomEvent<{ value: boolean }>
 
 const POSTER_PREFERENCE_KEY = 'autoGeneratePoster'
-
-function messageFor(error: unknown): string {
-  return error instanceof ApiError ? error.message : '偏好加载失败，请稍后重试'
-}
 
 function questionOptions(
   question: PreferenceQuestion | undefined,
@@ -92,7 +88,7 @@ Page({
       this.refreshOptions()
     } catch (error) {
       this.setData({ isLoading: false, loadFailed: true })
-      wx.showToast({ title: messageFor(error), icon: 'none' })
+      showErrorToast(error, { fallback: '偏好加载失败，请稍后重试' })
     }
   },
 
@@ -195,7 +191,7 @@ Page({
       wx.showToast({ title: '偏好已保存', icon: 'success' })
     } catch (error) {
       wx.hideLoading()
-      wx.showToast({ title: messageFor(error), icon: 'none' })
+      showErrorToast(error, { fallback: '偏好保存失败，请稍后重试' })
     } finally {
       this.setData({ isSaving: false })
     }

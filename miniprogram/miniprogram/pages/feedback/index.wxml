@@ -96,14 +96,14 @@
       aria-label="提交反馈"
       aria-disabled="{{submitting}}"
     >
-      <image src="/assets/images/feedback-submit-button.png" mode="scaleToFill"></image>
+      <image src="/assets/images/feedback-submit-button.jpg" mode="scaleToFill"></image>
     </view>
-    <image class="feedback-landscape" src="/assets/images/feedback-bottom.png" mode="widthFix"></image>
+    <image class="feedback-landscape" src="/assets/images/feedback-bottom.jpg" mode="widthFix"></image>
   </view>
 
   <view wx:else class="success-page">
-    <image class="success-landscape" src="/assets/images/feedback-success-bottom.png" mode="widthFix"></image>
-    <image class="success-image" src="/assets/images/feedback-success.png" mode="aspectFit"></image>
+    <image class="success-landscape" src="/assets/images/feedback-success-bottom.jpg" mode="widthFix"></image>
+    <image class="success-image" src="/assets/images/feedback-success.jpg" mode="aspectFit"></image>
     <text class="success-title poem-display">反馈已提交</text>
     <text class="success-copy poem-display">感谢你的建议，我们会认真阅读并持续改进。</text>
     <view
@@ -113,7 +113,7 @@
       aria-role="button"
       aria-label="返回帮助与反馈"
     >
-      <image src="/assets/images/feedback-return-button.png" mode="scaleToFill"></image>
+      <image src="/assets/images/feedback-return-button.jpg" mode="scaleToFill"></image>
     </view>
     <view
       class="success-secondary poem-display"

@@ -16,6 +16,10 @@ interface ApiErrorEnvelope {
   requestId?: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 interface RequestOptions {
   path: string
   method?: HttpMethod
@@ -83,29 +87,55 @@ export function clearSessionStorage(): void {
   wx.removeStorageSync(STORAGE_KEYS.currentUser)
 }
 
+export function getUrlOrigin(url: string): string {
+  const match = /^https?:\/\/[^/?#]+/i.exec(url)
+  return match ? match[0] : url.split(/[/?#]/, 1)[0]
+}
+
 export function request<T>(options: RequestOptions): Promise<T> {
   const header = createApiHeaders(options)
+  const url = `${getApiBaseUrl()}${options.path}`
 
   return new Promise<T>((resolve, reject) => {
     wx.request({
-      url: `${getApiBaseUrl()}${options.path}`,
+      url,
       method: options.method ?? 'GET',
       data: options.data,
       header,
       timeout: 15000,
       success(response) {
-        if (response.statusCode === 204) {
+        if (response.statusCode === 204 || response.statusCode === 205) {
           resolve(undefined as T)
           return
         }
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          const envelope = response.data as ApiEnvelope<T>
-          resolve(envelope.data)
+          if (
+            response.data === ''
+            || response.data === null
+            || response.data === undefined
+          ) {
+            resolve(undefined as T)
+            return
+          }
+          if (isRecord(response.data) && 'data' in response.data) {
+            const envelope = response.data as unknown as ApiEnvelope<T>
+            resolve(envelope.data)
+            return
+          }
+          reject(
+            new ApiError(
+              '服务返回格式异常，请稍后重试',
+              'INVALID_RESPONSE',
+              response.statusCode,
+            ),
+          )
           return
         }
 
-        const envelope = response.data as ApiErrorEnvelope
+        const envelope = isRecord(response.data)
+          ? response.data as ApiErrorEnvelope
+          : {}
         const message = envelope.error?.message ?? `请求失败（${response.statusCode}）`
         reject(
           new ApiError(
@@ -117,7 +147,14 @@ export function request<T>(options: RequestOptions): Promise<T> {
         )
       },
       fail(error) {
-        reject(new ApiError(error.errMsg || '无法连接到诗云服务'))
+        const message = error.errMsg || '无法连接到诗云服务'
+        reject(
+          new ApiError(
+            message.includes('url not in domain list')
+              ? `API域名未生效，请检查 request 合法域名：${getUrlOrigin(url)}`
+              : message,
+          ),
+        )
       },
     })
   })

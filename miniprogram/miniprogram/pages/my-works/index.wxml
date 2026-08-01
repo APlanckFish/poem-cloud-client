@@ -32,15 +32,15 @@
         <image src="/assets/icons/action-more.svg" mode="aspectFit"></image>
       </view>
     </view>
-    <image class="mountain-wash" src="/assets/images/mountain-wash.png" mode="widthFix"></image>
+    <image class="mountain-wash" src="/assets/images/mountain-wash.jpg" mode="widthFix"></image>
   </view>
 
   <view wx:elif="{{hasLoaded && !isLoading}}" class="empty-state">
-    <image class="empty-illustration empty-illustration--works" src="/assets/images/empty-works.png" mode="aspectFit"></image>
+    <image class="empty-illustration empty-illustration--works" src="/assets/images/empty-works.jpg" mode="aspectFit"></image>
     <text class="empty-title poem-display">还没有作品</text>
     <text class="empty-copy">完成一次创作后，作品会收藏在这里</text>
     <view class="empty-primary poem-display" bindtap="startCreating" aria-role="button">去创作</view>
-    <image class="empty-mountain" src="/assets/images/mountain-wash.png" mode="widthFix"></image>
+    <image class="empty-mountain" src="/assets/images/mountain-wash.jpg" mode="widthFix"></image>
   </view>
 </scroll-view>
 

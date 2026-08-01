@@ -16,7 +16,7 @@
     show-scrollbar="{{false}}"
   >
     <view class="creating-page">
-      <image class="creating-landscape" src="/assets/images/mountain-wash.png" mode="aspectFill"></image>
+      <image class="creating-landscape" src="/assets/images/mountain-wash.jpg" mode="aspectFill"></image>
 
       <view class="process-heading">
         <view>

@@ -30,6 +30,8 @@ import {
   restoreLibraryWork,
   type TunePatternNames,
 } from '../../services/library'
+import { getErrorMessage, showErrorToast } from '../../utils/error'
+import { isHanCharacter } from '../../utils/text'
 
 interface PublicationView {
   id: string
@@ -145,7 +147,7 @@ function buildPoemDisplayRuns(
   let characterIndex = 0
   let lineHasHan = false
   for (const character of Array.from(content)) {
-    const isHan = /\p{Script=Han}/u.test(character)
+    const isHan = isHanCharacter(character)
     const invalid = isHan && markedPositions.has(`${lineIndex}:${characterIndex}`)
     const previous = runs[runs.length - 1]
     if (previous && previous.invalid === invalid) previous.text += character
@@ -454,10 +456,7 @@ Page({
         })
       }
     } catch (error) {
-      wx.showToast({
-        title: error instanceof Error ? error.message : '作品加载失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '作品加载失败' })
     } finally {
       this.setData({ isLoading: false })
     }
@@ -531,10 +530,7 @@ Page({
         },
       }, false, tunePatternNames)
     } catch (error) {
-      wx.showToast({
-        title: error instanceof Error ? error.message : '作品加载失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '作品加载失败' })
     } finally {
       this.setData({ isLoading: false })
     }
@@ -645,7 +641,7 @@ Page({
       })
     } catch (error) {
       this.setData({
-        journeyError: error instanceof Error ? error.message : '创作手记加载失败',
+        journeyError: getErrorMessage(error, '创作手记加载失败'),
       })
     } finally {
       this.setData({ isJourneyLoading: false })
@@ -740,10 +736,7 @@ Page({
       wx.setStorageSync(STORAGE_KEYS.communityNeedsRefresh, true)
     } catch (error) {
       this.setData(previous)
-      wx.showToast({
-        title: error instanceof Error ? error.message : '展示设置保存失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '展示设置保存失败' })
     } finally {
       this.setData({ isUpdatingSettings: false })
     }
@@ -835,10 +828,7 @@ Page({
         icon: 'success',
       })
     } catch (error) {
-      wx.showToast({
-        title: error instanceof Error ? error.message : '发布失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '发布失败' })
     } finally {
       wx.hideLoading()
       this.setData({ isPublishing: false })
@@ -919,10 +909,7 @@ Page({
       try {
         await loginWithWechat()
       } catch (error) {
-        wx.showToast({
-          title: error instanceof Error ? error.message : '登录失败',
-          icon: 'none',
-        })
+        showErrorToast(error, { fallback: '登录失败' })
         return
       } finally {
         wx.hideLoading()
@@ -946,10 +933,7 @@ Page({
       }
     } catch (error) {
       this.setData({ publication, showLikeBurst: false })
-      wx.showToast({
-        title: error instanceof Error ? error.message : '操作失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '操作失败' })
     } finally {
       this.setData({ isLiking: false })
     }
@@ -964,10 +948,7 @@ Page({
       try {
         await loginWithWechat()
       } catch (error) {
-        wx.showToast({
-          title: error instanceof Error ? error.message : '登录失败',
-          icon: 'none',
-        })
+        showErrorToast(error, { fallback: '登录失败' })
         return
       } finally {
         wx.hideLoading()
@@ -982,10 +963,7 @@ Page({
       }
       this.setData({ followedByMe: !this.data.followedByMe })
     } catch (error) {
-      wx.showToast({
-        title: error instanceof Error ? error.message : '操作失败',
-        icon: 'none',
-      })
+      showErrorToast(error, { fallback: '操作失败' })
     } finally {
       this.setData({ isFollowing: false })
     }

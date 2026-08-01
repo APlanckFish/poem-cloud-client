@@ -13,6 +13,7 @@ import { ensureInstallation } from '../../services/installation'
 import { loadCreationPreferences } from '../../services/preferences'
 import { loadCreationQuota } from '../../services/profile'
 import { STORAGE_KEYS } from '../../config/api'
+import { showErrorToast } from '../../utils/error'
 
 interface ValueChangeEvent {
   detail: {
@@ -31,10 +32,20 @@ interface TunePatternItem {
   aliases: string[]
 }
 
+interface ClassicalFormItem {
+  code: ClassicalFormCode
+  name: string
+}
+
+interface ClassicalFormRow {
+  key: string
+  items: ClassicalFormItem[]
+}
+
 const DEFAULT_TUNE_PATTERNS: TunePatternItem[] = [
   { code: 'shui_diao_ge_tou', name: '水調歌頭', aliases: ['水调歌头'] },
 ]
-const DEFAULT_CLASSICAL_FORMS: Array<{ code: ClassicalFormCode; name: string }> = [
+const DEFAULT_CLASSICAL_FORMS: ClassicalFormItem[] = [
   { code: 'WUYAN_JUEJU', name: '五言绝句' },
   { code: 'QIYAN_JUEJU', name: '七言绝句' },
   { code: 'WUYAN_LVSHI', name: '五言律诗' },
@@ -42,16 +53,26 @@ const DEFAULT_CLASSICAL_FORMS: Array<{ code: ClassicalFormCode; name: string }> 
   { code: 'DAYOU_SHI', name: '打油诗' },
 ]
 
+function groupClassicalForms(forms: ClassicalFormItem[]): ClassicalFormRow[] {
+  const regularForms = forms.filter((form) => form.code !== 'DAYOU_SHI')
+  const rows: ClassicalFormRow[] = []
+  for (let index = 0; index < regularForms.length; index += 2) {
+    rows.push({
+      key: `regular-${index / 2}`,
+      items: regularForms.slice(index, index + 2),
+    })
+  }
+  const doggerel = forms.find((form) => form.code === 'DAYOU_SHI')
+  if (doggerel) rows.push({ key: 'doggerel', items: [doggerel] })
+  return rows
+}
+
 interface MaterialItem {
   id: string
   kind: MaterialKind
   sourceUrl: string
   previewUrl: string
   durationLabel: string
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : '素材上传失败，请稍后重试'
 }
 
 function normalizeTuneSearch(value: string): string {
@@ -205,6 +226,7 @@ Page({
     tunePatterns: DEFAULT_TUNE_PATTERNS,
     visibleTunePatterns: DEFAULT_TUNE_PATTERNS,
     classicalForms: DEFAULT_CLASSICAL_FORMS,
+    classicalFormRows: groupClassicalForms(DEFAULT_CLASSICAL_FORMS),
     categories: [
       { code: 'CLASSICAL', name: '古体诗', icon: 'classical' },
       { code: 'MODERN', name: '现代诗', icon: 'modern' },
@@ -239,6 +261,7 @@ Page({
         const selectedTune = tunePatterns[selectedTuneIndex]
         this.setData({
           classicalForms,
+          classicalFormRows: groupClassicalForms(classicalForms),
           ...(tunePatterns.length > 0
             ? {
                 tunePatterns,
@@ -613,6 +636,7 @@ Page({
         })
       }
 
+      wx.hideLoading()
       this.appendMaterials(uploadedMaterials)
       uploadedMaterials = []
       const hasIgnored = ignoredByLimit > 0 || ignoredLongVideo > 0
@@ -622,14 +646,14 @@ Page({
         duration: hasIgnored ? 2600 : 1500,
       })
     } catch (error) {
+      wx.hideLoading()
       if (uploadedMaterials.length > 0) {
         this.appendMaterials(uploadedMaterials)
       }
       if (!(error instanceof ApiError && error.code === 'LOGIN_CANCELLED')) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '素材上传失败，请稍后重试' })
       }
     } finally {
-      wx.hideLoading()
       this.setData({ isUploading: false })
     }
   },
@@ -672,10 +696,11 @@ Page({
         imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
         videoCount: materials.filter((item) => item.kind === 'VIDEO').length,
       })
-    } catch (error) {
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
-    } finally {
       wx.hideLoading()
+    } catch (error) {
+      wx.hideLoading()
+      showErrorToast(error, { fallback: '素材移除失败，请稍后重试' })
+    } finally {
       this.setData({ isUploading: false })
     }
   },
@@ -705,7 +730,7 @@ Page({
           ),
         })
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '创作准备失败，请稍后重试' })
         return
       } finally {
         this.setData({ isCheckingPreferences: false })
@@ -726,7 +751,7 @@ Page({
         await loginWithWechat()
         await this.refreshQuota()
       } catch (error) {
-        wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2600 })
+        showErrorToast(error, { fallback: '登录失败，请稍后重试' })
         return
       } finally {
         wx.hideLoading()
@@ -791,7 +816,7 @@ Page({
           quotaLoaded: true,
         })
       }
-      wx.showToast({ title: errorMessage(error), icon: 'none', duration: 2800 })
+      showErrorToast(error, { fallback: '创作失败，请稍后重试', duration: 2800 })
     } finally {
       wx.hideLoading()
       this.setData({ isCreating: false, preferenceCheckPassed: false })

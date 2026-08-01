@@ -4,6 +4,7 @@ import {
   loadCommunityFeed,
 } from '../../services/community'
 import { loadPoemTaxonomies, type PoemCategory } from '../../services/creation'
+import { showErrorToast } from '../../utils/error'
 
 interface PoemCard {
   id: string
@@ -190,10 +191,7 @@ Page({
       })
     } catch (error) {
       if (showError || !this.data.hasLoaded) {
-        wx.showToast({
-          title: error instanceof Error ? error.message : '诗词圈加载失败',
-          icon: 'none',
-        })
+        showErrorToast(error, { fallback: '诗词圈加载失败' })
       }
       this.setData({ hasLoaded: true })
     } finally {
