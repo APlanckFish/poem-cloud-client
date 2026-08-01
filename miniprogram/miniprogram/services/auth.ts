@@ -8,6 +8,7 @@ import type { ProfileDashboard } from './profile'
 interface BackendUser {
   id: string
   nickname: string
+  signature: string
   avatarAssetId: string | null
   level: number
   gender: 0 | 1 | 2
@@ -187,7 +188,8 @@ export function restoreSession(): Promise<RestoredSession | null> {
 
 export async function updateWechatProfile(options: {
   nickname: string
-  avatarTempFilePath: string
+  avatarTempFilePath?: string
+  signature?: string
 }): Promise<PoemCloudUser> {
   const currentUser = cachedUser()
   if (!currentUser) {
@@ -200,18 +202,19 @@ export async function updateWechatProfile(options: {
 
   let avatarAssetId = currentUser.avatarAssetId
   let uploadedAvatarUrl: string | null = null
-  if (isLocalFilePath(options.avatarTempFilePath)) {
+  if (options.avatarTempFilePath && isLocalFilePath(options.avatarTempFilePath)) {
     const avatarAsset = await uploadImageAsset(options.avatarTempFilePath, 'AVATAR')
     avatarAssetId = avatarAsset.id
     uploadedAvatarUrl = avatarAsset.accessUrl
   }
-  if (!avatarAssetId) {
-    throw new ApiError('请重新选择微信头像', 'AVATAR_REQUIRED')
-  }
   const backendUser = await request<BackendUser>({
     path: '/me/profile',
     method: 'POST',
-    data: { nickname, avatarAssetId },
+    data: {
+      nickname,
+      signature: options.signature?.trim(),
+      ...(avatarAssetId ? { avatarAssetId } : {}),
+    },
   })
   const user = await enrichUser(backendUser)
   const avatarUrl = user.avatarUrl || uploadedAvatarUrl

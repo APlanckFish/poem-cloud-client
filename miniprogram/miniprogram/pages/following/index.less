@@ -1,0 +1,270 @@
+.social-viewport {
+  background: #fbfaf7;
+}
+
+.social-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1;
+  background: #fbfaf7;
+}
+
+.social-page {
+  min-height: 100%;
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  background: #fbfaf7;
+}
+
+.social-hero {
+  position: relative;
+  width: 100%;
+  height: 272rpx;
+  overflow: hidden;
+  background-color: #fbfaf7;
+}
+
+.hero-art {
+  z-index: 0;
+  display: block;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.hero-avatar {
+  position: absolute;
+  z-index: 1;
+  top: 54rpx;
+  left: 61rpx;
+  width: 154rpx;
+  height: 154rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(48, 67, 58, 0.1);
+  border-radius: 50%;
+  background: #e3e8e4;
+}
+
+.hero-avatar image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-copy {
+  position: absolute;
+  z-index: 1;
+  top: 49rpx;
+  left: 262rpx;
+  min-width: 0;
+}
+
+.hero-copy--following {
+  top: 84rpx;
+  left: 61rpx;
+}
+
+.hero-number-line {
+  display: flex;
+  height: 73rpx;
+  align-items: baseline;
+  color: #315f4d;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  white-space: nowrap;
+}
+
+.hero-number {
+  font-size: 73rpx;
+  font-variant-numeric: tabular-nums;
+  line-height: 73rpx;
+}
+
+.hero-unit {
+  margin-left: 10rpx;
+  font-size: 30rpx;
+  line-height: 30rpx;
+}
+
+.hero-caption-line {
+  display: flex;
+  align-items: center;
+  margin-top: 25rpx;
+}
+
+.hero-caption {
+  color: #747a77;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
+  line-height: 36rpx;
+  white-space: nowrap;
+}
+
+.hero-copy--following .hero-caption {
+  display: block;
+  margin-top: 24rpx;
+}
+
+.hero-cloud-line {
+  width: 83rpx;
+  height: 1rpx;
+  margin-left: 23rpx;
+  background: #d7d0c3;
+}
+
+.hero-cloud-line::after {
+  display: block;
+  width: 28rpx;
+  height: 8rpx;
+  margin: -5rpx 0 0 17rpx;
+  border-top: 1rpx solid #d7d0c3;
+  border-radius: 50%;
+  content: "";
+}
+
+.social-list {
+  padding: 22rpx 31rpx 0;
+}
+
+.person-card {
+  display: flex;
+  height: 162rpx;
+  align-items: center;
+  padding: 20rpx 28rpx;
+  border: 1rpx solid rgba(42, 52, 47, 0.12);
+  border-radius: 17rpx;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.person-card + .person-card {
+  margin-top: 15rpx;
+}
+
+.person-avatar {
+  width: 114rpx;
+  height: 114rpx;
+  flex: none;
+  overflow: hidden;
+  border: 1rpx solid rgba(44, 57, 50, 0.07);
+  border-radius: 50%;
+  background: #e4e9e5;
+}
+
+.person-avatar image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.person-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  margin-left: 30rpx;
+  padding-right: 14rpx;
+}
+
+.person-name {
+  overflow: hidden;
+  color: #101613;
+  font-size: 31rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  line-height: 40rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-signature {
+  overflow: hidden;
+  margin-top: 15rpx;
+  color: #767c78;
+  font-size: 23rpx;
+  letter-spacing: 1rpx;
+  line-height: 31rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-button {
+  display: flex;
+  width: 132rpx;
+  height: 61rpx;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #3b705b;
+  border-radius: 16rpx;
+  color: #386a56;
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+  line-height: 1;
+}
+
+.follow-button--primary {
+  border-color: #4b7a67;
+  background: #4b7a67;
+  color: #fff;
+}
+
+.follow-button--mutual {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.follow-button--idle {
+  border-color: #aeb2af;
+  background: rgba(255, 255, 255, 0.34);
+  color: #303632;
+}
+
+.follow-button--busy {
+  opacity: 0.5;
+}
+
+.social-page--empty {
+  background: #fbfaf7;
+}
+
+.social-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18rpx 0 105rpx;
+  background: #fbfaf7;
+}
+
+.empty-illustration {
+  display: block;
+  width: 620rpx;
+  height: 498rpx;
+}
+
+.empty-title {
+  margin-top: 8rpx;
+  color: #101512;
+  font-size: 43rpx;
+  font-weight: 600;
+  letter-spacing: 6rpx;
+  line-height: 58rpx;
+}
+
+.empty-copy {
+  margin-top: 18rpx;
+  color: #747a77;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
+  line-height: 38rpx;
+}
+
+.empty-outline {
+  display: flex;
+  width: 304rpx;
+  height: 86rpx;
+  align-items: center;
+  justify-content: center;
+  margin-top: 43rpx;
+  border: 2rpx solid #2e674f;
+  border-radius: 999rpx;
+  color: #2e674f;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+  line-height: 1;
+}

@@ -64,10 +64,30 @@ interface FeedResponse {
 export interface PublicUser {
   id: string
   nickname: string
+  signature: string
   avatarUrl?: string | null
   followerCount: number
   followingCount: number
   followedByMe: boolean
+}
+
+interface UserListResponse {
+  items: PublicUser[]
+  nextCursor: string | null
+}
+
+export function loadUserFollowers(id: string, cursor?: string): Promise<UserListResponse> {
+  const query = `limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  return request<UserListResponse>({
+    path: `/users/${encodeURIComponent(id)}/followers?${query}`,
+  })
+}
+
+export function loadUserFollowing(id: string, cursor?: string): Promise<UserListResponse> {
+  const query = `limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  return request<UserListResponse>({
+    path: `/users/${encodeURIComponent(id)}/following?${query}`,
+  })
 }
 
 export function loadCommunityFeed(

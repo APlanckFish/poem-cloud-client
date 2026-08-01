@@ -139,6 +139,8 @@
         <text class="menu-label">{{item.label}}</text>
         <text wx:if="{{isLoggedIn && item.key === 'works'}}" class="menu-value">{{stats.works}}</text>
         <text wx:if="{{item.key === 'drafts' && (isLoggedIn || stats.drafts > 0)}}" class="menu-value">{{stats.drafts}}</text>
+        <text wx:if="{{isLoggedIn && item.key === 'followers'}}" class="menu-value">{{user.followerCount}}</text>
+        <text wx:if="{{isLoggedIn && item.key === 'following'}}" class="menu-value">{{user.followingCount}}</text>
         <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
       </view>
     </view>

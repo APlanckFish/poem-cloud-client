@@ -3,6 +3,7 @@
 interface PoemCloudUser {
   id: string
   nickname: string
+  signature: string
   avatarAssetId: string | null
   avatarUrl: string | null
   level: number

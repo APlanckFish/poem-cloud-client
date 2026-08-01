@@ -1,0 +1,70 @@
+<view class="app-viewport edit-viewport">
+<navigation-bar title="编辑资料" back="{{true}}" loading="{{isSaving}}" color="#161c19" background="#fbfaf7"></navigation-bar>
+
+<scroll-view class="edit-scroll" scroll-y enhanced bounces="{{false}}" show-scrollbar="{{false}}">
+  <view class="edit-page">
+    <view class="profile-card">
+      <button
+        class="profile-row avatar-row"
+        open-type="chooseAvatar"
+        bindchooseavatar="handleChooseAvatar"
+        hover-class="profile-row--pressed"
+        aria-label="更换头像"
+      >
+        <text class="row-label poem-display">头像</text>
+        <view class="avatar-preview">
+          <image wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill"></image>
+          <text wx:else class="poem-display">{{nickname[0] || '云'}}</text>
+        </view>
+        <text class="row-action poem-display">点击更换</text>
+        <image class="row-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+      </button>
+
+      <view class="profile-divider"></view>
+
+      <view class="profile-row nickname-row">
+        <text class="row-label poem-display">昵称</text>
+        <input
+          class="row-input poem-display"
+          type="nickname"
+          maxlength="24"
+          value="{{nickname}}"
+          placeholder="请输入昵称"
+          bindinput="handleNicknameInput"
+          bindblur="handleNicknameInput"
+        />
+        <image class="row-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+      </view>
+
+      <view class="profile-divider"></view>
+
+      <view class="signature-row">
+        <view class="signature-heading">
+          <text class="row-label poem-display">个性签名</text>
+          <text class="signature-count">{{signatureLength}}/30</text>
+        </view>
+        <textarea
+          class="signature-input"
+          maxlength="30"
+          auto-height
+          value="{{signature}}"
+          placeholder="写一句话，让诗友认识你"
+          bindinput="handleSignatureInput"
+        ></textarea>
+      </view>
+    </view>
+
+    <text class="profile-note">头像、昵称和个性签名将展示在你的作品与诗词圈中</text>
+  </view>
+</scroll-view>
+
+<view class="save-dock">
+  <view
+    class="save-button poem-display {{isSaving ? 'save-button--disabled' : ''}}"
+    bindtap="saveProfile"
+    hover-class="save-button--pressed"
+    aria-role="button"
+    aria-disabled="{{isSaving}}"
+  >{{isSaving ? '保存中…' : '保存修改'}}</view>
+</view>
+</view>

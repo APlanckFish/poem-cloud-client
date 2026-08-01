@@ -59,10 +59,12 @@ Page({
     libraryMenus: [
       { key: 'works', icon: '册', label: '我的作品', protected: true },
       { key: 'drafts', icon: '笺', label: '我的草稿', protected: false },
+      { key: 'followers', icon: '友', label: '我的粉丝', protected: true },
+      { key: 'following', icon: '伴', label: '我的关注', protected: true },
     ],
     accountMenus: [
       { key: 'preferences', icon: '调', label: '创作偏好', protected: false },
-      { key: 'security', icon: '盾', label: '账号与安全', protected: true },
+      { key: 'edit-profile', icon: '编', label: '编辑资料', protected: true },
     ],
     supportMenus: [
       { key: 'feedback', icon: '问', label: '帮助与反馈', protected: false },
@@ -227,6 +229,11 @@ Page({
     })
   },
 
+  openEditProfile() {
+    if (!this.data.isLoggedIn) return
+    wx.navigateTo({ url: '/pages/edit-profile/index' })
+  },
+
   handleChooseAvatar(event: AvatarChoiceEvent) {
     const avatarUrl = event.detail.avatarUrl
     if (typeof avatarUrl === 'string' && avatarUrl.length > 0) {
@@ -301,14 +308,20 @@ Page({
     if (
       key === 'works'
       || key === 'drafts'
+      || key === 'followers'
+      || key === 'following'
       || key === 'preferences'
+      || key === 'edit-profile'
       || key === 'feedback'
       || key === 'about'
     ) {
       const pageByKey: Record<string, string> = {
         works: '/pages/my-works/index',
         drafts: '/pages/my-drafts/index',
+        followers: '/pages/followers/index',
+        following: '/pages/following/index',
         preferences: '/pages/preference-settings/index',
+        'edit-profile': '/pages/edit-profile/index',
         feedback: '/pages/help/index',
         about: '/pages/about/index',
       }

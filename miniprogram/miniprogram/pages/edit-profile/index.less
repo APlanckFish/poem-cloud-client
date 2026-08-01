@@ -1,0 +1,175 @@
+.edit-viewport,
+.edit-scroll,
+.edit-page {
+  background: #fbfaf7;
+}
+
+.edit-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.edit-page {
+  min-height: 100%;
+  padding: 55rpx 39rpx 220rpx;
+}
+
+.profile-card {
+  overflow: hidden;
+  padding: 0 29rpx;
+  border: 1rpx solid rgba(42, 52, 47, 0.16);
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+button.profile-row {
+  width: 100% !important;
+}
+
+.profile-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.profile-row--pressed {
+  opacity: 0.68;
+}
+
+.avatar-row {
+  height: 216rpx;
+}
+
+.row-label {
+  flex: none;
+  color: #181e1b;
+  font-size: 31rpx;
+  letter-spacing: 2rpx;
+}
+
+.avatar-preview {
+  display: flex;
+  width: 130rpx;
+  height: 130rpx;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-left: auto;
+  border: 1rpx solid rgba(49, 73, 62, 0.08);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e1e8e3, #bdcec4);
+  color: #315f4d;
+  font-size: 45rpx;
+}
+
+.avatar-preview image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.row-action {
+  margin-left: 85rpx;
+  color: #32634f;
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+}
+
+.row-arrow {
+  width: 28rpx;
+  height: 28rpx;
+  flex: none;
+  margin-left: 25rpx;
+  opacity: 0.55;
+}
+
+.profile-divider {
+  height: 1rpx;
+  background: rgba(34, 44, 39, 0.13);
+}
+
+.nickname-row {
+  height: 104rpx;
+}
+
+.row-input {
+  min-width: 0;
+  flex: 1;
+  margin-left: 55rpx;
+  color: #32634f;
+  font-size: 30rpx;
+  letter-spacing: 2rpx;
+  text-align: right;
+}
+
+.signature-row {
+  min-height: 196rpx;
+  padding: 29rpx 0 31rpx;
+}
+
+.signature-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.signature-count {
+  color: #a0a5a2;
+  font-size: 20rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.signature-input {
+  width: 100%;
+  min-height: 73rpx;
+  margin-top: 20rpx;
+  padding: 17rpx 20rpx;
+  border-radius: 10rpx;
+  background: rgba(237, 240, 237, 0.72);
+  color: #58625d;
+  font-size: 25rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.55;
+}
+
+.profile-note {
+  display: block;
+  margin: 28rpx 17rpx 0;
+  color: #747b77;
+  font-size: 23rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.5;
+}
+
+.save-dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 24rpx 49rpx calc(44rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(251, 250, 247, 0), #fbfaf7 28%);
+}
+
+.save-button {
+  display: flex;
+  height: 93rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17rpx;
+  background: linear-gradient(100deg, #315f4d, #276650);
+  box-shadow: 0 12rpx 28rpx rgba(40, 91, 70, 0.13);
+  color: #fff;
+  font-size: 35rpx;
+  letter-spacing: 5rpx;
+}
+
+.save-button--pressed {
+  transform: translateY(1rpx);
+  opacity: 0.88;
+}
+
+.save-button--disabled {
+  opacity: 0.55;
+}

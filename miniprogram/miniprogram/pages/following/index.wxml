@@ -1,0 +1,49 @@
+<view class="app-viewport social-viewport">
+<navigation-bar title="我的关注" back="{{true}}" loading="{{isLoading}}" color="#161c19" background="#fbfaf7"></navigation-bar>
+
+<scroll-view class="social-scroll" scroll-y enhanced bounces="{{false}}" show-scrollbar="{{false}}" bindscrolltolower="loadMore">
+  <view class="social-page {{hasLoaded && items.length === 0 ? 'social-page--empty' : ''}}">
+    <view class="social-hero social-hero--following">
+      <image
+        class="hero-art"
+        style="position:absolute;top:0;left:0;width:750rpx;height:272rpx;"
+        src="/assets/images/social-following-hero-v5.png"
+        mode="scaleToFill"
+      ></image>
+      <view class="hero-copy hero-copy--following">
+        <view class="hero-number-line poem-display">
+          <text class="hero-number">{{user.followingCount}}</text>
+          <text class="hero-unit">人</text>
+        </view>
+        <text class="hero-caption">关注诗友，发现更多美好诗意</text>
+      </view>
+    </view>
+
+    <view wx:if="{{items.length > 0}}" class="social-list">
+      <view wx:for="{{items}}" wx:key="id" class="person-card">
+        <view class="person-avatar">
+          <image src="{{item.displayAvatarUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="person-copy">
+          <text class="person-name poem-display">{{item.nickname}}</text>
+          <text class="person-signature">{{item.signature || '这个人很神秘，什么都没有留下'}}</text>
+        </view>
+        <view
+          class="follow-button poem-display {{item.followedByMe ? 'follow-button--mutual' : 'follow-button--idle'}} {{operatingId === item.id ? 'follow-button--busy' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="toggleFollow"
+          aria-role="button"
+          aria-disabled="{{operatingId === item.id}}"
+        >{{item.followedByMe ? '已关注' : '关注'}}</view>
+      </view>
+    </view>
+
+    <view wx:elif="{{hasLoaded && !isLoading}}" class="social-empty">
+      <image class="empty-illustration" src="/assets/images/empty-following-v4.png" mode="aspectFit"></image>
+      <text class="empty-title poem-display">暂无关注</text>
+      <text class="empty-copy">去诗词圈走走，遇见与你同频的诗友</text>
+      <view class="empty-outline poem-display" bindtap="goCommunity" aria-role="button">逛逛诗词圈</view>
+    </view>
+  </view>
+</scroll-view>
+</view>
