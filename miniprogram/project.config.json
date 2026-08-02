@@ -24,7 +24,7 @@
     "es6": false,
     "compileWorklet": false,
     "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "packNpmManually": false,
     "minifyWXSS": true,
     "minifyWXML": true,
@@ -44,7 +44,20 @@
   },
   "libVersion": "2.32.3",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "file",
+        "value": ".DS_Store"
+      },
+      {
+        "type": "file",
+        "value": "assets/.DS_Store"
+      },
+      {
+        "type": "file",
+        "value": "assets/images/.DS_Store"
+      }
+    ],
     "include": []
   },
   "appid": "wx57b530cc003f63f6"

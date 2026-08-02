@@ -229,10 +229,11 @@
           disabled="{{isSavingPoster}}"
           bindtap="savePosterToAlbum"
         >
-          <view class="detail-download-icon">
-            <view class="detail-download-icon__arrow"></view>
-            <view class="detail-download-icon__tray"></view>
-          </view>
+          <image
+            class="detail-action__download-icon"
+            src="/assets/icons/action-download.svg"
+            mode="aspectFit"
+          ></image>
           <text>{{isSavingPoster ? '正在保存' : '保存到手机'}}</text>
         </button>
         <button
@@ -260,6 +261,167 @@
       >
         <image src="/assets/icons/action-follow.png" mode="aspectFit"></image>
         <text>{{followedByMe ? '已关注' : '关注作者'}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{isPublic}}" class="detail-comments">
+      <view class="detail-comments__header">
+        <text class="detail-comments__title poem-display">评论</text>
+        <text class="detail-comments__count">共 {{publication.commentCount}} 条</text>
+      </view>
+
+      <view class="detail-comment-composer {{commentInputFocused ? 'detail-comment-composer--focused' : ''}}">
+        <view wx:if="{{replyingTo}}" class="detail-comment-composer__replying">
+          <text>回复 {{replyingTo.nickname}}</text>
+          <button
+            class="native-button-reset detail-comment-composer__cancel"
+            bindtap="cancelCommentReply"
+            aria-label="取消回复"
+          >取消</button>
+        </view>
+        <view wx:if="{{canComment}}" class="detail-comment-composer__row">
+          <textarea
+            class="detail-comment-composer__input poem-display"
+            value="{{commentDraft}}"
+            maxlength="300"
+            auto-height
+            fixed
+            show-confirm-bar="{{false}}"
+            cursor-spacing="24"
+            focus="{{commentInputFocused}}"
+            placeholder="{{replyingTo ? '回复 ' + replyingTo.nickname + '…' : '写下此刻的感受…'}}"
+            bindinput="handleCommentInput"
+            bindfocus="handleCommentInputFocus"
+            bindblur="handleCommentInputBlur"
+          ></textarea>
+          <button
+            class="native-button-reset detail-comment-composer__send {{!commentDraft || isSubmittingComment ? 'detail-comment-composer__send--disabled' : ''}}"
+            disabled="{{!commentDraft || isSubmittingComment}}"
+            bindtap="submitComment"
+          >{{isSubmittingComment ? '发送中' : '发送'}}</button>
+        </view>
+        <button
+          wx:else
+          class="native-button-reset native-button-reset--block detail-comment-composer__login poem-display"
+          bindtap="activateCommentComposer"
+        >登录后写下评论</button>
+      </view>
+
+      <view wx:if="{{isCommentsLoading}}" class="detail-comments-loading" aria-label="评论加载中">
+        <view class="detail-comments-loading__avatar"></view>
+        <view class="detail-comments-loading__body">
+          <view class="detail-comments-loading__line detail-comments-loading__line--short"></view>
+          <view class="detail-comments-loading__line"></view>
+          <view class="detail-comments-loading__line detail-comments-loading__line--medium"></view>
+        </view>
+      </view>
+
+      <view wx:elif="{{commentsError}}" class="detail-comments-state">
+        <text class="detail-comments-state__text poem-display">{{commentsError}}</text>
+        <button
+          class="native-button-reset detail-comments-state__action poem-display"
+          bindtap="retryComments"
+        >重新加载</button>
+      </view>
+
+      <view wx:elif="{{commentsLoaded && comments.length === 0}}" class="detail-comments-state detail-comments-state--empty">
+        <text class="detail-comments-state__text poem-display">还没有评论，写下第一句共鸣</text>
+      </view>
+
+      <view wx:else class="detail-comment-list">
+        <view wx:for="{{comments}}" wx:key="id" class="detail-comment-item">
+          <view class="detail-comment-item__avatar poem-display">
+            <image
+              wx:if="{{item.author.avatarUrl}}"
+              src="{{item.author.avatarUrl}}"
+              mode="aspectFill"
+            ></image>
+            <text wx:else>{{item.avatarInitial}}</text>
+          </view>
+          <view class="detail-comment-item__body">
+            <view class="detail-comment-item__meta">
+              <view class="detail-comment-item__identity">
+                <text class="detail-comment-item__name poem-display">{{item.author.nickname}}</text>
+                <text wx:if="{{item.isPublicationAuthor}}" class="detail-comment-item__author-tag poem-display">作者</text>
+              </view>
+              <text class="detail-comment-item__time">{{item.displayTime}}</text>
+            </view>
+            <text class="detail-comment-item__content poem-display" user-select>{{item.content}}</text>
+            <view class="detail-comment-item__actions">
+              <button
+                class="native-button-reset detail-comment-item__action poem-display"
+                data-id="{{item.id}}"
+                data-nickname="{{item.author.nickname}}"
+                bindtap="beginCommentReply"
+              >回复</button>
+              <button
+                wx:if="{{item.canDelete}}"
+                class="native-button-reset detail-comment-item__action detail-comment-item__action--delete poem-display"
+                data-id="{{item.id}}"
+                data-root-comment-id="{{item.id}}"
+                disabled="{{deletingCommentIds.length > 0}}"
+                bindtap="deleteComment"
+              >{{deletingCommentIds[0] === item.id ? '删除中' : '删除'}}</button>
+            </view>
+
+            <view wx:if="{{item.replies.length > 0}}" class="detail-comment-replies">
+              <view
+                wx:for="{{item.replies}}"
+                wx:for-item="reply"
+                wx:key="id"
+                class="detail-comment-reply"
+              >
+                <view class="detail-comment-reply__line poem-display">
+                  <text class="detail-comment-reply__name">{{reply.author.nickname}}</text>
+                  <text wx:if="{{reply.isPublicationAuthor}}" class="detail-comment-item__author-tag">作者</text>
+                  <text wx:if="{{reply.replyToUser}}" class="detail-comment-reply__target"> 回复 {{reply.replyToUser.nickname}}</text>
+                  <text>：{{reply.content}}</text>
+                </view>
+                <view class="detail-comment-reply__meta">
+                  <text class="detail-comment-item__time">{{reply.displayTime}}</text>
+                  <button
+                    class="native-button-reset detail-comment-item__action poem-display"
+                    data-id="{{reply.id}}"
+                    data-root-comment-id="{{item.id}}"
+                    data-nickname="{{reply.author.nickname}}"
+                    bindtap="beginCommentReply"
+                  >回复</button>
+                  <button
+                    wx:if="{{reply.canDelete}}"
+                    class="native-button-reset detail-comment-item__action detail-comment-item__action--delete poem-display"
+                    data-id="{{reply.id}}"
+                    data-root-comment-id="{{item.id}}"
+                    disabled="{{deletingCommentIds.length > 0}}"
+                    bindtap="deleteComment"
+                  >{{deletingCommentIds[0] === reply.id ? '删除中' : '删除'}}</button>
+                </view>
+              </view>
+            </view>
+
+            <view class="detail-comment-replies__more">
+              <text wx:if="{{item.isRepliesLoading}}" class="detail-comment-replies__loading poem-display">正在展开回复…</text>
+              <button
+                wx:elif="{{item.hasMoreReplies && !item.repliesExpanded}}"
+                class="native-button-reset detail-comment-replies__button poem-display"
+                data-id="{{item.id}}"
+                bindtap="expandCommentReplies"
+              >展开全部 {{item.replyCount}} 条回复</button>
+              <button
+                wx:elif="{{item.repliesNextCursor}}"
+                class="native-button-reset detail-comment-replies__button poem-display"
+                data-id="{{item.id}}"
+                bindtap="loadMoreCommentReplies"
+              >加载更多回复</button>
+            </view>
+          </view>
+        </view>
+
+        <button
+          wx:if="{{commentsNextCursor}}"
+          class="native-button-reset native-button-reset--block detail-comments-more poem-display"
+          disabled="{{isCommentsLoadingMore}}"
+          bindtap="loadMoreComments"
+        >{{isCommentsLoadingMore ? '正在加载更多评论…' : '查看更多评论'}}</button>
       </view>
     </view>
   </view>

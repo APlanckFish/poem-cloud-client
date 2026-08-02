@@ -7,7 +7,7 @@
       <image
         class="hero-art"
         style="position:absolute;top:0;left:0;width:750rpx;height:272rpx;"
-        src="/assets/images/social-followers-hero-v5.png"
+        src="/assets/images/social-followers-hero-v6.png"
         mode="scaleToFill"
       ></image>
       <view class="hero-avatar">

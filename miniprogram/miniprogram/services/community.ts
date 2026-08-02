@@ -23,6 +23,7 @@ export interface CommunityPublication {
   classicalFormCode: string | null
   tunePatternCode: string | null
   likeCount: number
+  commentCount: number
   likedByMe: boolean
   posterUrl: string
   posterReady: boolean
@@ -59,6 +60,59 @@ export interface PublicationCreationJournalEntry {
 interface FeedResponse {
   items: CommunityPublication[]
   nextCursor: string | null
+}
+
+export type CommentModerationStatus = 'PENDING' | 'PASSED' | 'REJECTED' | 'REVIEW'
+
+export interface CommunityCommentAuthor {
+  id: string
+  nickname: string
+  avatarAssetId: string | null
+  avatarUrl: string | null
+}
+
+export interface CommunityComment {
+  id: string
+  publicationId: string
+  parentCommentId: string | null
+  rootCommentId: string | null
+  content: string
+  moderationStatus: CommentModerationStatus
+  author: CommunityCommentAuthor
+  replyToUser: CommunityCommentAuthor | null
+  isPublicationAuthor: boolean
+  canDelete: boolean
+  replyCount: number
+  replies: CommunityComment[]
+  hasMoreReplies: boolean
+  createdAt: string
+}
+
+export interface CommunityCommentListResponse {
+  items: CommunityComment[]
+  total: number
+  nextCursor: string | null
+}
+
+export interface CommunityReplyListResponse {
+  items: CommunityComment[]
+  nextCursor: string | null
+}
+
+export interface CreateCommunityCommentResponse {
+  comment: CommunityComment
+  commentCount: number
+}
+
+export interface DeleteCommunityCommentResponse {
+  deletedCount: number
+  visibleDeletedCount: number
+  commentCount: number
+}
+
+function commentIdempotencyKey(): string {
+  const random = Math.random().toString(36).slice(2, 12)
+  return `comment-${Date.now().toString(36)}-${random}`
 }
 
 export interface PublicUser {
@@ -152,6 +206,53 @@ export function likePublication(id: string): Promise<void> {
 export function unlikePublication(id: string): Promise<void> {
   return request<void>({
     path: `/community/publications/${encodeURIComponent(id)}/like`,
+    method: 'DELETE',
+  })
+}
+
+export function loadPublicationComments(
+  publicationId: string,
+  cursor?: string,
+): Promise<CommunityCommentListResponse> {
+  const query = `limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  return request<CommunityCommentListResponse>({
+    path: `/community/publications/${encodeURIComponent(publicationId)}/comments?${query}`,
+  })
+}
+
+export function loadCommentReplies(
+  publicationId: string,
+  commentId: string,
+  cursor?: string,
+): Promise<CommunityReplyListResponse> {
+  const query = `limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  return request<CommunityReplyListResponse>({
+    path: `/community/publications/${encodeURIComponent(publicationId)}/comments/${encodeURIComponent(commentId)}/replies?${query}`,
+  })
+}
+
+export function createPublicationComment(
+  publicationId: string,
+  content: string,
+  parentCommentId?: string,
+): Promise<CreateCommunityCommentResponse> {
+  return request<CreateCommunityCommentResponse>({
+    path: `/community/publications/${encodeURIComponent(publicationId)}/comments`,
+    method: 'POST',
+    data: {
+      content,
+      ...(parentCommentId ? { parentCommentId } : {}),
+    },
+    idempotencyKey: commentIdempotencyKey(),
+  })
+}
+
+export function deletePublicationComment(
+  publicationId: string,
+  commentId: string,
+): Promise<DeleteCommunityCommentResponse> {
+  return request<DeleteCommunityCommentResponse>({
+    path: `/community/publications/${encodeURIComponent(publicationId)}/comments/${encodeURIComponent(commentId)}`,
     method: 'DELETE',
   })
 }

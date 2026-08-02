@@ -46,7 +46,7 @@ Page({
       works: 0,
       drafts: 0,
       likes: 0,
-      following: 0,
+      followers: 0,
     },
     quota: {
       limit: null as number | null,
@@ -97,7 +97,7 @@ Page({
       rankLabel: user.level === 0
         ? '诗云黑金 SVIP'
         : `诗云 · 等级 ${user.level}`,
-      'stats.following': user.followingCount,
+      'stats.followers': user.followerCount,
     })
   },
 
@@ -113,7 +113,7 @@ Page({
         works: 0,
         drafts: getLocalCreationDrafts().length,
         likes: 0,
-        following: 0,
+        followers: 0,
       },
       quota: {
         limit: null as number | null,
@@ -169,7 +169,7 @@ Page({
           works: dashboard.workCount,
           drafts: dashboard.draftCount + getLocalCreationDrafts().length,
           likes: dashboard.receivedLikes,
-          following: user.followingCount,
+          followers: user.followerCount,
         },
         quota: {
           limit: dashboard.quota.limit,

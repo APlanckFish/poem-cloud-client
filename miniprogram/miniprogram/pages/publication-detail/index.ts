@@ -2,11 +2,16 @@ import { STORAGE_KEYS } from '../../config/api'
 import { hasAccessToken } from '../../services/api'
 import { cachedUser, loginWithWechat } from '../../services/auth'
 import {
+  type CommunityComment,
   type CommunityPublication,
+  createPublicationComment,
+  deletePublicationComment,
   followUser,
   getPublication,
   getPublicUser,
   likePublication,
+  loadCommentReplies,
+  loadPublicationComments,
   loadPublicationCreationJournal,
   type PublicationCoverSource,
   type PublicationCreationJournalEntry,
@@ -44,6 +49,7 @@ interface PublicationView {
   classicalFormCode: string | null
   tunePatternCode: string | null
   likeCount: number
+  commentCount: number
   likedByMe: boolean
   posterUrl: string
   posterReady: boolean
@@ -96,6 +102,27 @@ interface SwitchChangeEvent {
   }
 }
 
+interface TextInputEvent {
+  detail: {
+    value: string
+  }
+}
+
+interface CommentView extends Omit<CommunityComment, 'replies'> {
+  replies: CommentView[]
+  avatarInitial: string
+  displayTime: string
+  isRepliesLoading: boolean
+  repliesExpanded: boolean
+  repliesNextCursor: string | null
+}
+
+interface CommentReplyTarget {
+  id: string
+  rootCommentId: string | null
+  nickname: string
+}
+
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
   WUYAN_JUEJU: '五言绝句',
   QIYAN_JUEJU: '七言绝句',
@@ -131,6 +158,44 @@ function displayDate(value: string | null): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}.${month}.${day}`
+}
+
+function commentDisplayTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const differenceMs = Math.max(0, Date.now() - date.getTime())
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (differenceMs < minute) return '刚刚'
+  if (differenceMs < hour) return `${Math.floor(differenceMs / minute)}分钟前`
+  if (differenceMs < day) return `${Math.floor(differenceMs / hour)}小时前`
+  const now = new Date()
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
+  return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`
+}
+
+function commentView(comment: CommunityComment): CommentView {
+  return {
+    ...comment,
+    replies: comment.replies.map(commentView),
+    avatarInitial: comment.author.nickname.slice(0, 1) || '诗',
+    displayTime: commentDisplayTime(comment.createdAt),
+    isRepliesLoading: false,
+    repliesExpanded: false,
+    repliesNextCursor: null,
+  }
+}
+
+function uniqueComments(comments: CommentView[]): CommentView[] {
+  const seen = new Set<string>()
+  return comments.filter((comment) => {
+    if (seen.has(comment.id)) return false
+    seen.add(comment.id)
+    return true
+  })
 }
 
 function normalizePoemContent(value: string): string {
@@ -380,7 +445,7 @@ function confirmLogin(): Promise<boolean> {
   return new Promise((resolve) => {
     wx.showModal({
       title: '登录后继续',
-      content: '登录后可以点赞、关注并同步互动状态。',
+      content: '登录后可以评论、点赞、关注并同步互动状态。',
       confirmText: '登录',
       confirmColor: '#3f6758',
       success: (result) => resolve(result.confirm),
@@ -425,6 +490,19 @@ Page({
     isUpdatingSettings: false,
     isSavingPoster: false,
     isPublishing: false,
+    comments: [] as CommentView[],
+    commentsNextCursor: null as string | null,
+    commentsLoaded: false,
+    commentsError: '',
+    commentsLoadToken: 0,
+    isCommentsLoading: false,
+    isCommentsLoadingMore: false,
+    commentDraft: '',
+    replyingTo: null as CommentReplyTarget | null,
+    commentInputFocused: false,
+    canComment: hasAccessToken(),
+    isSubmittingComment: false,
+    deletingCommentIds: [] as string[],
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -446,6 +524,7 @@ Page({
         loadTunePatternNames().catch(() => ({})),
       ])
       this.applyPublication(publication, true, tunePatternNames)
+      void this.loadComments(publication.id)
       const currentUser = cachedUser()
       if (publication.author.id !== currentUser?.id) {
         const author = await getPublicUser(publication.author.id)
@@ -473,6 +552,7 @@ Page({
       if (work.publication?.status === 'PUBLISHED') {
         const publication = await getPublication(work.publication.id)
         this.applyPublication(publication, true, tunePatternNames)
+        void this.loadComments(publication.id)
         return
       }
       const materialCoverUrl =
@@ -496,6 +576,7 @@ Page({
         classicalFormCode: work.classicalFormCode,
         tunePatternCode: work.tunePatternCode,
         likeCount: work.publication?.likeCount || 0,
+        commentCount: 0,
         likedByMe: false,
         posterUrl: poster?.url || '',
         posterReady,
@@ -602,6 +683,272 @@ Page({
       posterBackgroundReady: normalizedPublication.posterBackgroundReady,
       materialBackgroundReady,
     }, () => this.maybePlayCardHint())
+  },
+
+  async loadComments(publicationId: string, append = false) {
+    if (!publicationId) return
+    if (append && (!this.data.commentsNextCursor || this.data.isCommentsLoadingMore)) return
+    const loadToken = this.data.commentsLoadToken + 1
+    this.setData({
+      commentsLoadToken: loadToken,
+      ...(append
+        ? { isCommentsLoadingMore: true }
+        : {
+            comments: [],
+            commentsNextCursor: null,
+            commentsLoaded: false,
+            commentsError: '',
+            isCommentsLoading: true,
+          }),
+    })
+    try {
+      const response = await loadPublicationComments(
+        publicationId,
+        append ? this.data.commentsNextCursor || undefined : undefined,
+      )
+      if (this.data.commentsLoadToken !== loadToken) return
+      const nextComments = response.items.map(commentView)
+      this.setData({
+        comments: append
+          ? uniqueComments([...this.data.comments, ...nextComments])
+          : nextComments,
+        commentsNextCursor: response.nextCursor,
+        commentsLoaded: true,
+        commentsError: '',
+        'publication.commentCount': response.total,
+      })
+    } catch (error) {
+      if (this.data.commentsLoadToken !== loadToken) return
+      if (append) {
+        showErrorToast(error, { fallback: '更多评论加载失败' })
+      } else {
+        this.setData({
+          commentsLoaded: false,
+          commentsError: getErrorMessage(error, '评论暂时无法加载'),
+        })
+      }
+    } finally {
+      if (this.data.commentsLoadToken === loadToken) {
+        this.setData({ isCommentsLoading: false, isCommentsLoadingMore: false })
+      }
+    }
+  },
+
+  retryComments() {
+    const publicationId = this.data.publication?.id
+    if (publicationId) void this.loadComments(publicationId)
+  },
+
+  loadMoreComments() {
+    const publicationId = this.data.publication?.id
+    if (publicationId) void this.loadComments(publicationId, true)
+  },
+
+  async ensureCommentLogin(): Promise<boolean> {
+    if (hasAccessToken()) return true
+    if (!(await confirmLogin())) return false
+    wx.showLoading({ title: '正在登录', mask: true })
+    try {
+      await loginWithWechat()
+      this.setData({ canComment: true, commentInputFocused: true })
+      return true
+    } catch (error) {
+      showErrorToast(error, { fallback: '登录失败' })
+      return false
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  async activateCommentComposer() {
+    if (await this.ensureCommentLogin()) {
+      this.setData({ canComment: true, commentInputFocused: true })
+    }
+  },
+
+  handleCommentInput(event: TextInputEvent) {
+    this.setData({ commentDraft: event.detail.value.slice(0, 300) })
+  },
+
+  handleCommentInputFocus() {
+    this.setData({ commentInputFocused: true })
+  },
+
+  handleCommentInputBlur() {
+    this.setData({ commentInputFocused: false })
+  },
+
+  async beginCommentReply(event: WechatMiniprogram.TouchEvent) {
+    if (!(await this.ensureCommentLogin())) return
+    const id = String(event.currentTarget.dataset.id || '')
+    const nickname = String(event.currentTarget.dataset.nickname || '')
+    if (!id || !nickname) return
+    const rootCommentIdValue = event.currentTarget.dataset.rootCommentId
+    this.setData({
+      replyingTo: {
+        id,
+        nickname,
+        rootCommentId:
+          typeof rootCommentIdValue === 'string' && rootCommentIdValue
+            ? rootCommentIdValue
+            : null,
+      },
+      commentInputFocused: true,
+    })
+  },
+
+  cancelCommentReply() {
+    this.setData({ replyingTo: null, commentInputFocused: false })
+  },
+
+  async submitComment() {
+    const publication = this.data.publication
+    const content = this.data.commentDraft.trim()
+    if (!publication?.id || this.data.isSubmittingComment) return
+    if (!(await this.ensureCommentLogin())) return
+    if (!content) {
+      wx.showToast({ title: '请先写下评论', icon: 'none' })
+      this.setData({ commentInputFocused: true })
+      return
+    }
+    this.setData({ isSubmittingComment: true })
+    try {
+      const result = await createPublicationComment(
+        publication.id,
+        content,
+        this.data.replyingTo?.id,
+      )
+      const created = commentView(result.comment)
+      if (created.moderationStatus === 'PASSED') {
+        if (created.rootCommentId) {
+          const comments = this.data.comments.map((comment) =>
+            comment.id === created.rootCommentId
+              ? {
+                  ...comment,
+                  replies: uniqueComments([...comment.replies, created]),
+                  replyCount: comment.replyCount + 1,
+                }
+              : comment,
+          )
+          this.setData({ comments })
+        } else {
+          this.setData({ comments: [created, ...this.data.comments] })
+        }
+        wx.showToast({ title: '评论已发布', icon: 'success' })
+      } else {
+        wx.showToast({ title: '评论已提交审核', icon: 'none' })
+      }
+      this.setData({
+        commentDraft: '',
+        replyingTo: null,
+        commentInputFocused: false,
+        'publication.commentCount': result.commentCount,
+      })
+    } catch (error) {
+      showErrorToast(error, { fallback: '评论发布失败' })
+    } finally {
+      this.setData({ isSubmittingComment: false })
+    }
+  },
+
+  async loadReplies(rootCommentId: string, append: boolean) {
+    const publicationId = this.data.publication?.id
+    const root = this.data.comments.find((comment) => comment.id === rootCommentId)
+    if (!publicationId || !root || root.isRepliesLoading) return
+    const cursor = append ? root.repliesNextCursor : null
+    if (append && !cursor) return
+    this.setData({
+      comments: this.data.comments.map((comment) =>
+        comment.id === rootCommentId ? { ...comment, isRepliesLoading: true } : comment,
+      ),
+    })
+    try {
+      const response = await loadCommentReplies(publicationId, rootCommentId, cursor || undefined)
+      const replies = response.items.map(commentView)
+      this.setData({
+        comments: this.data.comments.map((comment) =>
+          comment.id === rootCommentId
+            ? {
+                ...comment,
+                replies: append
+                  ? uniqueComments([...comment.replies, ...replies])
+                  : replies,
+                repliesExpanded: true,
+                repliesNextCursor: response.nextCursor,
+                hasMoreReplies: response.nextCursor !== null,
+                isRepliesLoading: false,
+              }
+            : comment,
+        ),
+      })
+    } catch (error) {
+      this.setData({
+        comments: this.data.comments.map((comment) =>
+          comment.id === rootCommentId ? { ...comment, isRepliesLoading: false } : comment,
+        ),
+      })
+      showErrorToast(error, { fallback: '回复加载失败' })
+    }
+  },
+
+  expandCommentReplies(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id || '')
+    if (id) void this.loadReplies(id, false)
+  },
+
+  loadMoreCommentReplies(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id || '')
+    if (id) void this.loadReplies(id, true)
+  },
+
+  async deleteComment(event: WechatMiniprogram.TouchEvent) {
+    const publication = this.data.publication
+    const commentId = String(event.currentTarget.dataset.id || '')
+    const rootCommentId = String(event.currentTarget.dataset.rootCommentId || commentId)
+    const isRoot = commentId === rootCommentId
+    if (
+      !publication?.id ||
+      !commentId ||
+      this.data.deletingCommentIds.length > 0
+    ) return
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '删除评论',
+        content: isRoot ? '该评论下的回复也会一并隐藏，确认删除吗？' : '确认删除这条回复吗？',
+        confirmText: '删除',
+        confirmColor: '#a75549',
+        success: (result) => resolve(result.confirm),
+        fail: () => resolve(false),
+      })
+    })
+    if (!confirmed) return
+    this.setData({ deletingCommentIds: [...this.data.deletingCommentIds, commentId] })
+    try {
+      const result = await deletePublicationComment(publication.id, commentId)
+      const comments = isRoot
+        ? this.data.comments.filter((comment) => comment.id !== commentId)
+        : this.data.comments.map((comment) =>
+            comment.id === rootCommentId
+              ? {
+                  ...comment,
+                  replies: comment.replies.filter((reply) => reply.id !== commentId),
+                  replyCount: Math.max(0, comment.replyCount - result.visibleDeletedCount),
+                }
+              : comment,
+          )
+      this.setData({
+        comments,
+        'publication.commentCount': result.commentCount,
+        ...(this.data.replyingTo?.id === commentId ? { replyingTo: null } : {}),
+      })
+      wx.showToast({ title: '评论已删除', icon: 'success' })
+    } catch (error) {
+      showErrorToast(error, { fallback: '评论删除失败' })
+    } finally {
+      this.setData({
+        deletingCommentIds: this.data.deletingCommentIds.filter((id) => id !== commentId),
+      })
+    }
   },
 
   async loadCreationJourney() {
@@ -822,6 +1169,7 @@ Page({
           loadTunePatternNames().catch(() => ({})),
         ])
         this.applyPublication(published, true, tunePatternNames)
+        void this.loadComments(publicationId)
       }
       wx.showToast({
         title: nextStatus === 'PUBLISHED' ? '已发布到诗词圈' : '已提交审核',
