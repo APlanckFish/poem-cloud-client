@@ -27,7 +27,15 @@
     </view>
 
     <view wx:if="{{items.length > 0}}" class="social-list">
-      <view wx:for="{{items}}" wx:key="id" class="person-card">
+      <view
+        wx:for="{{items}}"
+        wx:key="id"
+        class="person-card"
+        data-id="{{item.id}}"
+        bindtap="openUserWorks"
+        aria-role="button"
+        aria-label="查看{{item.nickname}}的作品"
+      >
         <view class="person-avatar">
           <image src="{{item.displayAvatarUrl}}" mode="aspectFill"></image>
         </view>
@@ -38,7 +46,7 @@
         <view
           class="follow-button poem-display {{item.followedByMe ? 'follow-button--mutual' : 'follow-button--primary'}} {{operatingId === item.id ? 'follow-button--busy' : ''}}"
           data-id="{{item.id}}"
-          bindtap="toggleFollow"
+          catchtap="toggleFollow"
           aria-role="button"
           aria-disabled="{{operatingId === item.id}}"
         >{{item.followedByMe ? '互相关注' : '回关'}}</view>

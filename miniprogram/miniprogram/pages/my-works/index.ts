@@ -1,10 +1,15 @@
-import type { LibraryWork } from '../../services/library'
+import {
+  type CommunityPublication,
+  loadUserPublications,
+  type PublicUser,
+} from '../../services/community'
 import {
   deleteLibraryWork,
   describeWorkType,
   hideLibraryWork,
   loadMyWorks,
   loadTunePatternNames,
+  type LibraryWork,
   publishLibraryWork,
   restoreLibraryWork,
   type TunePatternNames,
@@ -23,6 +28,10 @@ interface WorkCard {
   state: Exclude<WorkFilter, 'ALL'>
   stateLabel: string
   stateClass: string
+}
+
+interface WorkPageAuthor extends Omit<PublicUser, 'followedByMe'> {
+  displayAvatarUrl: string
 }
 
 const COVERS = [
@@ -75,6 +84,28 @@ function toCard(work: LibraryWork, index: number, tunePatternNames: TunePatternN
   }
 }
 
+function publicationToCard(
+  publication: CommunityPublication,
+  index: number,
+  tunePatternNames: TunePatternNames,
+): WorkCard {
+  return {
+    id: publication.workId,
+    publicationId: publication.id,
+    title: publication.title.trim() || '未命名作品',
+    description: describeWorkType(publication, tunePatternNames),
+    date: formatDate(publication.publishedAt || publication.createdAt),
+    cover:
+      publication.displayCoverUrl
+      || publication.coverUrl
+      || (publication.posterReady ? publication.posterUrl : '')
+      || COVERS[index % COVERS.length],
+    state: 'PUBLISHED',
+    stateLabel: '已发布',
+    stateClass: 'status--published',
+  }
+}
+
 Page({
   data: {
     tabs: [
@@ -87,19 +118,64 @@ Page({
     allWorks: [] as WorkCard[],
     visibleWorks: [] as WorkCard[],
     actionWork: null as WorkCard | null,
+    author: null as WorkPageAuthor | null,
+    viewedUserId: '',
+    isViewingOther: false,
+    nextCursor: null as string | null,
+    tunePatternNames: {} as TunePatternNames,
+    loadError: '',
     isLoading: false,
     hasLoaded: false,
     isOperating: false,
   },
 
-  onShow() {
-    void this.loadWorks()
+  onLoad(options: Record<string, string | undefined>) {
+    const viewedUserId = options.userId?.trim() || ''
+    this.setData({
+      viewedUserId,
+      isViewingOther: Boolean(viewedUserId),
+    })
   },
 
-  async loadWorks() {
-    if (this.data.isLoading) return
-    this.setData({ isLoading: true })
+  onShow() {
+    void this.loadWorks(true)
+  },
+
+  async loadWorks(reset = true) {
+    if (
+      this.data.isLoading
+      || (this.data.isViewingOther && !reset && !this.data.nextCursor)
+    ) return
+    this.setData({ isLoading: true, loadError: '' })
     try {
+      if (this.data.isViewingOther) {
+        const [response, tunePatternNames] = await Promise.all([
+          loadUserPublications(
+            this.data.viewedUserId,
+            reset ? undefined : this.data.nextCursor || undefined,
+          ),
+          Object.keys(this.data.tunePatternNames).length > 0
+            ? Promise.resolve(this.data.tunePatternNames)
+            : loadTunePatternNames().catch(() => ({})),
+        ])
+        const offset = reset ? 0 : this.data.allWorks.length
+        const page = response.items.map((publication, index) => (
+          publicationToCard(publication, offset + index, tunePatternNames)
+        ))
+        const allWorks = reset ? page : [...this.data.allWorks, ...page]
+        this.setData({
+          author: {
+            ...response.author,
+            displayAvatarUrl: response.author.avatarUrl || COVERS[0],
+          },
+          allWorks,
+          visibleWorks: allWorks,
+          nextCursor: response.nextCursor,
+          tunePatternNames,
+          hasLoaded: true,
+        })
+        return
+      }
       const [response, tunePatternNames] = await Promise.all([
         loadMyWorks(),
         loadTunePatternNames().catch(() => ({})),
@@ -107,14 +183,25 @@ Page({
       const allWorks = response.items.map((work, index) => (
         toCard(work, index, tunePatternNames)
       ))
-      this.setData({ allWorks, hasLoaded: true })
+      this.setData({ allWorks, tunePatternNames, hasLoaded: true })
       this.applyFilter(this.data.activeFilter, allWorks)
     } catch (error) {
-      this.setData({ hasLoaded: true })
-      showErrorToast(error, { fallback: '作品加载失败，请稍后重试' })
+      const loadError = this.data.isViewingOther
+        ? '暂时无法加载这位作者的作品'
+        : '暂时无法加载作品'
+      this.setData({ hasLoaded: true, loadError })
+      showErrorToast(error, { fallback: `${loadError}，请稍后重试` })
     } finally {
       this.setData({ isLoading: false })
     }
+  },
+
+  loadMore() {
+    if (this.data.isViewingOther) void this.loadWorks(false)
+  },
+
+  retryLoad() {
+    void this.loadWorks(true)
   },
 
   applyFilter(filter: WorkFilter, works?: WorkCard[]) {
@@ -128,6 +215,15 @@ Page({
 
   selectFilter(event: WechatMiniprogram.TouchEvent) {
     this.applyFilter(String(event.currentTarget.dataset.code) as WorkFilter)
+  },
+
+  viewPublicWork(event: WechatMiniprogram.TouchEvent) {
+    if (!this.data.isViewingOther) return
+    const publicationId = String(event.currentTarget.dataset.publicationId || '')
+    if (!publicationId) return
+    wx.navigateTo({
+      url: `/pages/publication-detail/index?id=${encodeURIComponent(publicationId)}`,
+    })
   },
 
   openActions(event: WechatMiniprogram.TouchEvent) {

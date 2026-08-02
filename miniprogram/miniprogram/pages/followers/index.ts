@@ -70,6 +70,14 @@ Page({
     wx.switchTab({ url: '/pages/create/index' })
   },
 
+  openUserWorks(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id || '')
+    if (!id) return
+    wx.navigateTo({
+      url: `/pages/my-works/index?userId=${encodeURIComponent(id)}`,
+    })
+  },
+
   async toggleFollow(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id)
     if (!id || this.data.operatingId) return

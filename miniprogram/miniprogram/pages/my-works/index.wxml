@@ -1,7 +1,25 @@
 <view class="app-viewport works-viewport">
-<navigation-bar title="我的作品" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#f6f4f2"></navigation-bar>
+<navigation-bar title="{{isViewingOther ? 'TA的作品' : '我的作品'}}" back="{{true}}" loading="{{isLoading}}" color="#1c231f" background="#f6f4f2"></navigation-bar>
 
-<view class="filter-tabs">
+<view wx:if="{{isViewingOther && author}}" class="author-profile">
+  <view class="author-profile__avatar">
+    <image src="{{author.displayAvatarUrl}}" mode="aspectFill"></image>
+  </view>
+  <view class="author-profile__copy">
+    <text class="author-profile__name poem-display">{{author.nickname}}</text>
+    <text class="author-profile__signature">{{author.signature || '未留下个性签名'}}</text>
+  </view>
+</view>
+
+<view wx:elif="{{isViewingOther && !loadError}}" class="author-profile author-profile--loading" aria-label="作者资料加载中">
+  <view class="author-profile__avatar author-profile__skeleton"></view>
+  <view class="author-profile__copy">
+    <view class="author-profile__skeleton author-profile__skeleton--name"></view>
+    <view class="author-profile__skeleton author-profile__skeleton--signature"></view>
+  </view>
+</view>
+
+<view wx:elif="{{!isViewingOther}}" class="filter-tabs">
   <view
     wx:for="{{tabs}}"
     wx:key="code"
@@ -12,17 +30,26 @@
   >{{item.label}}</view>
 </view>
 
-<scroll-view class="works-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
+<scroll-view class="works-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}" bindscrolltolower="loadMore">
   <view wx:if="{{visibleWorks.length > 0}}" class="works-list">
-    <view wx:for="{{visibleWorks}}" wx:key="id" class="work-card">
+    <view
+      wx:for="{{visibleWorks}}"
+      wx:key="id"
+      class="work-card {{isViewingOther ? 'work-card--public' : ''}}"
+      data-publication-id="{{item.publicationId}}"
+      bindtap="viewPublicWork"
+      aria-role="{{isViewingOther ? 'button' : ''}}"
+      aria-label="{{isViewingOther ? '查看作品' + item.title : ''}}"
+    >
       <image class="work-cover" src="{{item.cover}}" mode="aspectFill"></image>
       <view class="work-copy">
         <text class="work-title poem-display">{{item.title}}</text>
         <text class="work-description">{{item.description}}</text>
         <text class="work-date">{{item.date}}</text>
-        <view class="work-status {{item.stateClass}}">{{item.stateLabel}}</view>
+        <view wx:if="{{!isViewingOther}}" class="work-status {{item.stateClass}}">{{item.stateLabel}}</view>
       </view>
       <view
+        wx:if="{{!isViewingOther}}"
         class="more-button"
         data-id="{{item.id}}"
         catchtap="openActions"
@@ -31,15 +58,28 @@
       >
         <image src="/assets/icons/action-more.svg" mode="aspectFit"></image>
       </view>
+      <image
+        wx:else
+        class="work-card__chevron"
+        src="/assets/icons/common-chevron-right.svg"
+        mode="aspectFit"
+      ></image>
     </view>
     <image class="mountain-wash" src="/assets/images/mountain-wash.jpg" mode="widthFix"></image>
   </view>
 
+  <view wx:elif="{{loadError && !isLoading}}" class="empty-state empty-state--error">
+    <text class="empty-title poem-display">作品加载失败</text>
+    <text class="empty-copy">{{loadError}}</text>
+    <view class="empty-primary empty-primary--outline poem-display" bindtap="retryLoad" aria-role="button">重新加载</view>
+    <image class="empty-mountain" src="/assets/images/mountain-wash.jpg" mode="widthFix"></image>
+  </view>
+
   <view wx:elif="{{hasLoaded && !isLoading}}" class="empty-state">
     <image class="empty-illustration empty-illustration--works" src="/assets/images/empty-works.jpg" mode="aspectFit"></image>
-    <text class="empty-title poem-display">还没有作品</text>
-    <text class="empty-copy">完成一次创作后，作品会收藏在这里</text>
-    <view class="empty-primary poem-display" bindtap="startCreating" aria-role="button">去创作</view>
+    <text class="empty-title poem-display">{{isViewingOther ? '还没有公开作品' : '还没有作品'}}</text>
+    <text class="empty-copy">{{isViewingOther ? '作者发布的作品会陈列在这里' : '完成一次创作后，作品会收藏在这里'}}</text>
+    <view wx:if="{{!isViewingOther}}" class="empty-primary poem-display" bindtap="startCreating" aria-role="button">去创作</view>
     <image class="empty-mountain" src="/assets/images/mountain-wash.jpg" mode="widthFix"></image>
   </view>
 </scroll-view>

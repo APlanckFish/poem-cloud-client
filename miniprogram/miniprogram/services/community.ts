@@ -125,6 +125,12 @@ export interface PublicUser {
   followedByMe: boolean
 }
 
+export interface UserPublicationsResponse {
+  author: Omit<PublicUser, 'followedByMe'>
+  items: CommunityPublication[]
+  nextCursor: string | null
+}
+
 interface UserListResponse {
   items: PublicUser[]
   nextCursor: string | null
@@ -141,6 +147,16 @@ export function loadUserFollowing(id: string, cursor?: string): Promise<UserList
   const query = `limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
   return request<UserListResponse>({
     path: `/users/${encodeURIComponent(id)}/following?${query}`,
+  })
+}
+
+export function loadUserPublications(
+  id: string,
+  cursor?: string,
+): Promise<UserPublicationsResponse> {
+  const query = `limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  return request<UserPublicationsResponse>({
+    path: `/users/${encodeURIComponent(id)}/publications?${query}`,
   })
 }
 
