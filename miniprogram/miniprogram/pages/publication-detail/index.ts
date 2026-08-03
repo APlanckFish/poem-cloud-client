@@ -526,7 +526,7 @@ Page({
       return
     }
 
-    wx.switchTab({ url: '/pages/community/index' })
+    wx.switchTab({ url: '/pages/create/index' })
   },
 
   async loadPublication(id: string) {
@@ -672,8 +672,11 @@ Page({
       canManagePublication: Boolean(isOwner && normalizedPublication.id),
       canPublish: Boolean(
         isOwner &&
-        normalizedPublication.status !== 'PUBLISHED' &&
-        normalizedPublication.status !== 'PENDING_REVIEW',
+        normalizedPublication.status !== 'PENDING_REVIEW' &&
+        (
+          normalizedPublication.status !== 'PUBLISHED'
+          || normalizedPublication.visibility === 'UNLISTED'
+        ),
       ),
       showDetailActions: true,
       categoryName: publicationTypeName(normalizedPublication, tunePatternNames),

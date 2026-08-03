@@ -56,6 +56,16 @@ function workState(work: LibraryWork): Pick<WorkCard, 'state' | 'stateLabel' | '
   }
   if (
     work.publication?.status === 'PUBLISHED'
+    && work.publication.visibility === 'UNLISTED'
+  ) {
+    return {
+      state: 'UNPUBLISHED',
+      stateLabel: '仅链接可见',
+      stateClass: 'status--private',
+    }
+  }
+  if (
+    work.publication?.status === 'PUBLISHED'
     || work.publication?.status === 'PENDING_REVIEW'
   ) {
     return { state: 'PUBLISHED', stateLabel: '已发布', stateClass: 'status--published' }

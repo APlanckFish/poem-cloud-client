@@ -10,6 +10,7 @@ import type { PublicationCoverSource } from './community'
 export interface WorkPublication {
   id: string
   status: 'PUBLISHED' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED'
+  visibility: 'PUBLIC' | 'UNLISTED'
   likeCount: number
   creationJournalPublic: boolean
   coverSource: PublicationCoverSource
