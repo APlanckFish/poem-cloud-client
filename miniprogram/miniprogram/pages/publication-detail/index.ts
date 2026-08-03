@@ -57,6 +57,7 @@ interface PublicationView {
   posterBackgroundReady: boolean
   coverUrl: string | null
   displayCoverUrl: string | null
+  shareImageUrl: string | null
   materials: PublicationMaterial[]
   creationJournalPublic: boolean
   coverSource: PublicationCoverSource
@@ -587,6 +588,7 @@ Page({
           coverSource === 'POSTER' && posterBackgroundReady
             ? poster?.backgroundUrl || null
             : materialCoverUrl,
+        shareImageUrl: null,
         materials: (work.assets || []).flatMap((asset) => {
           if (!asset.accessUrl) return []
           return [{
@@ -1320,10 +1322,11 @@ Page({
   onShareAppMessage() {
     const publication = this.data.publication
     return {
-      title: publication ? `《${publication.title}》` : '诗云',
+      title: publication ? `我在诗云为你写下了《${publication.title}》，快来看看吧！` : '诗云',
       path: publication?.id
         ? `/pages/publication-detail/index?id=${encodeURIComponent(publication.id)}`
         : '/pages/community/index',
+      ...(publication?.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
     }
   },
 })

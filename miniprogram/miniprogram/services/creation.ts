@@ -76,6 +76,7 @@ export interface PublicationResponse {
   status: 'PUBLISHED' | 'PENDING_REVIEW' | 'HIDDEN' | 'REJECTED'
   title: string
   content: string
+  shareImageUrl: string | null
 }
 
 export interface PendingCreation {
@@ -92,6 +93,8 @@ export interface PendingCreation {
   draftSaved: boolean
   saved: boolean
   published: boolean
+  sharePublicationId?: string
+  shareImageUrl?: string
 }
 
 export interface ActiveCreationRun {
@@ -581,10 +584,42 @@ export async function publishCreation(creation: PendingCreation): Promise<Public
     },
     idempotencyKey: idempotencyKey('publish-poem'),
   })
-  const updated = { ...creation, published: true }
+  const updated = {
+    ...creation,
+    published: true,
+    sharePublicationId: publication.id,
+    ...(publication.shareImageUrl ? { shareImageUrl: publication.shareImageUrl } : {}),
+  }
   savePendingCreation(updated)
   wx.setStorageSync(STORAGE_KEYS.creationNeedsReset, true)
   wx.setStorageSync(STORAGE_KEYS.communityNeedsRefresh, true)
+  return publication
+}
+
+export async function prepareCreationShare(
+  creation: PendingCreation,
+): Promise<PublicationResponse> {
+  if (!creation.workId || !creation.saved) {
+    throw new ApiError('请先保存作品', 'WORK_NOT_FINALIZED')
+  }
+  const publication = await request<PublicationResponse>({
+    path: `/works/${creation.workId}/publications`,
+    method: 'POST',
+    data: {
+      workId: creation.workId,
+      visibility: 'UNLISTED',
+      acceptedCommunityRules: true,
+    },
+    idempotencyKey: idempotencyKey('share-poem'),
+  })
+  if (publication.status !== 'PUBLISHED') {
+    throw new ApiError('作品正在审核，审核通过后即可分享', 'PUBLICATION_NOT_SHAREABLE', 409)
+  }
+  savePendingCreation({
+    ...creation,
+    sharePublicationId: publication.id,
+    ...(publication.shareImageUrl ? { shareImageUrl: publication.shareImageUrl } : {}),
+  })
   return publication
 }
 

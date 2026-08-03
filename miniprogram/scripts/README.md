@@ -115,3 +115,4 @@ MP_SKIP_URL_CHECK=1 pnpm mp:upload --desc "体验版联调"
 - 上传前确认 `miniprogram/config/api.ts` 的后端地址已指向正式环境（微信要求线上版本必须使用已备案的 HTTPS 域名）
 - 若项目使用了 npm 包（`miniprogram_npm`），构建 npm 后再上传
 - `robot` 编号相同的上传会互相覆盖同名版本，多条流水线建议各用一个编号
+- `miniprogram-ci` 可能在当前目录留下 32 位十六进制名称的 Summer 编译缓存目录；上传或预览结束时脚本会自动清理本次缓存及历史遗留的同形态空目录

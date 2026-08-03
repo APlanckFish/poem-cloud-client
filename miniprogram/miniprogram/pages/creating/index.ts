@@ -22,6 +22,7 @@ import {
   type PendingCreation,
   type PoemResult,
   type PoemValidationMark,
+  prepareCreationShare,
   publishCreation,
   requestCreationReset,
   saveCreationAsDraft,
@@ -76,6 +77,9 @@ interface ValueChangeEvent {
 }
 
 type AvatarChoiceEvent = WechatMiniprogram.CustomEvent<{ avatarUrl: string }>
+type AsyncShareContent = WechatMiniprogram.Page.ICustomShareContent & {
+  promise: Promise<WechatMiniprogram.Page.ICustomShareContent>
+}
 
 function initialSteps(): CreatingStep[] {
   return [
@@ -1952,7 +1956,14 @@ Page({
     wx.showLoading({ title: '正在发布', mask: true })
     try {
       const publication = await publishCreation(creation)
-      this.setData({ creation: { ...creation, published: true } })
+      this.setData({
+        creation: {
+          ...creation,
+          published: true,
+          sharePublicationId: publication.id,
+          ...(publication.shareImageUrl ? { shareImageUrl: publication.shareImageUrl } : {}),
+        },
+      })
       clearPendingCreation()
       wx.showToast({
         title: publication.status === 'PUBLISHED' ? '已发布到诗词圈' : '已提交审核',
@@ -1971,11 +1982,47 @@ Page({
 
   onShareAppMessage() {
     const creation = this.data.creation
-    return {
-      title: creation?.result.title
-        ? `我在诗云写下了《${creation.result.title}》`
-        : '分享一首来自诗云的作品',
+    const title = creation?.result.title
+      ? `我在诗云为你写下了《${creation.result.title}》，快来看看吧！`
+      : '分享一首来自诗云的作品'
+    const fallbackShare = {
+      title,
       path: '/pages/community/index',
     }
+    if (!creation?.saved || !creation.workId) return fallbackShare
+    const publicationPath = (publicationId: string) =>
+      `/pages/publication-detail/index?id=${encodeURIComponent(publicationId)}`
+    if (creation.sharePublicationId) {
+      return {
+        title,
+        path: publicationPath(creation.sharePublicationId),
+        ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
+      }
+    }
+    return {
+      ...fallbackShare,
+      promise: prepareCreationShare(creation)
+        .then((publication) => {
+          const currentCreation = this.data.creation
+          if (currentCreation?.workId === creation.workId) {
+            this.setData({
+              creation: {
+                ...currentCreation,
+                sharePublicationId: publication.id,
+                ...(publication.shareImageUrl ? { shareImageUrl: publication.shareImageUrl } : {}),
+              },
+            })
+          }
+          return {
+            title,
+            path: publicationPath(publication.id),
+            ...(publication.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
+          }
+        })
+        .catch((error: unknown) => {
+          showErrorToast(error, { fallback: '分享链接生成失败，请稍后重试' })
+          return fallbackShare
+        }),
+    } as AsyncShareContent
   },
 })

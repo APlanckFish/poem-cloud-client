@@ -9,6 +9,7 @@
  *   MP_ROBOT            CI 机器人编号 1-30，缺省 1
  */
 import fs from 'node:fs'
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
@@ -21,6 +22,7 @@ const ci = require('miniprogram-ci')
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..')
+const COMPILER_CACHE_DIRECTORY_PATTERN = /^[0-9a-f]{32}$/
 
 export interface ProjectMeta {
   appid: string
@@ -131,6 +133,36 @@ export interface PreparedProject {
   cleanup: () => void
 }
 
+function getCompilerCacheDirectory(projectPath: string, workingDirectory: string): string {
+  const directoryName = createHash('md5').update(`${projectPath}|summer`).digest('hex')
+  return path.resolve(workingDirectory, directoryName)
+}
+
+/**
+ * miniprogram-ci 2.1.x 会在当前工作目录创建以项目路径 MD5 命名的 Summer
+ * 编译缓存目录，却不会删除最外层空目录。精确删除本次缓存，并清理同目录下
+ * 历史遗留的同名规则空目录；非空历史目录不会被误删。
+ */
+export function cleanupCompilerCacheDirectories(
+  projectPath: string,
+  workingDirectory = process.cwd(),
+): void {
+  const currentCacheDirectory = getCompilerCacheDirectory(projectPath, workingDirectory)
+  fs.rmSync(currentCacheDirectory, { recursive: true, force: true })
+
+  let removedLegacyDirectoryCount = 0
+  for (const entry of fs.readdirSync(workingDirectory, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !COMPILER_CACHE_DIRECTORY_PATTERN.test(entry.name)) continue
+    const entryPath = path.join(workingDirectory, entry.name)
+    if (fs.readdirSync(entryPath).length > 0) continue
+    fs.rmdirSync(entryPath)
+    removedLegacyDirectoryCount += 1
+  }
+  if (removedLegacyDirectoryCount > 0) {
+    console.log(`[mp-ci] 已清理 ${removedLegacyDirectoryCount} 个历史编译缓存空目录`)
+  }
+}
+
 function formatDiagnostic(diagnostic: ts.Diagnostic): string {
   const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
   if (!diagnostic.file || diagnostic.start === undefined) return message
@@ -156,10 +188,12 @@ function collectJavaScriptFiles(directory: string): string[] {
  */
 export function createPreparedProject(appid: string): PreparedProject {
   const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'poem-cloud-mp-build-'))
+  const compilerWorkingDirectory = process.cwd()
   let cleaned = false
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
+    cleanupCompilerCacheDirectories(stagingRoot, compilerWorkingDirectory)
     fs.rmSync(stagingRoot, { recursive: true, force: true })
   }
 

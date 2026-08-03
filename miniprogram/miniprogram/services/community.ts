@@ -31,6 +31,7 @@ export interface CommunityPublication {
   posterBackgroundReady: boolean
   coverUrl: string | null
   displayCoverUrl: string | null
+  shareImageUrl: string | null
   materials: PublicationMaterial[]
   creationJournalPublic: boolean
   coverSource: PublicationCoverSource
