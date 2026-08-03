@@ -1,5 +1,12 @@
 <view class="app-viewport detail-viewport">
-<navigation-bar title="作品详情" back="{{true}}" color="#202824" background="#fffefa"></navigation-bar>
+<navigation-bar
+  title="作品详情"
+  back="{{true}}"
+  custom-back="{{true}}"
+  bindback="handleBack"
+  color="#202824"
+  background="#fffefa"
+></navigation-bar>
 
 <scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view wx:if="{{publication}}" class="detail-page">

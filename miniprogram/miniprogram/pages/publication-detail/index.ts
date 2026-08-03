@@ -507,6 +507,8 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    wx.hideShareMenu()
+
     if (options.id) {
       void this.loadPublication(options.id)
       return
@@ -516,6 +518,15 @@ Page({
       return
     }
     this.setData({ isLoading: false })
+  },
+
+  handleBack() {
+    if (getCurrentPages().length > 1) {
+      wx.navigateBack()
+      return
+    }
+
+    wx.switchTab({ url: '/pages/community/index' })
   },
 
   async loadPublication(id: string) {
@@ -684,7 +695,14 @@ Page({
       posterReady: normalizedPublication.posterReady,
       posterBackgroundReady: normalizedPublication.posterBackgroundReady,
       materialBackgroundReady,
-    }, () => this.maybePlayCardHint())
+    }, () => {
+      if (isPublic) {
+        wx.showShareMenu({ menus: ['shareAppMessage'] })
+      } else {
+        wx.hideShareMenu()
+      }
+      this.maybePlayCardHint()
+    })
   },
 
   async loadComments(publicationId: string, append = false) {
