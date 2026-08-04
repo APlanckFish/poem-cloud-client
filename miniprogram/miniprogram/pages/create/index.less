@@ -111,21 +111,24 @@ page {
   line-height: 1.72;
 }
 
+.prompt-input--with-materials {
+  height: 222rpx;
+  padding-bottom: 20rpx;
+}
+
 .prompt-placeholder {
   color: #6f7878;
 }
 
 .material-list {
-  position: absolute;
+  position: relative;
   z-index: 2;
-  right: 25rpx;
-  bottom: 118rpx;
-  left: 25rpx;
   display: flex;
   height: 104rpx;
   flex-wrap: nowrap;
   gap: 16rpx;
   overflow: visible;
+  margin: 0 25rpx 20rpx;
   padding: 0;
 }
 
@@ -184,23 +187,63 @@ page {
   font-size: 13rpx;
 }
 
-.material-remove {
+.material-preview__audit {
   position: absolute;
-  z-index: 2;
-  top: -17rpx;
-  right: -17rpx;
+  inset: 0;
   display: flex;
-  width: 34rpx;
-  height: 34rpx;
   align-items: center;
   justify-content: center;
+  color: #fff;
+  background: rgba(31, 45, 39, 0.66);
+  font-size: 18rpx;
+  letter-spacing: 1rpx;
+}
+
+.material-remove {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  display: flex;
+  width: 72rpx;
+  height: 72rpx;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 5rpx;
+}
+
+.material-remove__icon {
+  position: relative;
+  width: 38rpx;
+  height: 38rpx;
   border: 2rpx solid #fffefa;
   border-radius: 50%;
   background: #66716b;
-  color: #fff;
-  font-size: 24rpx;
-  font-weight: 300;
-  line-height: 1;
+  box-shadow: 0 2rpx 6rpx rgba(25, 38, 32, 0.18);
+}
+
+.material-remove__line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18rpx;
+  height: 2rpx;
+  border-radius: 2rpx;
+  background: #fff;
+  transform-origin: center;
+}
+
+.material-remove__line--forward {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.material-remove__line--backward {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.material-remove--pressed .material-remove__icon {
+  background: #4d5953;
+  transform: scale(0.94);
 }
 
 .material-entry {
@@ -294,8 +337,8 @@ page {
 
 .selection-card--stacked .type-row,
 .selection-card--stacked .secondary-row {
-  height: 78rpx;
-  min-height: 78rpx;
+  height: 99rpx;
+  min-height: 99rpx;
   margin-top: 0;
   border: 0;
   border-radius: 0;

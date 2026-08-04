@@ -1,11 +1,17 @@
 import { ApiError, getUrlOrigin, request } from './api'
 import { ensureInstallation } from './installation'
+import {
+  errorLogFields,
+  reportRealtimeError,
+  reportRealtimeWarn,
+} from '../utils/realtime-log'
 
 type ImageAssetKind = 'IMAGE' | 'AVATAR'
 type AssetKind = ImageAssetKind | 'VIDEO'
 export type AssetPurpose = 'FEEDBACK'
 
 const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+const MAX_VIDEO_DURATION_MS = 5_000
 
 interface UploadIntent {
   assetId: string
@@ -29,6 +35,7 @@ export interface AssetResponse {
   durationMs?: number | null
   accessUrl: string | null
   thumbnailUrl?: string | null
+  moderationStatus?: 'PENDING' | 'PASSED' | 'REJECTED' | 'REVIEW'
 }
 
 interface UploadMetadata {
@@ -158,8 +165,8 @@ export async function uploadVideoAsset(options: {
   durationSeconds: number
 }): Promise<AssetResponse> {
   const durationMs = Math.round(options.durationSeconds * 1000)
-  if (durationMs > 15_000) {
-    throw new ApiError('请选择15秒以内的视频', 'VIDEO_TOO_LONG')
+  if (durationMs > MAX_VIDEO_DURATION_MS) {
+    throw new ApiError('请选择5秒以内的视频', 'VIDEO_TOO_LONG')
   }
   let thumbnailAsset: AssetResponse | null = null
   if (options.thumbnailFilePath) {
@@ -221,17 +228,37 @@ async function uploadAsset(options: {
       method: 'POST',
       data: options.metadata,
     })
-    if (asset.status !== 'READY') {
+    if (asset.status === 'REJECTED' || asset.moderationStatus === 'REJECTED') {
       throw new ApiError(
-        asset.status === 'REJECTED' ? '素材不符合上传要求' : '素材尚未处理完成',
-        'ASSET_NOT_READY',
+        options.kind === 'AVATAR'
+          ? '您的头像涉嫌违规，请修改后重试'
+          : '您的素材涉嫌违规，请修改后重试',
+        'ASSET_REJECTED',
       )
+    }
+    if (asset.status !== 'READY' && asset.status !== 'PROCESSING') {
+      throw new ApiError('素材尚未处理完成', 'ASSET_NOT_READY')
     }
     return asset
   } catch (error) {
+    const fields = {
+      ...errorLogFields(error),
+      operation: 'asset_upload',
+      assetKind: options.kind,
+      sizeBytes: options.size,
+    }
+    if (error instanceof ApiError && error.code === 'ASSET_REJECTED') {
+      reportRealtimeWarn('client.asset.upload_failed', fields)
+    } else {
+      reportRealtimeError('client.asset.upload_failed', fields)
+    }
     void deleteAsset(intent.assetId).catch(() => undefined)
     throw error
   }
+}
+
+export function getAsset(assetId: string): Promise<AssetResponse> {
+  return request<AssetResponse>({ path: `/assets/${assetId}`, method: 'GET' })
 }
 
 export function deleteAsset(assetId: string): Promise<void> {

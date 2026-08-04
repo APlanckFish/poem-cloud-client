@@ -30,7 +30,17 @@
   >{{item.label}}</view>
 </view>
 
-<scroll-view class="works-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}" bindscrolltolower="loadMore">
+<scroll-view
+  class="works-scroll"
+  scroll-y
+  enhanced
+  bounces="{{false}}"
+  refresher-enabled="{{false}}"
+  show-scrollbar="{{false}}"
+  scroll-into-view="{{worksScrollAnchor}}"
+  bindscrolltolower="loadMore"
+>
+  <view id="works-scroll-top" class="works-scroll__anchor"></view>
   <view wx:if="{{visibleWorks.length > 0}}" class="works-list">
     <view
       wx:for="{{visibleWorks}}"

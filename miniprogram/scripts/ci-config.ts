@@ -7,6 +7,10 @@
  *   MP_PRIVATE_KEY_PATH 上传私钥文件路径（与 MP_PRIVATE_KEY 二选一）
  *   MP_PRIVATE_KEY      上传私钥内容，适合 CI Secret 注入（优先级低于 PATH）
  *   MP_ROBOT            CI 机器人编号 1-30，缺省 1
+ *   MP_VERSION          上传版本号，缺省读取 package.json
+ *   MP_DESC             上传版本备注，缺省使用当前时间
+ *   MP_SKIP_URL_CHECK   1/true 时跳过域名校验，仅限体验版调试
+ *   MP_PREVIEW_OUTPUT   预览二维码输出路径，缺省 .mp-ci/preview.jpg
  */
 import fs from 'node:fs'
 import { createHash } from 'node:crypto'

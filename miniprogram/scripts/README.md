@@ -59,7 +59,7 @@ pnpm mp:upload --robot 3
 | `MP_VERSION` | 否 | 版本号，缺省取 `package.json` 的 `version` |
 | `MP_DESC` | 否 | 版本备注，缺省为当前时间 |
 | `MP_PREVIEW_OUTPUT` | 否 | 预览二维码输出路径，缺省 `.mp-ci/preview.jpg` |
-| `MP_SKIP_URL_CHECK` | 否 | 设为 `1` 时跳过合法域名/TLS/证书校验，仅用于域名未就绪时的体验版调试 |
+| `MP_SKIP_URL_CHECK` | 否 | `1` / `true` 表示跳过合法域名/TLS/证书校验；其他值视为关闭，仅用于体验版调试 |
 
 命令行参数（`--version` / `--desc` / `--robot` / `--output`）优先级高于环境变量。
 

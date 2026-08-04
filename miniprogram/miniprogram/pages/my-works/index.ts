@@ -137,6 +137,7 @@ Page({
     isLoading: false,
     hasLoaded: false,
     isOperating: false,
+    worksScrollAnchor: '',
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -156,6 +157,7 @@ Page({
       this.data.isLoading
       || (this.data.isViewingOther && !reset && !this.data.nextCursor)
     ) return
+    if (reset) this.resetWorksScroll()
     this.setData({ isLoading: true, loadError: '' })
     try {
       if (this.data.isViewingOther) {
@@ -223,7 +225,15 @@ Page({
     })
   },
 
+  resetWorksScroll() {
+    // scroll-view 会在数据刷新后保留旧滚动位置；先清空再重新指定锚点才能重复回到顶部。
+    this.setData({ worksScrollAnchor: '' }, () => {
+      this.setData({ worksScrollAnchor: 'works-scroll-top' })
+    })
+  },
+
   selectFilter(event: WechatMiniprogram.TouchEvent) {
+    this.resetWorksScroll()
     this.applyFilter(String(event.currentTarget.dataset.code) as WorkFilter)
   },
 

@@ -1,4 +1,4 @@
-import { deleteAsset, uploadImageAsset, uploadVideoAsset } from '../../services/assets'
+import { deleteAsset, getAsset, uploadImageAsset, uploadVideoAsset } from '../../services/assets'
 import { ApiError, hasAccessToken } from '../../services/api'
 import { loginWithWechat } from '../../services/auth'
 import {
@@ -25,6 +25,7 @@ type MaterialKind = 'IMAGE' | 'VIDEO'
 
 const MAX_IMAGE_COUNT = 3
 const MAX_VIDEO_COUNT = 1
+const MAX_VIDEO_DURATION_SECONDS = 5
 
 interface TunePatternItem {
   code: string
@@ -73,6 +74,11 @@ interface MaterialItem {
   sourceUrl: string
   previewUrl: string
   durationLabel: string
+  status: 'READY' | 'PROCESSING'
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 function normalizeTuneSearch(value: string): string {
@@ -163,7 +169,7 @@ function chooseMaterials(options: {
       mediaType: options.mediaType,
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
-      maxDuration: 15,
+      maxDuration: MAX_VIDEO_DURATION_SECONDS,
       success(result) {
         resolve(result)
       },
@@ -202,6 +208,7 @@ Page({
     isUploading: false,
     isCreating: false,
     isCheckingPreferences: false,
+    isCheckingMaterials: false,
     preferenceCheckPassed: false,
     preferenceAnswers: {} as Record<string, string[]>,
     writingRuleHint: '使用中华新韵，默认以简体中文创作',
@@ -291,6 +298,7 @@ Page({
         sourceUrl: asset.accessUrl,
         previewUrl: asset.kind === 'IMAGE' ? asset.accessUrl : asset.thumbnailUrl || '',
         durationLabel: '',
+        status: 'READY',
       }))
       const tunePatternIndex = editingDraft.preferences.tunePatternCode
         ? this.data.tunePatterns.findIndex(
@@ -567,7 +575,7 @@ Page({
       const accepted = selection.tempFiles.flatMap((media) => {
         const kind = selectedMediaKind(media, selection.type)
         if (kind === 'VIDEO') {
-          if (Number(media.duration) > 15) {
+          if (Number(media.duration) > MAX_VIDEO_DURATION_SECONDS) {
             ignoredLongVideo += 1
             return []
           }
@@ -588,7 +596,7 @@ Page({
 
       if (accepted.length === 0) {
         wx.showToast({
-          title: ignoredLongVideo > 0 ? '请选择15秒以内的视频' : '素材数量已达上限',
+          title: ignoredLongVideo > 0 ? '请选择5秒以内的视频' : '素材数量已达上限',
           icon: 'none',
         })
         return
@@ -611,6 +619,7 @@ Page({
             sourceUrl,
             previewUrl: sourceUrl,
             durationLabel: '',
+            status: 'READY',
           })
           continue
         }
@@ -633,16 +642,24 @@ Page({
           sourceUrl: asset.accessUrl || media.tempFilePath,
           previewUrl: asset.thumbnailUrl || media.thumbTempFilePath || '',
           durationLabel: `${media.duration.toFixed(1)}s`,
+          status: asset.status === 'PROCESSING' ? 'PROCESSING' : 'READY',
         })
       }
 
       wx.hideLoading()
       this.appendMaterials(uploadedMaterials)
+      const hasProcessingVideo = uploadedMaterials.some(
+        (material) => material.kind === 'VIDEO' && material.status === 'PROCESSING',
+      )
       uploadedMaterials = []
       const hasIgnored = ignoredByLimit > 0 || ignoredLongVideo > 0
       wx.showToast({
-        title: hasIgnored ? '已添加可用素材，超出限制的已忽略' : '素材已添加',
-        icon: hasIgnored ? 'none' : 'success',
+        title: hasIgnored
+          ? '已添加可用素材，超出限制的已忽略'
+          : hasProcessingVideo
+            ? '视频已上传，正在检测'
+            : '素材已添加',
+        icon: hasIgnored || hasProcessingVideo ? 'none' : 'success',
         duration: hasIgnored ? 2600 : 1500,
       })
     } catch (error) {
@@ -665,6 +682,129 @@ Page({
       imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
       videoCount: materials.filter((item) => item.kind === 'VIDEO').length,
     })
+    for (const material of incoming) {
+      if (material.status === 'PROCESSING') {
+        void this.monitorMaterialModeration(material.id)
+      }
+    }
+  },
+
+  async monitorMaterialModeration(assetId: string) {
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      if (!this.data.materials.some((material) => material.id === assetId)) return
+      await delay(2_000)
+      try {
+        const asset = await getAsset(assetId)
+        if (asset.status === 'PROCESSING' || asset.moderationStatus === 'REVIEW') continue
+        if (asset.status === 'READY' && asset.moderationStatus === 'PASSED') {
+          this.setData({
+            materials: this.data.materials.map((material) =>
+              material.id === assetId
+                ? {
+                    ...material,
+                    status: 'READY' as const,
+                    sourceUrl: asset.accessUrl || material.sourceUrl,
+                    previewUrl: asset.thumbnailUrl || material.previewUrl,
+                  }
+                : material,
+            ),
+          })
+          wx.showToast({ title: '视频检测通过', icon: 'success' })
+          return
+        }
+        this.dropMaterial(assetId)
+        void deleteAsset(assetId).catch(() => undefined)
+        wx.showToast({
+          title:
+            asset.status === 'REJECTED' || asset.moderationStatus === 'REJECTED'
+              ? '您的素材涉嫌违规，请修改后重试'
+              : '视频检测失败，请重新上传',
+          icon: 'none',
+          duration: 2800,
+        })
+        return
+      } catch {
+        // 网络波动时保留“检测中”，创作前还会再次向服务端确认。
+      }
+    }
+  },
+
+  dropMaterial(assetId: string) {
+    const materials = this.data.materials.filter((material) => material.id !== assetId)
+    this.setData({
+      materials,
+      imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
+      videoCount: materials.filter((item) => item.kind === 'VIDEO').length,
+    })
+  },
+
+  async checkMaterialsBeforeCreation(): Promise<boolean> {
+    if (this.data.materials.length === 0) return true
+    this.setData({ isCheckingMaterials: true })
+    try {
+      const assets = await Promise.all(
+        this.data.materials.map((material) => getAsset(material.id)),
+      )
+      const rejectedIds = assets
+        .filter(
+          (asset) => asset.status === 'REJECTED' || asset.moderationStatus === 'REJECTED',
+        )
+        .map((asset) => asset.id)
+      if (rejectedIds.length > 0) {
+        const rejected = new Set(rejectedIds)
+        const materials = this.data.materials.filter((material) => !rejected.has(material.id))
+        this.setData({
+          materials,
+          imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
+          videoCount: materials.filter((item) => item.kind === 'VIDEO').length,
+        })
+        for (const assetId of rejectedIds) void deleteAsset(assetId).catch(() => undefined)
+        wx.showToast({
+          title: '您的素材涉嫌违规，请修改后重试',
+          icon: 'none',
+          duration: 2800,
+        })
+        return false
+      }
+      const failedIds = assets
+        .filter((asset) => asset.status === 'FAILED')
+        .map((asset) => asset.id)
+      if (failedIds.length > 0) {
+        const failed = new Set(failedIds)
+        const materials = this.data.materials.filter((material) => !failed.has(material.id))
+        this.setData({
+          materials,
+          imageCount: materials.filter((item) => item.kind === 'IMAGE').length,
+          videoCount: materials.filter((item) => item.kind === 'VIDEO').length,
+        })
+        for (const assetId of failedIds) void deleteAsset(assetId).catch(() => undefined)
+        wx.showToast({ title: '素材检测失败，请重新上传', icon: 'none', duration: 2800 })
+        return false
+      }
+      if (
+        assets.some(
+          (asset) => asset.status !== 'READY' || asset.moderationStatus !== 'PASSED',
+        )
+      ) {
+        wx.showToast({ title: '素材还在检测中，请稍后', icon: 'none' })
+        return false
+      }
+      const byId = new Map(assets.map((asset) => [asset.id, asset]))
+      this.setData({
+        materials: this.data.materials.map((material) => ({
+          ...material,
+          status: 'READY' as const,
+          sourceUrl: byId.get(material.id)?.accessUrl || material.sourceUrl,
+          previewUrl: byId.get(material.id)?.thumbnailUrl || material.previewUrl,
+        })),
+      })
+      return true
+    } catch (error) {
+      showErrorToast(error, { fallback: '素材状态检查失败，请稍后重试' })
+      return false
+    } finally {
+      this.setData({ isCheckingMaterials: false })
+    }
   },
 
   previewMaterial(event: WechatMiniprogram.TouchEvent) {
@@ -706,12 +846,18 @@ Page({
   },
 
   async startCreation() {
-    if (this.data.isCreating || this.data.isUploading || this.data.isCheckingPreferences) return
+    if (
+      this.data.isCreating ||
+      this.data.isUploading ||
+      this.data.isCheckingPreferences ||
+      this.data.isCheckingMaterials
+    ) return
     const prompt = this.data.prompt.trim()
     if (!prompt) {
       wx.showToast({ title: '先写下想表达的内容', icon: 'none' })
       return
     }
+    if (!(await this.checkMaterialsBeforeCreation())) return
     if (!this.data.preferenceCheckPassed) {
       this.setData({ isCheckingPreferences: true })
       try {

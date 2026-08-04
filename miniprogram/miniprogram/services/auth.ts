@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../config/api'
+import { errorLogFields, reportRealtimeError } from '../utils/realtime-log'
 import { ApiError, clearSessionStorage, hasAccessToken, request } from './api'
 import { uploadImageAsset } from './assets'
 import { syncLocalCreationDrafts } from './creation'
@@ -51,10 +52,20 @@ function getWechatLoginCode(): Promise<string> {
           resolve(result.code)
           return
         }
-        reject(new ApiError('微信登录凭证为空', 'WECHAT_LOGIN_FAILED'))
+        const error = new ApiError('微信登录凭证为空', 'WECHAT_LOGIN_FAILED')
+        reportRealtimeError('client.auth.wechat_login_failed', {
+          ...errorLogFields(error),
+          operation: 'wx_login',
+        })
+        reject(error)
       },
       fail(error) {
-        reject(new ApiError(error.errMsg || '微信登录失败', 'WECHAT_LOGIN_FAILED'))
+        const loginError = new ApiError(error.errMsg || '微信登录失败', 'WECHAT_LOGIN_FAILED')
+        reportRealtimeError('client.auth.wechat_login_failed', {
+          ...errorLogFields(loginError),
+          operation: 'wx_login',
+        })
+        reject(loginError)
       },
     })
   })

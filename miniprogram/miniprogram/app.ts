@@ -1,6 +1,10 @@
 import { STORAGE_KEYS } from './config/api'
 import { restoreSession } from './services/auth'
 import { ensureInstallation } from './services/installation'
+import {
+  reportGlobalRuntimeError,
+  reportRealtimeInfo,
+} from './utils/realtime-log'
 
 const CLIENT_DATA_RESET_VERSION = '2026-07-23-clean-slate-3'
 
@@ -38,6 +42,7 @@ App<IAppOption>({
   },
 
   onLaunch() {
+    reportRealtimeInfo('client.app.launched', { operation: 'app_launch' })
     resetTestDataOnce()
     void ensureInstallation().catch(() => undefined)
     void restoreSession()
@@ -47,5 +52,13 @@ App<IAppOption>({
       .finally(() => {
         this.globalData.sessionReady = true
       })
+  },
+
+  onError(error) {
+    reportGlobalRuntimeError(error, 'app_error')
+  },
+
+  onUnhandledRejection(result) {
+    reportGlobalRuntimeError(result.reason, 'unhandled_rejection')
   },
 })

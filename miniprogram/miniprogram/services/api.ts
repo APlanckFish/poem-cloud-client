@@ -1,4 +1,8 @@
 import { getApiBaseUrl, STORAGE_KEYS } from '../config/api'
+import {
+  reportRealtimeError,
+  reportRealtimeWarn,
+} from '../utils/realtime-log'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -33,14 +37,43 @@ export class ApiError extends Error {
   readonly code: string
   readonly statusCode: number
   readonly details: unknown
+  readonly requestId: string | null
 
-  constructor(message: string, code = 'NETWORK_ERROR', statusCode = 0, details?: unknown) {
+  constructor(
+    message: string,
+    code = 'NETWORK_ERROR',
+    statusCode = 0,
+    details?: unknown,
+    requestId: string | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.code = code
     this.statusCode = statusCode
     this.details = details
+    this.requestId = requestId
   }
+}
+
+function requestPath(path: string): string {
+  return path.split(/[?#]/, 1)[0] ?? path
+}
+
+function reportRequestFailure(options: RequestOptions, error: ApiError): void {
+  const fields = {
+    errorType: error.name,
+    errorCode: error.code,
+    statusCode: error.statusCode,
+    requestId: error.requestId,
+    method: options.method ?? 'GET',
+    path: requestPath(options.path),
+    operation: 'api_request',
+  }
+  if (error.statusCode >= 400 && error.statusCode < 500) {
+    reportRealtimeWarn('client.api.request_failed', fields)
+    return
+  }
+  reportRealtimeError('client.api.request_failed', fields)
 }
 
 function storedString(key: string): string | null {
@@ -123,13 +156,13 @@ export function request<T>(options: RequestOptions): Promise<T> {
             resolve(envelope.data)
             return
           }
-          reject(
-            new ApiError(
-              '服务返回格式异常，请稍后重试',
-              'INVALID_RESPONSE',
-              response.statusCode,
-            ),
+          const error = new ApiError(
+            '服务返回格式异常，请稍后重试',
+            'INVALID_RESPONSE',
+            response.statusCode,
           )
+          reportRequestFailure(options, error)
+          reject(error)
           return
         }
 
@@ -137,24 +170,25 @@ export function request<T>(options: RequestOptions): Promise<T> {
           ? response.data as ApiErrorEnvelope
           : {}
         const message = envelope.error?.message ?? `请求失败（${response.statusCode}）`
-        reject(
-          new ApiError(
-            message,
-            envelope.error?.code ?? 'REQUEST_FAILED',
-            response.statusCode,
-            envelope.error?.details,
-          ),
+        const error = new ApiError(
+          message,
+          envelope.error?.code ?? 'REQUEST_FAILED',
+          response.statusCode,
+          envelope.error?.details,
+          envelope.requestId ?? null,
         )
+        reportRequestFailure(options, error)
+        reject(error)
       },
       fail(error) {
         const message = error.errMsg || '无法连接到诗云服务'
-        reject(
-          new ApiError(
-            message.includes('url not in domain list')
-              ? `API域名未生效，请检查 request 合法域名：${getUrlOrigin(url)}`
-              : message,
-          ),
+        const apiError = new ApiError(
+          message.includes('url not in domain list')
+            ? `API域名未生效，请检查 request 合法域名：${getUrlOrigin(url)}`
+            : message,
         )
+        reportRequestFailure(options, apiError)
+        reject(apiError)
       },
     })
   })

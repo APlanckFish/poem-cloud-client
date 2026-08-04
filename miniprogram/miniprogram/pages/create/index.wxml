@@ -29,7 +29,7 @@
       <view class="prompt-card">
         <view class="prompt-field">
           <textarea
-            class="prompt-input poem-display"
+            class="prompt-input poem-display {{materials.length > 0 ? 'prompt-input--with-materials' : ''}}"
             value="{{prompt}}"
             placeholder="写下此刻，或放入一段故事…"
             placeholder-class="prompt-placeholder"
@@ -54,14 +54,23 @@
                   <text class="material-preview__play">▶</text>
                   <text>{{item.durationLabel}}</text>
                 </view>
+                <view wx:if="{{item.status === 'PROCESSING'}}" class="material-preview__audit">
+                  <text>检测中</text>
+                </view>
               </view>
               <view
                 class="material-remove"
                 data-id="{{item.id}}"
                 catchtap="removeMaterial"
+                hover-class="material-remove--pressed"
                 aria-role="button"
                 aria-label="移除素材"
-              >×</view>
+              >
+                <view class="material-remove__icon" aria-hidden="true">
+                  <view class="material-remove__line material-remove__line--forward"></view>
+                  <view class="material-remove__line material-remove__line--backward"></view>
+                </view>
+              </view>
             </view>
           </view>
 
@@ -82,7 +91,7 @@
               <text class="material-entry__label poem-display">{{isUploading ? '正在上传素材…' : '添加素材'}}</text>
             </view>
             <text class="material-entry__meta">
-              {{materials.length ? imageCount + '/3 图片 · ' + videoCount + '/1 视频' : '图片 3张 · 视频 15秒'}}
+              {{materials.length ? imageCount + '/3 图片 · ' + videoCount + '/1 视频' : '图片 3张 · 视频 5秒'}}
             </text>
           </view>
         </view>
@@ -150,13 +159,13 @@
       </view>
 
       <view
-        class="primary-button poem-display {{isCreating || isUploading || isCheckingPreferences ? 'primary-button--disabled' : ''}}"
+        class="primary-button poem-display {{isCreating || isUploading || isCheckingPreferences || isCheckingMaterials ? 'primary-button--disabled' : ''}}"
         bindtap="startCreation"
         hover-class="primary-button--pressed"
         aria-role="button"
-        aria-disabled="{{isCreating || isUploading || isCheckingPreferences}}"
+        aria-disabled="{{isCreating || isUploading || isCheckingPreferences || isCheckingMaterials}}"
       >
-        <text class="primary-button__text">{{isCreating ? '正在创作…' : (isCheckingPreferences ? '正在准备…' : '开始创作')}}</text>
+        <text class="primary-button__text">{{isCreating ? '正在创作…' : (isCheckingMaterials ? '正在检测素材…' : (isCheckingPreferences ? '正在准备…' : '开始创作'))}}</text>
       </view>
       <view class="create-footer__safe-area"></view>
     </view>

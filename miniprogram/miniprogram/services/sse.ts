@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '../config/api'
+import { errorLogFields, reportRealtimeError } from '../utils/realtime-log'
 import { ApiError, createApiHeaders } from './api'
 
 export interface SseEvent<T = Record<string, unknown>> {
@@ -118,6 +119,16 @@ export function openSseStream(options: OpenSseOptions): SseSubscription {
   const parser = new SseFrameParser()
   let aborted = false
   let statusCode = 0
+  let requestId: string | null = null
+  const reportStreamError = (error: ApiError): void => {
+    reportRealtimeError('client.sse.stream_failed', {
+      ...errorLogFields(error),
+      operation: 'creation_progress_stream',
+      method: 'GET',
+      path: options.path.split(/[?#]/, 1)[0] ?? options.path,
+    })
+    options.onError(error)
+  }
   const requestOptions = {
     url: `${getApiBaseUrl()}${options.path}${separator}cursor=${encodeURIComponent(cursor)}`,
     method: 'GET',
@@ -134,12 +145,28 @@ export function openSseStream(options: OpenSseOptions): SseSubscription {
     success(response: { statusCode: number }) {
       statusCode = response.statusCode
       if (!aborted && (statusCode < 200 || statusCode >= 300)) {
-        options.onError(new ApiError(`事件流请求失败（${statusCode}）`, 'STREAM_FAILED', statusCode))
+        reportStreamError(
+          new ApiError(
+            `事件流请求失败（${statusCode}）`,
+            'STREAM_FAILED',
+            statusCode,
+            undefined,
+            requestId,
+          ),
+        )
       }
     },
     fail(error: { errMsg: string }) {
       if (!aborted) {
-        options.onError(new ApiError(error.errMsg || '创作进度连接已断开', 'STREAM_DISCONNECTED'))
+        reportStreamError(
+          new ApiError(
+            error.errMsg || '创作进度连接已断开',
+            'STREAM_DISCONNECTED',
+            statusCode,
+            undefined,
+            requestId,
+          ),
+        )
       }
     },
     complete() {
@@ -153,8 +180,15 @@ export function openSseStream(options: OpenSseOptions): SseSubscription {
   ) as ChunkedRequestTask
 
   task.onHeadersReceived((response) => {
-    const headers = response as unknown as { statusCode?: number }
+    const headers = response as unknown as {
+      statusCode?: number
+      header?: Record<string, string>
+    }
     statusCode = headers.statusCode ?? 200
+    const requestIdHeader = Object.entries(headers.header ?? {}).find(
+      ([name]) => name.toLowerCase() === 'x-request-id',
+    )
+    requestId = requestIdHeader?.[1] ?? null
   })
   task.onChunkReceived((response) => {
     if (aborted) return
