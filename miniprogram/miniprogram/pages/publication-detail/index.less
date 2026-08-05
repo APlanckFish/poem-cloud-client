@@ -110,21 +110,61 @@
   text-align: center;
 }
 
-.detail-type {
+.detail-badges {
   position: relative;
   z-index: 2;
-  display: table;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 19rpx;
+}
+
+.detail-type {
+  display: flex;
   min-width: 132rpx;
   height: 44rpx;
-  margin: 19rpx auto 0;
+  align-items: center;
+  justify-content: center;
   padding: 0 24rpx;
   border: 1rpx solid #39705d;
   border-radius: 999rpx;
   color: #286650;
   font-size: 24rpx;
   letter-spacing: 3rpx;
-  line-height: 42rpx;
+  line-height: 1;
   text-align: center;
+}
+
+.detail-status {
+  display: flex;
+  height: 44rpx;
+  align-items: center;
+  padding: 0 17rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+}
+
+.detail-status--rejected {
+  border: 1rpx solid rgba(143, 72, 61, 0.42);
+  background: rgba(246, 232, 227, 0.94);
+  color: #945045;
+}
+
+.detail-status__notice {
+  display: flex;
+  width: 24rpx;
+  height: 24rpx;
+  align-items: center;
+  justify-content: center;
+  margin-left: 7rpx;
+  border: 1rpx solid currentColor;
+  border-radius: 50%;
+  font-size: 17rpx;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .detail-author {
@@ -1206,6 +1246,71 @@ page button.native-button-reset.native-button-reset--block.detail-comments-more:
   justify-content: center;
   color: #738079;
   font-size: 28rpx;
+}
+
+.publication-unavailable {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 35rpx 40rpx 360rpx;
+  background: #f6f4f2;
+}
+
+.publication-unavailable__illustration {
+  position: relative;
+  z-index: 2;
+  width: 650rpx;
+  height: 556rpx;
+}
+
+.publication-unavailable__title {
+  position: relative;
+  z-index: 2;
+  margin-top: 12rpx;
+  color: #101512;
+  font-size: 43rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+}
+
+.publication-unavailable__copy {
+  position: relative;
+  z-index: 2;
+  margin-top: 22rpx;
+  color: #747a77;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
+}
+
+.publication-unavailable__action {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 262rpx;
+  height: 68rpx;
+  align-items: center;
+  justify-content: center;
+  margin-top: 48rpx;
+  padding: 0;
+  border: 1rpx solid #426e5c;
+  border-radius: 14rpx;
+  background: transparent;
+  color: #315f4d;
+  font-size: 31rpx;
+  letter-spacing: 4rpx;
+}
+
+.publication-unavailable__mountain {
+  position: absolute;
+  right: -70rpx;
+  bottom: 0;
+  left: -70rpx;
+  width: 890rpx;
+  opacity: 0.82;
 }
 
 @keyframes like-ring {

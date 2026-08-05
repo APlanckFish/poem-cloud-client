@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../../config/api'
-import { hasAccessToken } from '../../services/api'
+import { ApiError, hasAccessToken } from '../../services/api'
 import { cachedUser, loginWithWechat } from '../../services/auth'
 import {
   type CommunityComment,
@@ -464,6 +464,7 @@ Page({
     coverUrl: '',
     authorInitial: '诗',
     isLoading: true,
+    notFound: false,
     isPublic: false,
     isOwner: false,
     canManagePublication: false,
@@ -517,7 +518,7 @@ Page({
       void this.loadPrivateWork(options.workId)
       return
     }
-    this.setData({ isLoading: false })
+    this.setData({ isLoading: false, notFound: true })
   },
 
   handleBack() {
@@ -547,7 +548,11 @@ Page({
         })
       }
     } catch (error) {
-      showErrorToast(error, { fallback: '作品加载失败' })
+      if (error instanceof ApiError && error.statusCode === 404) {
+        this.setData({ publication: null, notFound: true })
+      } else {
+        showErrorToast(error, { fallback: '作品加载失败' })
+      }
     } finally {
       this.setData({ isLoading: false })
     }
@@ -663,15 +668,19 @@ Page({
     )
     this.setData({
       publication: normalizedPublication,
+      notFound: false,
       publicationContentRuns: buildPoemDisplayRuns(
         normalizedPublication.content,
         validationMarks,
       ),
       isPublic,
       isOwner,
-      canManagePublication: Boolean(isOwner && normalizedPublication.id),
+      canManagePublication: Boolean(
+        isOwner && normalizedPublication.id && normalizedPublication.status !== 'REJECTED',
+      ),
       canPublish: Boolean(
         isOwner &&
+        normalizedPublication.status !== 'REJECTED' &&
         normalizedPublication.status !== 'PENDING_REVIEW' &&
         (
           normalizedPublication.status !== 'PUBLISHED'
@@ -706,6 +715,20 @@ Page({
       }
       this.maybePlayCardHint()
     })
+  },
+
+  showModerationReason() {
+    wx.showModal({
+      title: '作品已下架',
+      content: '该作品或素材涉嫌违反社区规范',
+      showCancel: false,
+      confirmText: '我知道了',
+      confirmColor: '#3f6758',
+    })
+  },
+
+  goToCommunity() {
+    wx.switchTab({ url: '/pages/community/index' })
   },
 
   async loadComments(publicationId: string, append = false) {

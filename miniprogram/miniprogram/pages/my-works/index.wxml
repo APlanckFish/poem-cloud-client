@@ -56,7 +56,17 @@
         <text class="work-title poem-display">{{item.title}}</text>
         <text class="work-description">{{item.description}}</text>
         <text class="work-date">{{item.date}}</text>
-        <view wx:if="{{!isViewingOther}}" class="work-status {{item.stateClass}}">{{item.stateLabel}}</view>
+        <view
+          wx:if="{{!isViewingOther}}"
+          class="work-status {{item.stateClass}}"
+          data-state="{{item.state}}"
+          catchtap="showModerationReason"
+          aria-role="{{item.state === 'REJECTED' ? 'button' : ''}}"
+          aria-label="{{item.state === 'REJECTED' ? '查看作品下架原因' : item.stateLabel}}"
+        >
+          <text>{{item.stateLabel}}</text>
+          <text wx:if="{{item.state === 'REJECTED'}}" class="work-status__notice">!</text>
+        </view>
       </view>
       <view
         wx:if="{{!isViewingOther}}"

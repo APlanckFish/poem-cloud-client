@@ -17,6 +17,7 @@ import {
 import { showErrorToast } from '../../utils/error'
 
 type WorkFilter = 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'HIDDEN'
+type WorkState = Exclude<WorkFilter, 'ALL'> | 'REJECTED'
 
 interface WorkCard {
   id: string
@@ -25,7 +26,7 @@ interface WorkCard {
   description: string
   date: string
   cover: string
-  state: Exclude<WorkFilter, 'ALL'>
+  state: WorkState
   stateLabel: string
   stateClass: string
 }
@@ -51,6 +52,9 @@ function formatDate(value: string): string {
 }
 
 function workState(work: LibraryWork): Pick<WorkCard, 'state' | 'stateLabel' | 'stateClass'> {
+  if (work.publication?.status === 'REJECTED') {
+    return { state: 'REJECTED', stateLabel: '已下架', stateClass: 'status--rejected' }
+  }
   if (work.publication?.status === 'HIDDEN') {
     return { state: 'HIDDEN', stateLabel: '已隐藏', stateClass: 'status--hidden' }
   }
@@ -235,6 +239,17 @@ Page({
   selectFilter(event: WechatMiniprogram.TouchEvent) {
     this.resetWorksScroll()
     this.applyFilter(String(event.currentTarget.dataset.code) as WorkFilter)
+  },
+
+  showModerationReason(event: WechatMiniprogram.TouchEvent) {
+    if (String(event.currentTarget.dataset.state || '') !== 'REJECTED') return
+    wx.showModal({
+      title: '作品已下架',
+      content: '该作品或素材涉嫌违反社区规范',
+      showCancel: false,
+      confirmText: '我知道了',
+      confirmColor: '#3f6758',
+    })
   },
 
   viewPublicWork(event: WechatMiniprogram.TouchEvent) {

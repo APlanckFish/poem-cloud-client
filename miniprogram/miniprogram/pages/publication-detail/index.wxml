@@ -5,7 +5,7 @@
   custom-back="{{true}}"
   bindback="handleBack"
   color="#202824"
-  background="#fffefa"
+  background="{{notFound ? '#f6f4f2' : '#fffefa'}}"
 ></navigation-bar>
 
 <scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
@@ -27,7 +27,18 @@
           </view>
 
           <text class="detail-title poem-display">{{publication.title}}</text>
-          <view class="detail-type poem-display">{{categoryName}}</view>
+          <view class="detail-badges">
+            <view class="detail-type poem-display">{{categoryName}}</view>
+            <button
+              wx:if="{{isOwner && publication.status === 'REJECTED'}}"
+              class="native-button-reset detail-status detail-status--rejected poem-display"
+              catchtap="showModerationReason"
+              aria-label="查看作品下架原因"
+            >
+              <text>已下架</text>
+              <text class="detail-status__notice">!</text>
+            </button>
+          </view>
 
           <view class="detail-author">
             <view class="detail-author__avatar poem-display">
@@ -434,6 +445,26 @@
   </view>
 
   <view wx:elif="{{isLoading}}" class="detail-empty poem-display">正在展开诗笺…</view>
+  <view wx:elif="{{notFound}}" class="publication-unavailable">
+    <image
+      class="publication-unavailable__illustration"
+      src="/assets/images/empty-works.jpg"
+      mode="aspectFit"
+    ></image>
+    <text class="publication-unavailable__title poem-display">暂无作品</text>
+    <text class="publication-unavailable__copy">这篇作品暂时无法查看</text>
+    <view
+      class="publication-unavailable__action poem-display"
+      bindtap="goToCommunity"
+      aria-role="button"
+      aria-label="去诗词圈看看"
+    >去诗词圈看看</view>
+    <image
+      class="publication-unavailable__mountain"
+      src="/assets/images/mountain-wash.jpg"
+      mode="widthFix"
+    ></image>
+  </view>
   <view wx:else class="detail-empty poem-display">这首诗暂时无法查看</view>
 </scroll-view>
 </view>
