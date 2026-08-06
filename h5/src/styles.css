@@ -1,0 +1,297 @@
+:root {
+  color: #202824;
+  background: #e8eef7;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #202824;
+  --muted: #7f8984;
+  --paper: #fbfaf7;
+  --green: #3f6758;
+  --green-dark: #315446;
+  --green-soft: #e7efeb;
+  --red: #9a574f;
+  --radius: 8px;
+  --page-inline: clamp(18px, 5vw, 28px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  letter-spacing: 0;
+}
+
+button,
+a,
+label {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #668d7d;
+  outline-offset: 2px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.poem-display {
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+
+.app-frame {
+  min-height: 100dvh;
+}
+
+.phone-shell {
+  position: relative;
+  width: min(100%, 520px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 0 54px rgb(39 64 54 / 12%);
+}
+
+.page {
+  position: relative;
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+.page-scroll {
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.page-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.toast {
+  position: fixed;
+  z-index: 4000;
+  bottom: calc(86px + var(--safe-bottom));
+  left: 50%;
+  max-width: min(86vw, 360px);
+  padding: 11px 16px;
+  transform: translateX(-50%);
+  border-radius: 7px;
+  background: rgb(32 40 36 / 94%);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 20%);
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+  animation: toast-in 160ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.loading-state {
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+/* Login is the only H5-only product page. */
+.login-page {
+  background: linear-gradient(#f7f5ef, #fbfaf7);
+}
+
+.login-content {
+  padding: 32px var(--page-inline) calc(28px + var(--safe-bottom));
+}
+
+.login-brand {
+  margin: 6px 0 35px;
+  text-align: center;
+}
+
+.login-brand img {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 13px;
+  object-fit: contain;
+}
+
+.login-brand h2 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 600;
+}
+
+.login-brand p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.login-form {
+  display: grid;
+  gap: 20px;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: #e9ece8;
+}
+
+.segmented-control button {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #707a75;
+}
+
+.segmented-control button.is-active {
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(40 62 52 / 9%);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+  color: #53605a;
+  font-size: 13px;
+}
+
+.input-shell {
+  display: flex;
+  height: 49px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #d9ddd8;
+  border-radius: var(--radius);
+  background: #fff;
+  color: #87918c;
+}
+
+.input-shell:focus-within {
+  border-color: #78998b;
+  box-shadow: 0 0 0 3px rgb(63 103 88 / 9%);
+}
+
+.input-shell input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+}
+
+.code-button {
+  height: 31px;
+  padding: 0 0 0 13px;
+  border: 0;
+  border-left: 1px solid #e2e5e1;
+  background: transparent;
+  color: var(--green);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.code-button:disabled {
+  color: #9aa19d;
+}
+
+.valid-mark {
+  color: var(--green);
+}
+
+.form-error {
+  margin: -5px 0 0;
+  color: var(--red);
+  font-size: 13px;
+}
+
+.login-page .primary-button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--green);
+  box-shadow: 0 8px 20px rgb(52 91 75 / 16%);
+  color: #fff;
+  font-weight: 600;
+}
+
+.login-page .primary-button:disabled {
+  opacity: 0.56;
+  box-shadow: none;
+}
+
+.login-consent {
+  margin: -5px 0 0;
+  color: #9ba19e;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (min-width: 700px) {
+  body {
+    padding: 18px 0;
+  }
+
+  .phone-shell {
+    min-height: calc(100dvh - 36px);
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

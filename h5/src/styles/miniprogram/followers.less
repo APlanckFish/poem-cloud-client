@@ -1,0 +1,278 @@
+/* Generated from miniprogram/pages/followers/index.less. Do not hand-edit. */
+.mp-followers {
+.social-viewport {
+  background: #fbfaf7;
+}
+
+.social-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1;
+  background: #fbfaf7;
+}
+
+.social-page {
+  min-height: 100%;
+  padding-bottom: calc(10.666666666666666cqw + env(safe-area-inset-bottom));
+  background: #fbfaf7;
+}
+
+.social-hero {
+  position: relative;
+  width: 100%;
+  height: 36.266666666666666cqw;
+  overflow: hidden;
+  background-color: #fbfaf7;
+}
+
+.hero-art {
+  z-index: 0;
+  display: block;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.hero-avatar {
+  position: absolute;
+  z-index: 1;
+  top: 7.2cqw;
+  left: 8.133333333333333cqw;
+  width: 20.533333333333335cqw;
+  height: 20.533333333333335cqw;
+  overflow: hidden;
+  border: 0.13333333333333333cqw solid rgba(48, 67, 58, 0.1);
+  border-radius: 50%;
+  background: #e3e8e4;
+}
+
+.hero-avatar :where(img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-copy {
+  position: absolute;
+  z-index: 1;
+  top: 6.533333333333333cqw;
+  left: 34.93333333333333cqw;
+  min-width: 0;
+}
+
+.hero-copy--following {
+  top: 11.2cqw;
+  left: 8.133333333333333cqw;
+}
+
+.hero-number-line {
+  display: flex;
+  height: 9.733333333333333cqw;
+  align-items: baseline;
+  color: #315f4d;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  white-space: nowrap;
+}
+
+.hero-number {
+  font-size: 9.733333333333333cqw;
+  font-variant-numeric: tabular-nums;
+  line-height: 9.733333333333333cqw;
+}
+
+.hero-unit {
+  margin-left: 1.3333333333333333cqw;
+  font-size: 4cqw;
+  line-height: 4cqw;
+}
+
+.hero-caption-line {
+  display: flex;
+  align-items: center;
+  margin-top: 3.3333333333333335cqw;
+}
+
+.hero-caption {
+  color: #747a77;
+  font-size: 3.466666666666667cqw;
+  letter-spacing: 0.13333333333333333cqw;
+  line-height: 4.8cqw;
+  white-space: nowrap;
+}
+
+.hero-copy--following .hero-caption {
+  display: block;
+  margin-top: 3.2cqw;
+}
+
+.hero-cloud-line {
+  width: 11.066666666666666cqw;
+  height: 0.13333333333333333cqw;
+  margin-left: 3.066666666666667cqw;
+  background: #d7d0c3;
+}
+
+.hero-cloud-line::after {
+  display: block;
+  width: 3.7333333333333334cqw;
+  height: 1.0666666666666667cqw;
+  margin: -0.6666666666666666cqw 0 0 2.2666666666666666cqw;
+  border-top: 0.13333333333333333cqw solid #d7d0c3;
+  border-radius: 50%;
+  content: "";
+}
+
+.social-list {
+  padding: 2.933333333333333cqw 4.133333333333334cqw 0;
+}
+
+.person-card {
+  display: flex;
+  height: 21.6cqw;
+  align-items: center;
+  padding: 2.6666666666666665cqw 3.7333333333333334cqw;
+  border: 0.13333333333333333cqw solid rgba(42, 52, 47, 0.12);
+  border-radius: 2.2666666666666666cqw;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.person-card + .person-card {
+  margin-top: 2cqw;
+}
+
+.person-card:active {
+  background: rgba(239, 243, 240, 0.88);
+}
+
+.person-avatar {
+  width: 15.2cqw;
+  height: 15.2cqw;
+  flex: none;
+  overflow: hidden;
+  border: 0.13333333333333333cqw solid rgba(44, 57, 50, 0.07);
+  border-radius: 50%;
+  background: #e4e9e5;
+}
+
+.person-avatar :where(img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.person-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  margin-left: 4cqw;
+  padding-right: 1.8666666666666667cqw;
+}
+
+.person-name {
+  overflow: hidden;
+  color: #101613;
+  font-size: 4.133333333333334cqw;
+  font-weight: 600;
+  letter-spacing: 0.26666666666666666cqw;
+  line-height: 5.333333333333333cqw;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-signature {
+  overflow: hidden;
+  margin-top: 2cqw;
+  color: #767c78;
+  font-size: 3.066666666666667cqw;
+  letter-spacing: 0.13333333333333333cqw;
+  line-height: 4.133333333333334cqw;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-button {
+  display: flex;
+  width: 17.6cqw;
+  height: 8.133333333333333cqw;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0.13333333333333333cqw solid #3b705b;
+  border-radius: 2.1333333333333333cqw;
+  color: #386a56;
+  font-size: 3.466666666666667cqw;
+  letter-spacing: 0.26666666666666666cqw;
+  line-height: 1;
+}
+
+.follow-button--primary {
+  border-color: #4b7a67;
+  background: #4b7a67;
+  color: #fff;
+}
+
+.follow-button--mutual {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.follow-button--idle {
+  border-color: #aeb2af;
+  background: rgba(255, 255, 255, 0.34);
+  color: #303632;
+}
+
+.follow-button--busy {
+  opacity: 0.5;
+}
+
+.social-page--empty {
+  background: #fbfaf7;
+}
+
+.social-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.4cqw 0 14cqw;
+  background: #fbfaf7;
+}
+
+.empty-illustration {
+  display: block;
+  width: 82.66666666666667cqw;
+  height: 66.4cqw;
+}
+
+.empty-title {
+  margin-top: 1.0666666666666667cqw;
+  color: #101512;
+  font-size: 5.733333333333333cqw;
+  font-weight: 600;
+  letter-spacing: 0.8cqw;
+  line-height: 7.733333333333333cqw;
+}
+
+.empty-copy {
+  margin-top: 2.4cqw;
+  color: #747a77;
+  font-size: 3.466666666666667cqw;
+  letter-spacing: 0.13333333333333333cqw;
+  line-height: 5.066666666666666cqw;
+}
+
+.empty-outline {
+  display: flex;
+  width: 40.53333333333333cqw;
+  height: 11.466666666666667cqw;
+  align-items: center;
+  justify-content: center;
+  margin-top: 5.733333333333333cqw;
+  border: 0.26666666666666666cqw solid #2e674f;
+  border-radius: 133.2cqw;
+  color: #2e674f;
+  font-size: 4cqw;
+  letter-spacing: 0.5333333333333333cqw;
+  line-height: 1;
+}
+
+}

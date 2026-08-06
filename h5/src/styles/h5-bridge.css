@@ -1,0 +1,946 @@
+.mp-page,
+.app-viewport,
+.creating-viewport {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.phone-shell {
+  container-type: inline-size;
+}
+
+.mp-page button,
+.mp-page input,
+.mp-page textarea {
+  font: inherit;
+}
+
+/* Browser buttons are shrink-to-fit, while mini-program view/button controls
+ * size from their containing layout. Keep that shared sizing contract here. */
+.mp-page button {
+  display: block;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mp-page button:not(.icon-button):not(.more-button):not(.material-remove):not(.image-remove):not(.profile-edit-button):not(.exit-draft-close):not(.adjustment-close) {
+  min-height: 1px;
+}
+
+.mp-page :is(h1, h2, h3, p, strong, span) {
+  overflow-wrap: anywhere;
+}
+
+.mp-page button:active {
+  transform: none;
+}
+
+.weui-navigation-bar__left,
+.weui-navigation-bar__right {
+  width: 52px;
+  flex: none;
+}
+
+.weui-navigation-bar {
+  position: relative;
+  z-index: 50;
+  flex: none;
+  background: var(--mp-nav-background, #fbfaf7);
+  color: var(--mp-nav-color, #202824);
+  border: 0;
+  box-shadow: none;
+}
+
+.weui-navigation-bar__inner {
+  background: inherit;
+  color: inherit;
+}
+
+.mp-my-drafts {
+  --mp-page-background: #f7f3f2;
+}
+
+.mp-my-works {
+  --mp-page-background: #f6f4f2;
+}
+
+.weui-navigation-bar__btn_goback_wrapper {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tab-item {
+  text-decoration: none;
+}
+
+.phone-shell .tab-bar {
+  right: auto;
+  bottom: 0;
+  left: max(0px, calc(50% - 260px));
+  width: min(100%, 520px);
+  transform: none;
+}
+
+.wechat-dialog-overlay {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.wechat-dialog {
+  width: min(100%, 320px);
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 48px rgba(0, 0, 0, 0.18);
+}
+
+.wechat-dialog__body {
+  padding: 28px 24px 24px;
+  text-align: center;
+}
+
+.wechat-dialog__body h2 {
+  margin: 0;
+  color: #171a18;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.wechat-dialog__body p {
+  margin: 12px 0 0;
+  color: #646a67;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wechat-dialog__actions {
+  display: flex;
+  border-top: 1px solid #ededed;
+}
+
+.wechat-dialog__actions button {
+  min-height: 52px;
+  flex: 1;
+  border: 0;
+  border-right: 1px solid #ededed;
+  background: #fff;
+  font-size: 16px;
+}
+
+.wechat-dialog__actions button:last-child {
+  border-right: 0;
+}
+
+.wechat-dialog__actions .wechat-dialog__confirm {
+  color: #3f6758;
+  font-weight: 600;
+}
+
+.create-viewport .weui-navigation-bar,
+.create-viewport .weui-navigation-bar__inner {
+  overflow: visible;
+}
+
+.create-viewport .weui-navigation-bar__inner {
+  background: transparent;
+}
+
+.create-viewport .page-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.create-viewport button {
+  padding: 0;
+  border-style: solid;
+}
+
+.create-viewport .material-entry,
+.create-viewport .secondary-row,
+.create-viewport .primary-button,
+.create-viewport .tune-picker-reset,
+.create-viewport .tune-confirm,
+.create-viewport .material-remove {
+  border: 0;
+}
+
+.create-viewport .material-preview {
+  padding: 0;
+}
+
+.create-viewport .prompt-input {
+  box-sizing: border-box;
+  resize: none;
+  outline: none;
+}
+
+.create-viewport .tune-search__input {
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+.mp-publication-detail button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-publication-detail .detail-card-scene button,
+.mp-publication-detail .detail-card-scene article {
+  font: inherit;
+}
+
+.mp-publication-detail .detail-journal {
+  transform: rotateY(180deg);
+}
+
+.mp-publication-detail .detail-journal__header {
+  width: 100%;
+}
+
+.mp-publication-detail .detail-journal__scroll {
+  overflow-y: auto;
+}
+
+.mp-publication-detail .detail-materials__item {
+  flex: none;
+}
+
+.mp-publication-detail .detail-comment-composer__row {
+  display: flex;
+  width: 100%;
+  align-items: flex-end;
+}
+
+.mp-publication-detail .detail-comment-composer__input {
+  resize: none;
+  outline: none;
+}
+
+.mp-publication-detail .detail-content p,
+.mp-publication-detail .detail-comment-item__content,
+.mp-publication-detail .detail-comment-reply__line,
+.mp-publication-detail .publication-unavailable__copy {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.mp-help button,
+.mp-about button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.mp-help .faq-item {
+  display: block;
+  width: 100%;
+}
+
+.mp-help .faq-answer {
+  display: block;
+}
+
+.mp-help .section-title__text,
+.mp-about .document-label {
+  margin: 0;
+}
+
+.mp-feedback button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-feedback .field-title,
+.mp-feedback .success-title,
+.mp-feedback .success-copy {
+  margin: 0;
+}
+
+.mp-feedback .feedback-textarea,
+.mp-feedback .email-input {
+  box-sizing: border-box;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+}
+
+.mp-feedback .image-preview-button,
+.mp-feedback .submit-button,
+.mp-feedback .success-primary {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mp-feedback .image-preview-button img,
+.mp-feedback .submit-button img,
+.mp-feedback .success-primary img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mp-feedback .textarea-shell,
+.mp-feedback .email-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-feedback .feedback-textarea {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.mp-feedback .email-input {
+  height: 100%;
+}
+
+.mp-feedback .type-chip {
+  box-sizing: border-box;
+}
+
+.mp-feedback .textarea-shell {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.mp-feedback .character-count {
+  flex: none;
+}
+
+.mp-feedback .feedback-page .field-note {
+  text-align: left;
+}
+
+.mp-about .about-bottom,
+.mp-help .help-landscape,
+.mp-feedback .feedback-landscape,
+.mp-feedback .success-landscape {
+  object-fit: cover;
+}
+
+.mp-create .create-page {
+  min-height: 100%;
+}
+
+.mp-create .create-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.mp-create .category-option,
+.mp-create .classical-form-option {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  outline: 0;
+}
+
+.mp-create .category-option {
+  border-width: 0;
+  border-right: 0.13333333333333333cqw solid rgba(109, 106, 98, 0.17);
+}
+
+.mp-create .category-option:last-child {
+  border-right: 0;
+}
+
+.mp-create .category-option--active {
+  border-color: #1f634f;
+}
+
+.mp-create .classical-form-option {
+  border: 0.13333333333333333cqw solid rgba(109, 106, 98, 0.19);
+}
+
+.mp-create .classical-form-option--active {
+  border-color: #1f634f;
+}
+
+.mp-create .material-entry__icon {
+  max-width: 6cqw;
+  max-height: 6cqw;
+  object-fit: contain;
+  overflow: hidden;
+}
+
+.mp-create .material-entry__main {
+  overflow: hidden;
+}
+
+.mp-community button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.mp-community .category-tab,
+.mp-community .subfilter-chip,
+.mp-community .tune-option,
+.mp-community .tune-confirm {
+  text-align: center;
+}
+
+.mp-community .poem-card,
+.mp-community .poem-card__body,
+.mp-community .poem-card__heading,
+.mp-community .poem-excerpt,
+.mp-community .poem-meta {
+  display: flex;
+}
+
+.mp-community .poem-card,
+.mp-community .poem-card__body {
+  flex-direction: column;
+}
+
+.mp-community .poem-title {
+  margin: 0;
+}
+
+.mp-community .poem-excerpt {
+  display: -webkit-box;
+}
+
+.mp-community .poem-cover,
+.mp-community .author-avatar img,
+.mp-community .like-icon {
+  object-fit: cover;
+}
+
+.mp-community .tune-search__input {
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+.mp-community .feed-scroll {
+  overflow-y: auto;
+}
+
+.mp-community .category-tabs,
+.mp-community .subfilter-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.mp-community .category-tabs::-webkit-scrollbar,
+.mp-community .subfilter-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mp-community .category-tab {
+  min-width: 25%;
+  flex: 0 0 25%;
+}
+
+.mp-community .subfilter-row {
+  width: max-content;
+  min-width: 100%;
+  flex-wrap: nowrap;
+}
+
+.mp-profile button,
+.mp-followers button,
+.mp-following button,
+.mp-edit-profile button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-profile .profile-name,
+.mp-profile .vip-title,
+.mp-profile .profile-setup-title,
+.mp-profile .profile-setup-copy,
+.mp-followers .empty-title,
+.mp-following .empty-title,
+.mp-edit-profile .profile-note {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.mp-profile .avatar-image,
+.mp-profile .avatar-picker__image,
+.mp-followers img,
+.mp-following img,
+.mp-edit-profile img {
+  object-fit: cover;
+}
+
+.mp-profile .nickname-field__input,
+.mp-edit-profile .row-input,
+.mp-edit-profile .signature-input {
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+.mp-profile .profile-setup-overlay {
+  position: fixed;
+}
+
+.mp-followers .hero-art,
+.mp-following .hero-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mp-followers .social-scroll,
+.mp-following .social-scroll,
+.mp-edit-profile .edit-scroll {
+  overflow-y: auto;
+}
+
+.mp-followers .social-hero,
+.mp-following .social-hero {
+  height: 36.266666666666666cqw;
+  min-height: 36.266666666666666cqw;
+}
+
+.mp-followers .hero-copy,
+.mp-following .hero-copy {
+  max-width: calc(100% - 43cqw);
+}
+
+.mp-following .hero-copy--following {
+  top: 8.8cqw;
+  max-width: calc(100% - 16.266666666666666cqw);
+}
+
+.mp-following .social-hero {
+  height: 42.666666666666664cqw;
+  min-height: 42.666666666666664cqw;
+}
+
+.mp-followers .hero-caption-line {
+  align-items: flex-start;
+}
+
+.mp-followers .hero-caption,
+.mp-following .hero-caption {
+  white-space: normal;
+  overflow: visible;
+}
+
+.mp-followers .person-card,
+.mp-following .person-card {
+  height: auto;
+  min-height: 21.6cqw;
+}
+
+.mp-followers .person-name,
+.mp-following .person-name,
+.mp-followers .person-signature,
+.mp-following .person-signature {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.mp-edit-profile .signature-input {
+  box-sizing: border-box;
+  resize: none;
+}
+
+.mp-creation-preferences button,
+.mp-preference-settings button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-creation-preferences .question__title,
+.mp-preference-settings .setting-card__title {
+  margin: 0;
+}
+
+.mp-creation-preferences .question-scroll,
+.mp-preference-settings .settings-scroll {
+  overflow-y: auto;
+}
+
+.mp-creation-preferences .option,
+.mp-creation-preferences .option__main,
+.mp-creation-preferences .option__description-shell,
+.mp-creation-preferences .progress__track,
+.mp-creation-preferences .progress__value,
+.mp-preference-settings .segment-control,
+.mp-preference-settings .chip-grid,
+.mp-preference-settings .switch-row {
+  display: flex;
+}
+
+.mp-creation-preferences .option {
+  width: 100%;
+  flex-direction: column;
+  text-align: left;
+}
+
+.mp-creation-preferences .custom__input,
+.mp-preference-settings .custom-dialog-input {
+  border: 0;
+  outline: none;
+}
+
+.mp-preference-settings .setting-card__icon {
+  object-fit: contain;
+}
+
+.mp-preference-settings .mp-switch {
+  appearance: none;
+  width: 48px;
+  height: 28px;
+  border-radius: 14px;
+  background: #d8dcda;
+  position: relative;
+  transition: background-color 160ms ease;
+}
+
+.mp-preference-settings .mp-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 160ms ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mp-preference-settings .mp-switch:checked {
+  background: #3f6758;
+}
+
+.mp-preference-settings .mp-switch:checked::after {
+  transform: translateX(20px);
+}
+
+.custom-dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  margin-top: 18px;
+  padding: 0 12px;
+  border: 1px solid #d8dcda !important;
+  border-radius: 6px;
+}
+
+.mp-creating button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-creating .creating-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.mp-creating .creating-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mp-creating.creating-viewport {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+}
+
+.mp-creating .creating-page {
+  min-height: 100%;
+  height: auto;
+  padding-bottom: calc(12cqw + env(safe-area-inset-bottom));
+}
+
+.mp-creating .result-paper {
+  overflow: visible;
+  height: auto;
+}
+
+.mp-creating .result-paper__signature {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  margin-top: 5cqw;
+}
+
+.mp-creating .process-title,
+.mp-creating .queue-notice__title,
+.mp-creating .adjustment-title,
+.mp-creating .adjustment-copy,
+.mp-creating .exit-draft-title,
+.mp-creating .exit-draft-copy {
+  margin: 0;
+}
+
+.mp-creating .stage-header,
+.mp-creating .result-primary,
+.mp-creating .result-action,
+.mp-creating .adjustment-close,
+.mp-creating .adjustment-cancel,
+.mp-creating .adjustment-submit,
+.mp-creating .exit-draft-close,
+.mp-creating .exit-draft-primary,
+.mp-creating .exit-draft-secondary {
+  display: flex;
+}
+
+.mp-creating .stage-header {
+  width: 100%;
+}
+
+.mp-creating .result-paper__title-input,
+.mp-creating .adjustment-textarea {
+  box-sizing: border-box;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+}
+
+.mp-creating .result-paper__poem {
+  white-space: pre-wrap;
+}
+
+.mp-creating .result-action__icon,
+.mp-creating .result-paper__brand,
+.mp-creating .result-paper__bamboo,
+.mp-creating .creating-landscape,
+.mp-creating .exit-draft-ornament {
+  object-fit: contain;
+}
+
+.mp-my-works button,
+.mp-my-drafts button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.mp-my-works .works-scroll,
+.mp-my-drafts .drafts-scroll {
+  overflow-y: auto;
+}
+
+.mp-my-works .work-title,
+.mp-my-works .sheet-title,
+.mp-my-works .empty-title,
+.mp-my-drafts .draft-title,
+.mp-my-drafts .empty-title {
+  margin: 0;
+}
+
+.mp-my-works .work-card,
+.mp-my-drafts .draft-card {
+  height: auto;
+  min-height: 37.6cqw;
+}
+
+.mp-my-works .work-card--public {
+  min-height: 31.466666666666665cqw;
+}
+
+.mp-my-works .work-title,
+.mp-my-drafts .draft-title {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.mp-my-works .author-profile__name,
+.mp-my-works .author-profile__signature,
+.mp-my-works .sheet-title,
+.mp-community .poem-title,
+.mp-profile .profile-name,
+.mp-creating .result-paper__title,
+.mp-publication-detail .detail-title,
+.mp-publication-detail .publication-unavailable__title,
+.mp-creation-preferences .question__title,
+.mp-preference-settings .setting-card__title,
+.mp-help .section-title__text,
+.mp-feedback .field-title,
+.mp-about .document-label,
+.mp-my-works .empty-title,
+.mp-my-drafts .empty-title,
+.mp-followers .empty-title,
+.mp-following .empty-title {
+  max-height: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.mp-my-works .work-copy,
+.mp-my-drafts .draft-copy {
+  min-width: 0;
+}
+
+.mp-my-works .work-status,
+.mp-my-drafts .continue-button,
+.mp-followers .follow-button,
+.mp-following .follow-button,
+.mp-preference-settings .save-button,
+.mp-edit-profile .save-button,
+.mp-feedback .submit-button,
+.mp-creating .result-primary,
+.mp-creating .result-action {
+  width: 100%;
+}
+
+.mp-page :is(
+  .menu-row,
+  .document-row,
+  .faq-item,
+  .feedback-row,
+  .sheet-action,
+  .sheet-cancel,
+  .tune-filter,
+  .material-entry,
+  .secondary-row,
+  .primary-button,
+  .save-button,
+  .submit-button,
+  .success-primary,
+  .result-primary,
+  .detail-action--like,
+  .detail-action--publish,
+  .detail-comment-composer__login,
+  .detail-comments-more
+) {
+  width: 100%;
+}
+
+.mp-my-drafts .empty-outline {
+  width: 40.53333333333333cqw;
+}
+
+.mp-followers .empty-outline,
+.mp-following .empty-outline {
+  width: 40.53333333333333cqw;
+}
+
+.mp-my-works .work-status,
+.mp-my-drafts .continue-button,
+.mp-followers .follow-button,
+.mp-following .follow-button {
+  width: auto;
+  min-width: max-content;
+}
+
+.mp-my-works img,
+.mp-my-drafts img {
+  object-fit: cover;
+}
+
+.mp-my-works .work-status {
+  display: flex;
+}
+
+.mp-my-works .sheet-overlay {
+  z-index: 1600;
+  display: block;
+  padding: 0;
+}
+
+.mp-my-works .sheet-stack {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 2.4cqw calc(1.8666666666666667cqw + env(safe-area-inset-bottom));
+}
+
+.mp-my-works .action-sheet {
+  width: 100%;
+  border-radius: 6.133333333333334cqw;
+}
+
+.mp-my-works .sheet-heading {
+  height: auto;
+  min-height: 22.666666666666668cqw;
+  padding-top: 2.6666666666666665cqw;
+  padding-bottom: 2.6666666666666665cqw;
+}
+
+.mp-my-works .sheet-cover {
+  flex: 0 0 14.4cqw;
+}
+
+.mp-my-works .sheet-title {
+  min-width: 0;
+  flex: 1;
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.mp-my-works .sheet-cancel {
+  width: 100%;
+  margin-top: 1.8666666666666667cqw;
+  border-radius: 4.533333333333333cqw;
+}
+
+.mp-my-works .sheet-action,
+.mp-my-works .sheet-heading,
+.mp-my-drafts .material-count,
+.mp-my-drafts .swipe-delete,
+.mp-my-drafts .device-note {
+  display: flex;
+}
+
+.mp-my-drafts .draft-card {
+  touch-action: pan-y;
+}
