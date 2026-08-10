@@ -60,6 +60,23 @@ export interface PoemResult {
   tunePatternCode: string | null
 }
 
+export interface CreationTimelineEvent {
+  seq: number
+  event: string
+  data: Record<string, unknown>
+  occurredAt: string
+  schemaVersion: number
+}
+
+export interface PublicationCreationJournalEntry {
+  generationId: string
+  baseGenerationId: string | null
+  prompt: string
+  instruction: string
+  materialNarrative: string[]
+  events: CreationTimelineEvent[]
+}
+
 export interface CommunityPublication {
   id: string
   workId: string
@@ -90,6 +107,7 @@ export interface CommunityPublication {
   coverSource: 'MATERIAL' | 'POSTER'
   canViewCreationJournal: boolean
   hasCreationJournal: boolean
+  selectedGenerationId?: string | null
   publishedAt: string | null
   createdAt: string
   author: {

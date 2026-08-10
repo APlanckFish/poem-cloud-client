@@ -944,3 +944,29 @@
 .mp-my-drafts .draft-card {
   touch-action: pan-y;
 }
+
+/* 返回按钮在 H5 里被 .mp-page button 覆盖成 block，图标贴边；恢复居中留白 */
+.mp-page .weui-navigation-bar__btn_goback_wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 作品详情的点赞按钮：生成 CSS 依赖 .mp-publication-detail > .mp-page 的后代结构，
+ * H5 里两者在同一元素上，规则不生效导致按钮贴卡片且变成全宽；这里显式还原小程序样式 */
+.mp-publication-detail .detail-action--like {
+  display: flex;
+  width: 29.333333333333332cqw;
+  height: 13.333333333333334cqw;
+  min-height: 13.333333333333334cqw;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9333333333333333cqw;
+  align-self: center;
+  margin: 2.6666666666666665cqw auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}

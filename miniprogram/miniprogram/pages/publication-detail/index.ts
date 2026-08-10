@@ -4,6 +4,7 @@ import { cachedUser, loginWithWechat } from '../../services/auth'
 import {
   type CommunityComment,
   type CommunityPublication,
+  createPublicationShareLink,
   createPublicationComment,
   deletePublicationComment,
   followUser,
@@ -13,6 +14,7 @@ import {
   loadCommentReplies,
   loadPublicationComments,
   loadPublicationCreationJournal,
+  recordPublicationShareOpen,
   type PublicationCoverSource,
   type PublicationCreationJournalEntry,
   type PublicationMaterial,
@@ -20,6 +22,7 @@ import {
   unlikePublication,
   updatePublicationSettings,
 } from '../../services/community'
+import { ensureInstallation } from '../../services/installation'
 import {
   type CreationHistoryEntry,
   type CreationTimelineEvent,
@@ -122,6 +125,17 @@ interface CommentReplyTarget {
   id: string
   rootCommentId: string | null
   nickname: string
+}
+
+type AsyncShareContent = WechatMiniprogram.Page.ICustomShareContent & {
+  promise: Promise<WechatMiniprogram.Page.ICustomShareContent>
+}
+
+type SharePosterAction = 'preview' | 'timeline' | 'save'
+
+type ShareCanvas = WechatMiniprogram.Canvas & {
+  width: number
+  height: number
 }
 
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
@@ -446,12 +460,40 @@ function confirmLogin(): Promise<boolean> {
   return new Promise((resolve) => {
     wx.showModal({
       title: '登录后继续',
-      content: '登录后可以评论、点赞、关注并同步互动状态。',
+      content: '登录后可以互动、分享作品，并获得分享带来的创作次数。',
       confirmText: '登录',
       confirmColor: '#3f6758',
       success: (result) => resolve(result.confirm),
       fail: () => resolve(false),
     })
+  })
+}
+
+function downloadImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    wx.downloadFile({
+      url,
+      success: (result) => {
+        if (result.statusCode >= 200 && result.statusCode < 300) {
+          resolve(result.tempFilePath)
+        } else {
+          reject(new Error('图片下载失败'))
+        }
+      },
+      fail: reject,
+    })
+  })
+}
+
+function loadCanvasImage(
+  canvas: ShareCanvas,
+  path: string,
+): Promise<WechatMiniprogram.Image> {
+  return new Promise((resolve, reject) => {
+    const image = canvas.createImage()
+    image.onload = () => resolve(image)
+    image.onerror = reject
+    image.src = path
   })
 }
 
@@ -491,6 +533,10 @@ Page({
     materialBackgroundReady: false,
     isUpdatingSettings: false,
     isSavingPoster: false,
+    shareSheetVisible: false,
+    posterPreviewVisible: false,
+    isPreparingSharePoster: false,
+    sharePosterPath: '',
     isPublishing: false,
     comments: [] as CommentView[],
     commentsNextCursor: null as string | null,
@@ -510,8 +556,13 @@ Page({
   onLoad(options: Record<string, string | undefined>) {
     wx.hideShareMenu()
 
+    if (options.scene) {
+      void this.openSharedPublication(options.scene)
+      return
+    }
     if (options.id) {
       void this.loadPublication(options.id)
+      if (options.s) void this.trackShareOpen(options.s)
       return
     }
     if (options.workId) {
@@ -519,6 +570,22 @@ Page({
       return
     }
     this.setData({ isLoading: false, notFound: true })
+  },
+
+  async openSharedPublication(code: string) {
+    try {
+      await ensureInstallation().catch(() => undefined)
+      const result = await recordPublicationShareOpen(code)
+      await this.loadPublication(result.publicationId)
+    } catch (error) {
+      showErrorToast(error, { fallback: '分享作品打开失败' })
+      this.setData({ isLoading: false, notFound: true })
+    }
+  },
+
+  async trackShareOpen(code: string) {
+    await ensureInstallation().catch(() => undefined)
+    await recordPublicationShareOpen(code).catch(() => undefined)
   },
 
   handleBack() {
@@ -709,7 +776,7 @@ Page({
       materialBackgroundReady,
     }, () => {
       if (isPublic) {
-        wx.showShareMenu({ menus: ['shareAppMessage'] })
+        wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
       } else {
         wx.hideShareMenu()
       }
@@ -1231,29 +1298,26 @@ Page({
 
   async savePosterToAlbum() {
     const publication = this.data.publication
-    if (!publication?.posterReady || !publication.posterUrl || this.data.isSavingPoster) {
+    if (!publication?.posterReady || !publication.posterUrl) {
       wx.showToast({ title: '有字海报尚未生成完成', icon: 'none' })
       return
     }
+    if (!this.data.isPublic) {
+      const path = await downloadImage(publication.posterUrl).catch(() => '')
+      if (path) await this.saveImageToAlbum(path)
+      return
+    }
+    await this.prepareSharePoster('save')
+  },
+
+  async saveImageToAlbum(path: string) {
+    if (this.data.isSavingPoster) return
     this.setData({ isSavingPoster: true })
     wx.showLoading({ title: '正在保存海报', mask: true })
     try {
-      const tempFilePath = await new Promise<string>((resolve, reject) => {
-        wx.downloadFile({
-          url: publication.posterUrl,
-          success: (result) => {
-            if (result.statusCode >= 200 && result.statusCode < 300) {
-              resolve(result.tempFilePath)
-            } else {
-              reject(new Error('海报下载失败'))
-            }
-          },
-          fail: reject,
-        })
-      })
       await new Promise<void>((resolve, reject) => {
         wx.saveImageToPhotosAlbum({
-          filePath: tempFilePath,
+          filePath: path,
           success: () => resolve(),
           fail: reject,
         })
@@ -1283,6 +1347,171 @@ Page({
       wx.hideLoading()
       this.setData({ isSavingPoster: false })
     }
+  },
+
+  showShareSheet() {
+    if (!this.data.isPublic) return
+    this.setData({ shareSheetVisible: true })
+  },
+
+  closeShareSheet() {
+    if (this.data.isPreparingSharePoster) return
+    this.setData({ shareSheetVisible: false })
+  },
+
+  closePosterPreview() {
+    this.setData({ posterPreviewVisible: false })
+  },
+
+  stopShareTap() {},
+
+  showPosterPreview() {
+    void this.prepareSharePoster('preview')
+  },
+
+  sharePosterToTimeline() {
+    void this.prepareSharePoster('timeline')
+  },
+
+  saveSharePoster() {
+    void this.prepareSharePoster('save')
+  },
+
+  async ensureShareLogin(): Promise<boolean> {
+    if (hasAccessToken()) return true
+    if (!(await confirmLogin())) return false
+    wx.showLoading({ title: '正在登录', mask: true })
+    try {
+      await loginWithWechat()
+      return true
+    } catch (error) {
+      showErrorToast(error, { fallback: '登录失败' })
+      return false
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  async prepareSharePoster(action: SharePosterAction) {
+    const publication = this.data.publication
+    if (
+      !publication?.id ||
+      !publication.posterReady ||
+      !publication.posterUrl ||
+      this.data.isPreparingSharePoster
+    ) {
+      if (!publication?.posterReady) {
+        wx.showToast({ title: '有字海报尚未生成完成', icon: 'none' })
+      }
+      return
+    }
+    if (this.data.sharePosterPath) {
+      await this.finishSharePosterAction(action, this.data.sharePosterPath)
+      return
+    }
+    if (!(await this.ensureShareLogin())) return
+    this.setData({ isPreparingSharePoster: true })
+    wx.showLoading({ title: '海报生成中', mask: true })
+    try {
+      await ensureInstallation()
+      const shareLink = await createPublicationShareLink(publication.id, 'POSTER')
+      const path = await this.composeSharePoster(publication.posterUrl, shareLink.qrCodeUrl)
+      this.setData({ sharePosterPath: path, shareSheetVisible: false })
+      await this.finishSharePosterAction(action, path)
+    } catch (error) {
+      showErrorToast(error, { fallback: '分享海报生成失败，请稍后重试' })
+    } finally {
+      wx.hideLoading()
+      this.setData({ isPreparingSharePoster: false })
+    }
+  },
+
+  async finishSharePosterAction(action: SharePosterAction, path: string) {
+    if (action === 'preview') {
+      this.setData({ posterPreviewVisible: true, shareSheetVisible: false })
+      return
+    }
+    if (action === 'timeline') {
+      this.setData({ posterPreviewVisible: true, shareSheetVisible: false })
+      await wx.showShareImageMenu({ path }).catch(() => undefined)
+      return
+    }
+    await this.saveImageToAlbum(path)
+  },
+
+  async composeSharePoster(posterUrl: string, qrCodeUrl: string): Promise<string> {
+    const canvas = await new Promise<ShareCanvas>((resolve, reject) => {
+      wx.createSelectorQuery()
+        .select('#sharePosterCanvas')
+        .node((result) => {
+          const node = (result as unknown as { node?: ShareCanvas }).node
+          if (node) resolve(node)
+          else reject(new Error('分享画布不可用'))
+        })
+        .exec()
+    })
+    const [posterPath, qrCodePath] = await Promise.all([
+      downloadImage(posterUrl),
+      downloadImage(qrCodeUrl),
+    ])
+    const [posterImage, qrCodeImage, brandImage] = await Promise.all([
+      loadCanvasImage(canvas, posterPath),
+      loadCanvasImage(canvas, qrCodePath),
+      loadCanvasImage(canvas, '/assets/images/brand-icon.png'),
+    ])
+    const width = 750
+    const posterHeight = 1125
+    const height = 1334
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    context.fillStyle = '#fffefa'
+    context.fillRect(0, 0, width, height)
+    context.drawImage(posterImage, 0, 0, width, posterHeight)
+    context.fillStyle = '#fffefa'
+    context.fillRect(0, posterHeight, width, height - posterHeight)
+    context.strokeStyle = 'rgba(47, 104, 85, 0.14)'
+    context.lineWidth = 2
+    context.beginPath()
+    context.moveTo(0, posterHeight)
+    context.lineTo(width, posterHeight)
+    context.stroke()
+    const qrX = 37
+    const qrY = 1153
+    const qrSize = 150
+    context.fillStyle = '#ffffff'
+    context.fillRect(30, 1146, 164, 164)
+    context.drawImage(qrCodeImage, qrX, qrY, qrSize, qrSize)
+    context.fillStyle = '#30453d'
+    context.font = '32px sans-serif'
+    context.fillText('长按或扫码，读这一首诗', 224, 1212)
+    context.fillStyle = '#87928d'
+    context.font = '24px sans-serif'
+    context.fillText('打开诗云，查看作者的创作历程', 224, 1261)
+    const brandSize = 108
+    context.drawImage(
+      brandImage,
+      618,
+      qrY + (qrSize - brandSize) / 2,
+      brandSize,
+      brandSize,
+    )
+    return new Promise((resolve, reject) => {
+      wx.canvasToTempFilePath(
+        {
+          canvas: canvas as unknown as WechatMiniprogram.IAnyObject,
+          width,
+          height,
+          destWidth: width,
+          destHeight: height,
+          fileType: 'jpg',
+          quality: 0.94,
+          success: (result) => resolve(result.tempFilePath),
+          fail: reject,
+        },
+        this,
+      )
+    })
   },
 
   triggerLikeBurst() {
@@ -1365,12 +1594,29 @@ Page({
 
   onShareAppMessage() {
     const publication = this.data.publication
-    return {
-      title: publication ? `我在诗云为你写下了《${publication.title}》，快来看看吧！` : '诗云',
+    this.setData({ shareSheetVisible: false })
+    const shareTitle = publication
+      ? this.data.isOwner
+        ? `我在诗云为你写下了《${publication.title}》，快来看看吧！`
+        : `分享${publication.author.nickname}的作品《${publication.title}》，一起来看看吧！`
+      : '诗云'
+    const fallback = {
+      title: shareTitle,
       path: publication?.id
         ? `/pages/publication-detail/index?id=${encodeURIComponent(publication.id)}`
         : '/pages/community/index',
       ...(publication?.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
     }
+    if (!publication?.id || !hasAccessToken()) return fallback
+    return {
+      ...fallback,
+      promise: ensureInstallation()
+        .then(() => createPublicationShareLink(publication.id, 'FRIEND'))
+        .then((shareLink) => ({
+          ...fallback,
+          path: shareLink.path,
+        }))
+        .catch(() => fallback),
+    } as AsyncShareContent
   },
 })

@@ -32,6 +32,8 @@ import {
   startCreationRun,
   updateActiveCreationCursor,
 } from '../../services/creation'
+import { createPublicationShareLink } from '../../services/community'
+import { ensureInstallation } from '../../services/installation'
 import { type SseEvent, type SseSubscription, openSseStream } from '../../services/sse'
 import { getErrorMessage, showErrorToast } from '../../utils/error'
 import { isHanCharacter } from '../../utils/text'
@@ -1335,7 +1337,9 @@ Page({
       finished: true,
       streamMessage: '诗词创作与审校已经完成',
     })
-    if (creation.saved) wx.showShareMenu({ menus: ['shareAppMessage'] })
+    if (creation.saved) {
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+    }
     void this.resolveTunePatternLabel(creation.result.tunePatternCode)
   },
 
@@ -1743,7 +1747,7 @@ Page({
         keyboardHeight: 0,
       })
       wx.hideKeyboard()
-      wx.showShareMenu({ menus: ['shareAppMessage'] })
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
       wx.showToast({ title: '作品已保存', icon: 'success' })
     } catch (error) {
       showErrorToast(error, { fallback: '作品保存失败，请稍后重试', duration: 2800 })
@@ -1997,12 +2001,24 @@ Page({
         title,
         path: publicationPath(creation.sharePublicationId),
         ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
-      }
+        promise: ensureInstallation()
+          .then(() => createPublicationShareLink(creation.sharePublicationId as string, 'FRIEND'))
+          .then((shareLink) => ({
+            title,
+            path: shareLink.path,
+            ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
+          }))
+          .catch(() => ({
+            title,
+            path: publicationPath(creation.sharePublicationId as string),
+            ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
+          })),
+      } as AsyncShareContent
     }
     return {
       ...fallbackShare,
       promise: prepareCreationShare(creation)
-        .then((publication) => {
+        .then(async (publication) => {
           const currentCreation = this.data.creation
           if (currentCreation?.workId === creation.workId) {
             this.setData({
@@ -2013,9 +2029,11 @@ Page({
               },
             })
           }
+          await ensureInstallation()
+          const shareLink = await createPublicationShareLink(publication.id, 'FRIEND')
           return {
             title,
-            path: publicationPath(publication.id),
+            path: shareLink.path,
             ...(publication.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
           }
         })

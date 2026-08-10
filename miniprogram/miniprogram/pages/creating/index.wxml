@@ -213,7 +213,7 @@
             open-type="share"
           >
             <image class="result-action__icon" src="/assets/icons/result-share.png"></image>
-            <text>分享给好友</text>
+            <text>分享给好友/群</text>
           </button>
           <button
             wx:if="{{creation.saved}}"

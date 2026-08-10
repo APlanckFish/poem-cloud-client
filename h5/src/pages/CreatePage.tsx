@@ -46,6 +46,10 @@ function videoDuration(file: File): Promise<number> {
   })
 }
 
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
 function normalizeSearch(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, '')
 }
@@ -108,21 +112,29 @@ export default function CreatePage() {
     if (!selected.length) return
     let nextImages = imageCount
     let nextVideos = videoCount
+    let ignoredByLimit = 0
+    let ignoredLongVideo = 0
     const accepted: Material[] = []
     for (const file of selected) {
       const kind = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
-      if (kind === 'IMAGE' && nextImages >= MAX_IMAGES) continue
-      if (kind === 'VIDEO' && nextVideos >= MAX_VIDEOS) continue
       let durationLabel = ''
       if (kind === 'VIDEO') {
         const duration = await videoDuration(file)
         if (duration > 5) {
-          setToast('视频时长不能超过5秒')
+          ignoredLongVideo += 1
           continue
         }
-        durationLabel = `${duration.toFixed(1)}秒`
+        if (nextVideos <= 0) {
+          ignoredByLimit += 1
+          continue
+        }
+        durationLabel = `${duration.toFixed(1)}s`
         nextVideos += 1
       } else {
+        if (nextImages <= 0) {
+          ignoredByLimit += 1
+          continue
+        }
         nextImages += 1
       }
       const sourceUrl = URL.createObjectURL(file)
@@ -131,16 +143,158 @@ export default function CreatePage() {
         durationLabel, status: 'READY',
       })
     }
-    if (accepted.length !== selected.length) setToast('素材数量已达上限')
-    setMaterials((current) => [...current, ...accepted])
+    if (accepted.length === 0) {
+      setToast(ignoredLongVideo > 0 ? '请选择5秒以内的视频' : '素材数量已达上限')
+      return
+    }
+    setUploading(true)
+    const uploadedMaterials: Material[] = []
+    try {
+      for (const material of accepted) {
+        const uploaded = await uploadAsset(material.file, material.kind)
+        const isProcessingVideo =
+          material.kind === 'VIDEO' && uploaded.status === 'PROCESSING'
+        uploadedMaterials.push({
+          ...material,
+          id: uploaded.id,
+          uploadedId: uploaded.id,
+          sourceUrl: uploaded.accessUrl || material.sourceUrl,
+          previewUrl:
+            material.kind === 'VIDEO'
+              ? uploaded.thumbnailUrl || material.previewUrl
+              : uploaded.accessUrl || material.previewUrl,
+          status: isProcessingVideo ? 'PROCESSING' : 'READY',
+        })
+      }
+      const hasProcessingVideo = uploadedMaterials.some(
+        (material) => material.kind === 'VIDEO' && material.status === 'PROCESSING',
+      )
+      const hasIgnored = ignoredByLimit > 0 || ignoredLongVideo > 0
+      setToast(
+        hasIgnored
+          ? '已添加可用素材，超出限制的已忽略'
+          : hasProcessingVideo
+            ? '视频已上传，正在检测'
+            : '素材已添加',
+      )
+      setMaterials((current) => [...current, ...uploadedMaterials])
+      for (const material of uploadedMaterials) {
+        if (material.status === 'PROCESSING') void monitorMaterialModeration(material.id)
+      }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : '素材上传失败，请稍后重试')
+    } finally {
+      setUploading(false)
+    }
   }
 
-  function removeMaterial(id: string) {
-    setMaterials((current) => {
-      const item = current.find((candidate) => candidate.id === id)
-      if (item) URL.revokeObjectURL(item.sourceUrl)
-      return current.filter((candidate) => candidate.id !== id)
-    })
+  async function monitorMaterialModeration(assetId: string) {
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      if (!materialsRef.current.some((material) => material.id === assetId)) return
+      await delay(2_000)
+      try {
+        const asset = await apiRequest<{
+          status: string
+          moderationStatus: string
+          accessUrl: string | null
+          thumbnailUrl: string | null
+        }>(`/assets/${assetId}`)
+        if (asset.status === 'PROCESSING' || asset.moderationStatus === 'REVIEW') continue
+        if (asset.status === 'READY' && asset.moderationStatus === 'PASSED') {
+          setMaterials((current) => current.map((material) =>
+            material.id === assetId
+              ? {
+                  ...material,
+                  status: 'READY',
+                  sourceUrl: asset.accessUrl || material.sourceUrl,
+                  previewUrl: asset.thumbnailUrl || material.previewUrl,
+                }
+              : material))
+          setToast('视频检测通过')
+          return
+        }
+        setMaterials((current) => current.filter((material) => material.id !== assetId))
+        void apiRequest(`/assets/${assetId}`, { method: 'DELETE' }).catch(() => undefined)
+        setToast(
+          asset.status === 'REJECTED' || asset.moderationStatus === 'REJECTED'
+            ? '您的素材涉嫌违规，请修改后重试'
+            : '视频检测失败，请重新上传',
+        )
+        return
+      } catch {
+        // 网络波动时保留“检测中”，创作前还会再次向服务端确认。
+      }
+    }
+  }
+
+  async function removeMaterial(id: string) {
+    const material = materialsRef.current.find((candidate) => candidate.id === id)
+    if (!material || isUploading) return
+    setUploading(true)
+    setToast('正在移除')
+    try {
+      if (material.uploadedId) {
+        await apiRequest(`/assets/${material.uploadedId}`, { method: 'DELETE' })
+      }
+      setMaterials((current) => current.filter((candidate) => candidate.id !== id))
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : '素材移除失败，请稍后重试')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function checkMaterialsBeforeCreation(): Promise<boolean> {
+    if (materials.length === 0) return true
+    setCheckingMaterials(true)
+    try {
+      const assets = await Promise.all(
+        materials.map((material) =>
+          apiRequest<{
+            id: string
+            status: string
+            moderationStatus: string
+            accessUrl: string | null
+            thumbnailUrl: string | null
+          }>(`/assets/${material.uploadedId || material.id}`),
+        ),
+      )
+      const rejectedIds = assets
+        .filter((asset) => asset.status === 'REJECTED' || asset.moderationStatus === 'REJECTED')
+        .map((asset) => asset.id)
+      if (rejectedIds.length > 0) {
+        const rejected = new Set(rejectedIds)
+        setMaterials((current) => current.filter((material) => !rejected.has(material.uploadedId || material.id)))
+        for (const assetId of rejectedIds) void apiRequest(`/assets/${assetId}`, { method: 'DELETE' }).catch(() => undefined)
+        setToast('您的素材涉嫌违规，请修改后重试')
+        return false
+      }
+      const failedIds = assets.filter((asset) => asset.status === 'FAILED').map((asset) => asset.id)
+      if (failedIds.length > 0) {
+        const failed = new Set(failedIds)
+        setMaterials((current) => current.filter((material) => !failed.has(material.uploadedId || material.id)))
+        for (const assetId of failedIds) void apiRequest(`/assets/${assetId}`, { method: 'DELETE' }).catch(() => undefined)
+        setToast('素材检测失败，请重新上传')
+        return false
+      }
+      if (assets.some((asset) => asset.status !== 'READY' || asset.moderationStatus !== 'PASSED')) {
+        setToast('素材还在检测中，请稍后')
+        return false
+      }
+      const byId = new Map(assets.map((asset) => [asset.id, asset]))
+      setMaterials((current) => current.map((material) => ({
+        ...material,
+        status: 'READY',
+        sourceUrl: byId.get(material.uploadedId || material.id)?.accessUrl || material.sourceUrl,
+        previewUrl: byId.get(material.uploadedId || material.id)?.thumbnailUrl || material.previewUrl,
+      })))
+      return true
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : '素材状态检查失败，请稍后重试')
+      return false
+    } finally {
+      setCheckingMaterials(false)
+    }
   }
 
   function openTunePicker() {
@@ -156,10 +310,11 @@ export default function CreatePage() {
 
   async function startCreation() {
     if (isCreating || isUploading || isCheckingPreferences || isCheckingMaterials) return
-    if (!prompt.trim() && materials.length === 0) {
+    if (!prompt.trim()) {
       setToast('先写下想表达的内容')
       return
     }
+    if (!(await checkMaterialsBeforeCreation())) return
     if (quota && !quota.unlimited && quota.remaining !== null && quota.remaining <= 0) {
       if (!user) setLoginReason('quota')
       else setToast('今日创作次数已用完')
@@ -183,15 +338,10 @@ export default function CreatePage() {
       return
     }
     setCreating(true)
-    setUploading(materials.some((item) => !item.uploadedId))
     try {
-      const assetIds: string[] = []
-      for (const material of materials) {
-        if (material.uploadedId) assetIds.push(material.uploadedId)
-        else assetIds.push((await uploadAsset(material.file, material.kind)).id)
-      }
-      setUploading(false)
-      setCheckingMaterials(true)
+      const assetIds = materials
+        .map((material) => material.uploadedId)
+        .filter((id): id is string => Boolean(id))
       const preferences: PoemPreferences = {
         ...storedPreferences,
         category: selectedCategory,
@@ -214,10 +364,8 @@ export default function CreatePage() {
       clearCreationForm()
       navigate(`/creating/${run.runId}`)
     } catch (error) {
-      setToast(error instanceof Error ? error.message : '创作启动失败，请稍后重试')
+      setToast(error instanceof Error ? error.message : '创作失败，请稍后重试')
     } finally {
-      setUploading(false)
-      setCheckingMaterials(false)
       setCreating(false)
     }
   }
@@ -259,7 +407,7 @@ export default function CreatePage() {
                 {materials.length ? <div className="material-list">{materials.map((item) => (
                   <div className="material-item" key={item.id}>
                     <button className="material-preview" onClick={() => window.open(item.sourceUrl, '_blank')}>
-                      <img className="material-preview__image" src={item.previewUrl} alt="创作素材" />
+                      {item.previewUrl ? <img className="material-preview__image" src={item.previewUrl} alt="创作素材" /> : <span className="material-preview__fallback"><img src="/assets/icons/media-video.svg" alt="" /></span>}
                       {item.kind === 'VIDEO' ? <span className="material-preview__video"><span className="material-preview__play">▶</span>{item.durationLabel}</span> : null}
                       {item.status === 'PROCESSING' ? <span className="material-preview__audit">检测中</span> : null}
                     </button>

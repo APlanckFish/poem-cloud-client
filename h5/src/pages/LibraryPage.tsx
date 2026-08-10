@@ -74,8 +74,8 @@ export default function LibraryPage({ mode }: { mode: 'works' | 'drafts' | 'publ
       } else {
         const local = getStoredJson<Array<Record<string, any>>>(storageKeys.localDrafts) || []
         const server = user ? await apiRequest<{ items: LibraryWork[] }>('/me/creations?status=DRAFT&limit=50') : { items: [] }
-        const localCards: DraftCard[] = local.map((item, index) => ({ id: String(item.id || item.localDraftId), title: item.result?.title || item.title || item.prompt?.slice(0, 12) || '未命名草稿', editedAt: editedLabel(item.localUpdatedAt || item.updatedAt), description: description(item.preferences || item), cover: covers[index % covers.length]!, imageCount: (item.assetKinds || []).filter((kind: string) => kind === 'IMAGE').length, videoCount: (item.assetKinds || []).filter((kind: string) => kind === 'VIDEO').length, offset: 0, isLocal: true, runId: item.runId || item.generationId || null }))
-        const serverCards: DraftCard[] = server.items.map((work, index) => ({ id: work.id, title: work.title || work.latestGeneration?.result?.title || work.prompt.slice(0, 12) || '未命名草稿', editedAt: editedLabel(work.updatedAt), description: description(work), cover: work.assets?.find((asset) => asset.kind === 'IMAGE' && asset.accessUrl)?.accessUrl || work.assets?.find((asset) => asset.kind === 'VIDEO' && asset.thumbnailUrl)?.thumbnailUrl || covers[(index + localCards.length) % covers.length]!, imageCount: (work.assets || []).filter((asset) => asset.kind === 'IMAGE').length || work.assetIds?.length || 0, videoCount: (work.assets || []).filter((asset) => asset.kind === 'VIDEO').length, offset: 0, isLocal: false, runId: work.latestGeneration?.id || null, source: work }))
+        const localCards: DraftCard[] = local.map((item, index) => { const draftPrompt = String(item.prompt || '').trim(); return { id: String(item.id || item.localDraftId), title: draftPrompt ? (draftPrompt.length > 12 ? `${draftPrompt.slice(0, 12)}…` : draftPrompt) : '未命名草稿', editedAt: editedLabel(item.localUpdatedAt || item.updatedAt), description: description(item.preferences || item), cover: covers[index % covers.length]!, imageCount: (item.assetKinds || []).filter((kind: string) => kind === 'IMAGE').length, videoCount: (item.assetKinds || []).filter((kind: string) => kind === 'VIDEO').length, offset: 0, isLocal: true, runId: item.runId || item.generationId || null } })
+        const serverCards: DraftCard[] = server.items.map((work, index) => { const draftPrompt = work.prompt.trim(); return { id: work.id, title: draftPrompt ? (draftPrompt.length > 12 ? `${draftPrompt.slice(0, 12)}…` : draftPrompt) : '未命名草稿', editedAt: editedLabel(work.updatedAt), description: description(work), cover: work.assets?.find((asset) => asset.kind === 'IMAGE' && asset.accessUrl)?.accessUrl || work.assets?.find((asset) => asset.kind === 'VIDEO' && asset.thumbnailUrl)?.thumbnailUrl || covers[(index + localCards.length) % covers.length]!, imageCount: (work.assets || []).filter((asset) => asset.kind === 'IMAGE').length || work.assetIds?.length || 0, videoCount: (work.assets || []).filter((asset) => asset.kind === 'VIDEO').length, offset: 0, isLocal: false, runId: work.latestGeneration?.id || null, source: work } })
         setDrafts([...localCards, ...serverCards])
       }
     } catch (error) {
@@ -88,23 +88,29 @@ export default function LibraryPage({ mode }: { mode: 'works' | 'drafts' | 'publ
   const visibleWorks = useMemo(() => filter === 'ALL' ? works : works.filter((work) => work.state === filter), [works, filter])
 
   async function publishOrHide(work: WorkCard) {
+    const isPublish = work.state !== 'PUBLISHED'
+    setToast(isPublish ? '正在发布' : '正在隐藏')
     try {
       if (work.state === 'PUBLISHED') await apiRequest(`/works/${work.id}/publication/hide`, { method: 'POST', body: {}, idempotencyKey: idempotencyKey('hide-work') })
       else if (work.state === 'HIDDEN') await apiRequest(`/works/${work.id}/publication/restore`, { method: 'POST', body: {}, idempotencyKey: idempotencyKey('restore-work') })
       else await apiRequest(`/works/${work.id}/publications`, { method: 'POST', body: { workId: work.id, visibility: 'PUBLIC', acceptedCommunityRules: true }, idempotencyKey: idempotencyKey('publish-work') })
       setToast(work.state === 'PUBLISHED' ? '已设为仅自己可见' : '已发布到诗词圈')
       setActionWork(null); await load()
-    } catch (error) { setToast(error instanceof Error ? error.message : '操作失败，请稍后重试') }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : (isPublish ? '作品发布失败，请稍后重试' : '可见范围修改失败，请稍后重试'))
+    }
   }
 
   async function deleteWork() {
     if (!pendingDeleteWork) return
+    setToast('正在删除')
     try { await apiRequest(`/works/${pendingDeleteWork.id}`, { method: 'DELETE' }); setToast('作品已删除'); setPendingDeleteWork(null); setActionWork(null); await load() }
     catch (error) { setToast(error instanceof Error ? error.message : '作品删除失败，请稍后重试') }
   }
 
   async function deleteDraft() {
     if (!pendingDeleteDraft) return
+    setToast('正在删除')
     try {
       if (pendingDeleteDraft.isLocal) {
         const local = getStoredJson<Array<Record<string, any>>>(storageKeys.localDrafts) || []
@@ -120,6 +126,8 @@ export default function LibraryPage({ mode }: { mode: 'works' | 'drafts' | 'publ
 
   function continueDraft(draft: DraftCard) {
     if (!draft.runId) { setToast('草稿数据已更新，请刷新后重试'); return }
+    const existing = getStoredJson<Record<string, any>>(storageKeys.activeCreationRun)
+    setStoredJson(storageKeys.activeCreationRun, { ...existing, runId: draft.runId, openedFromDraft: true })
     navigate(`/creating/${encodeURIComponent(draft.runId)}`)
   }
 

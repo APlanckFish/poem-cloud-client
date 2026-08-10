@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../config/api'
+import { getApiBaseUrl, STORAGE_KEYS } from '../config/api'
 import { request } from './api'
 import type { CreationTimelineEvent, PoemCategory } from './creation'
 import type { PoemValidationMark } from './creation'
@@ -47,6 +47,21 @@ export interface CommunityPublication {
     avatarAssetId?: string | null
     avatarUrl?: string | null
   }
+}
+
+export type ShareChannel = 'FRIEND' | 'TIMELINE' | 'POSTER'
+
+export interface PublicationShareLink {
+  code: string
+  path: string
+  qrCodeUrl: string
+}
+
+export interface ShareOpenResult {
+  publicationId: string
+  rewardGranted: boolean
+  rewardCountToday: number
+  rewardLimitToday: number
 }
 
 export interface PublicationCreationJournalEntry {
@@ -188,6 +203,28 @@ export function loadCommunityFeed(
 export function getPublication(id: string): Promise<CommunityPublication> {
   return request<CommunityPublication>({
     path: `/community/publications/${id}`,
+  })
+}
+
+export function createPublicationShareLink(
+  id: string,
+  channel: ShareChannel,
+): Promise<PublicationShareLink> {
+  return request<{ code: string; path: string; qrCodePath: string }>({
+    path: `/community/publications/${encodeURIComponent(id)}/share-links`,
+    method: 'POST',
+    data: { channel },
+  }).then((response) => ({
+    code: response.code,
+    path: response.path,
+    qrCodeUrl: `${getApiBaseUrl()}${response.qrCodePath}`,
+  }))
+}
+
+export function recordPublicationShareOpen(code: string): Promise<ShareOpenResult> {
+  return request<ShareOpenResult>({
+    path: `/community/share-links/${encodeURIComponent(code)}/open`,
+    method: 'POST',
   })
 }
 

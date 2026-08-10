@@ -241,7 +241,7 @@
       wx:if="{{showDetailActions}}"
       class="detail-actions"
     >
-      <view class="detail-actions__secondary">
+      <view wx:if="{{!isPublic}}" class="detail-actions__secondary">
         <button
           class="native-button-reset native-button-reset--flex detail-action detail-action--save {{!posterReady ? 'detail-action--disabled' : ''}}"
           disabled="{{isSavingPoster}}"
@@ -254,15 +254,15 @@
           ></image>
           <text>{{isSavingPoster ? '正在保存' : '保存到手机'}}</text>
         </button>
-        <button
-          class="native-button-reset native-button-reset--flex detail-action detail-action--share {{!isPublic ? 'detail-action--disabled' : ''}}"
-          open-type="{{isPublic ? 'share' : ''}}"
-          disabled="{{!isPublic}}"
-        >
-          <image src="/assets/icons/result-share.png" mode="aspectFit"></image>
-          <text>分享给好友</text>
-        </button>
       </view>
+      <button
+        wx:if="{{isPublic}}"
+        class="native-button-reset native-button-reset--block detail-action detail-action--share"
+        bindtap="showShareSheet"
+      >
+        <image class="detail-action__share-icon" src="/assets/icons/action-share-v2.png" mode="aspectFit"></image>
+        <text>分享作品</text>
+      </button>
       <button
         wx:if="{{canPublish}}"
         class="native-button-reset native-button-reset--block detail-action detail-action--publish"
@@ -276,8 +276,13 @@
         wx:if="{{isPublic && canFollow}}"
         class="detail-action detail-action--follow {{followedByMe ? 'detail-action--followed' : ''}}"
         bindtap="toggleFollow"
+        aria-role="button"
+        aria-label="{{followedByMe ? '取消关注作者' : '关注作者'}}"
       >
-        <image src="/assets/icons/action-follow.png" mode="aspectFit"></image>
+        <image
+          src="{{followedByMe ? '/assets/icons/action-followed-v2.png' : '/assets/icons/action-follow-add-v2.png'}}"
+          mode="aspectFit"
+        ></image>
         <text>{{followedByMe ? '已关注' : '关注作者'}}</text>
       </view>
     </view>
@@ -467,4 +472,74 @@
   </view>
   <view wx:else class="detail-empty poem-display">这首诗暂时无法查看</view>
 </scroll-view>
+
+<view wx:if="{{shareSheetVisible}}" class="share-layer" catchtap="closeShareSheet">
+  <view class="share-sheet" catchtap="stopShareTap">
+    <view class="share-sheet__handle"></view>
+    <view class="share-sheet__header">
+      <text class="share-sheet__title poem-display">分享至</text>
+      <button class="native-button-reset share-sheet__close" bindtap="closeShareSheet" aria-label="关闭">×</button>
+    </view>
+    <view class="share-sheet__actions">
+      <button class="native-button-reset share-sheet__action" open-type="share">
+        <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
+        <text>微信好友/群聊</text>
+      </button>
+      <button
+        class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
+        disabled="{{!posterReady || isPreparingSharePoster}}"
+        bindtap="sharePosterToTimeline"
+        aria-label="{{posterReady ? '分享到朋友圈' : '朋友圈分享不可用，作品海报图尚未生成'}}"
+      >
+        <image src="/assets/icons/share-timeline-ref.png" mode="aspectFit"></image>
+        <text>朋友圈</text>
+      </button>
+      <button
+        class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
+        disabled="{{!posterReady || isPreparingSharePoster}}"
+        bindtap="showPosterPreview"
+        aria-label="{{posterReady ? '生成分享海报' : '海报图不可用'}}"
+      >
+        <image src="/assets/icons/share-poster-ref.png" mode="aspectFit"></image>
+        <text>{{!posterReady ? '海报图不可用' : isPreparingSharePoster ? '生成中' : '生成分享海报'}}</text>
+      </button>
+    </view>
+    <view wx:if="{{isOwner}}" class="share-sheet__reward">
+      <image class="share-sheet__reward-icon" src="/assets/icons/share-reward-plus.png" mode="aspectFit"></image>
+      <text>好友成功打开后，你可获得 1 次创作机会</text>
+    </view>
+    <view wx:else class="share-sheet__reward share-sheet__reward--neutral">
+      <image class="share-sheet__reward-icon" src="/assets/icons/share-info.png" mode="aspectFit"></image>
+      <text>仅分享自己的作品，好友打开后才会增加创作次数</text>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{posterPreviewVisible}}" class="share-preview-layer" catchtap="closePosterPreview">
+  <view class="share-preview" catchtap="stopShareTap">
+    <button class="native-button-reset share-preview__close" bindtap="closePosterPreview" aria-label="关闭海报预览">×</button>
+    <image class="share-preview__poster" src="{{sharePosterPath}}" mode="widthFix"></image>
+  </view>
+  <view class="share-preview-sheet" catchtap="stopShareTap">
+    <view class="share-sheet__actions share-sheet__actions--preview">
+      <button class="native-button-reset share-sheet__action" open-type="share">
+        <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
+        <text>微信好友/群聊</text>
+      </button>
+      <button class="native-button-reset share-sheet__action" bindtap="sharePosterToTimeline">
+        <image src="/assets/icons/share-timeline-ref.png" mode="aspectFit"></image>
+        <text>朋友圈</text>
+      </button>
+      <button class="native-button-reset share-sheet__action" bindtap="saveSharePoster">
+        <view class="share-sheet__save-icon">
+          <image src="/assets/icons/share-save.svg" mode="aspectFit"></image>
+        </view>
+        <text>{{isSavingPoster ? '保存中' : '保存到相册'}}</text>
+      </button>
+    </view>
+    <button class="native-button-reset share-preview-sheet__cancel" bindtap="closePosterPreview">取消</button>
+  </view>
+</view>
+
+<canvas id="sharePosterCanvas" class="share-poster-canvas" type="2d"></canvas>
 </view>
