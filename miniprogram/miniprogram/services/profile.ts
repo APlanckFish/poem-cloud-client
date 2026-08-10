@@ -1,6 +1,9 @@
 import { request } from './api'
 
 export interface QuotaResponse {
+  baseLimit: number | null
+  bonus: number
+  bonusLimit: number
   limit: number | null
   used: number
   remaining: number | null

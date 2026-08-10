@@ -49,6 +49,9 @@ Page({
       followers: 0,
     },
     quota: {
+      baseLimit: null as number | null,
+      bonus: 0,
+      bonusLimit: 0,
       limit: null as number | null,
       used: 0,
       remaining: null as number | null,
@@ -116,6 +119,9 @@ Page({
         followers: 0,
       },
       quota: {
+        baseLimit: null as number | null,
+        bonus: 0,
+        bonusLimit: 0,
         limit: null as number | null,
         used: 0,
         remaining: null as number | null,
@@ -133,6 +139,9 @@ Page({
       const quota = await loadCreationQuota()
       this.setData({
         quota: {
+          baseLimit: quota.baseLimit ?? quota.limit,
+          bonus: quota.bonus ?? 0,
+          bonusLimit: quota.bonusLimit ?? 0,
           limit: quota.limit,
           used: quota.used,
           remaining: quota.remaining,
@@ -172,6 +181,9 @@ Page({
           followers: user.followerCount,
         },
         quota: {
+          baseLimit: dashboard.quota.baseLimit ?? dashboard.quota.limit,
+          bonus: dashboard.quota.bonus ?? 0,
+          bonusLimit: dashboard.quota.bonusLimit ?? 0,
           limit: dashboard.quota.limit,
           used: dashboard.quota.used,
           remaining: dashboard.quota.remaining,

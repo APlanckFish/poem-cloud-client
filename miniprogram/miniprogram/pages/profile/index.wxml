@@ -111,7 +111,7 @@
       </view>
     </view>
 
-    <view class="quota-card {{isLevelZeroVip ? 'quota-card--black-gold' : ''}}">
+    <view class="quota-card {{isLevelZeroVip ? 'quota-card--black-gold' : ''}} {{quotaLoaded && !quota.unlimited && quota.bonusLimit > 0 && quota.bonus >= quota.bonusLimit ? 'quota-card--bonus-full' : ''}}">
       <block wx:if="{{isLevelZeroVip}}">
         <view class="vip-copy">
           <view class="vip-eyebrow">
@@ -128,11 +128,18 @@
       </block>
       <block wx:else>
         <view class="quota-copy">
-          <text class="quota-label poem-display">今日可创作</text>
+          <view class="quota-heading">
+            <text class="quota-label poem-display">今日可创作</text>
+            <text wx:if="{{quotaLoaded && quota.bonus > 0}}" class="quota-bonus">分享加成 +{{quota.bonus}}</text>
+          </view>
           <view class="quota-value-row">
             <text class="quota-value">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.remaining) : '—'}}</text>
             <text wx:if="{{!quotaLoaded || !quota.unlimited}}" class="quota-unit">次</text>
           </view>
+          <text
+            wx:if="{{quotaLoaded && !quota.unlimited && quota.bonusLimit > 0 && quota.bonus >= quota.bonusLimit}}"
+            class="quota-bonus-full"
+          >今日分享加成已满，明日可继续获得</text>
         </view>
         <view class="quota-meter">
           <view class="quota-ring {{quotaRingClass}}">
