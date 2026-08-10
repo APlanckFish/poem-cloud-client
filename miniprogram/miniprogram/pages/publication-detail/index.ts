@@ -18,6 +18,7 @@ import {
   type PublicationCoverSource,
   type PublicationCreationJournalEntry,
   type PublicationMaterial,
+  type ShareOpenResult,
   unfollowUser,
   unlikePublication,
   updatePublicationSettings,
@@ -36,9 +37,15 @@ import {
   loadTunePatternNames,
   publishLibraryWork,
   restoreLibraryWork,
+  shareLibraryWork,
   type TunePatternNames,
 } from '../../services/library'
 import { getErrorMessage, showErrorToast } from '../../utils/error'
+import {
+  errorLogFields,
+  reportRealtimeInfo,
+  reportRealtimeWarn,
+} from '../../utils/realtime-log'
 import { isHanCharacter } from '../../utils/text'
 
 interface PublicationView {
@@ -127,15 +134,28 @@ interface CommentReplyTarget {
   nickname: string
 }
 
-type AsyncShareContent = WechatMiniprogram.Page.ICustomShareContent & {
-  promise: Promise<WechatMiniprogram.Page.ICustomShareContent>
-}
-
 type SharePosterAction = 'preview' | 'timeline' | 'save'
 
 type ShareCanvas = WechatMiniprogram.Canvas & {
   width: number
   height: number
+}
+
+const SHARE_OPEN_RETRY_DELAYS_MS = [0, 400, 1_200] as const
+
+async function recordShareOpenWithRetry(code: string): Promise<ShareOpenResult> {
+  let lastError: unknown
+  for (const delayMs of SHARE_OPEN_RETRY_DELAYS_MS) {
+    if (delayMs > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+    }
+    try {
+      return await recordPublicationShareOpen(code)
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError
 }
 
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
@@ -536,7 +556,13 @@ Page({
     shareSheetVisible: false,
     posterPreviewVisible: false,
     isPreparingSharePoster: false,
+    isPreparingPrivateShare: false,
+    isPreparingFriendShare: false,
+    friendShareReady: !hasAccessToken(),
+    friendSharePath: '',
     sharePosterPath: '',
+    posterSharePosterPath: '',
+    timelineSharePosterPath: '',
     isPublishing: false,
     comments: [] as CommentView[],
     commentsNextCursor: null as string | null,
@@ -557,12 +583,12 @@ Page({
     wx.hideShareMenu()
 
     if (options.scene) {
-      void this.openSharedPublication(options.scene)
+      void this.openSharedPublication(decodeURIComponent(options.scene))
       return
     }
     if (options.id) {
       void this.loadPublication(options.id)
-      if (options.s) void this.trackShareOpen(options.s)
+      if (options.s) void this.trackShareOpen(decodeURIComponent(options.s))
       return
     }
     if (options.workId) {
@@ -574,18 +600,51 @@ Page({
 
   async openSharedPublication(code: string) {
     try {
-      await ensureInstallation().catch(() => undefined)
-      const result = await recordPublicationShareOpen(code)
+      await ensureInstallation().catch((error) => {
+        reportRealtimeWarn('client.share.installation_prepare_failed', {
+          ...errorLogFields(error),
+          operation: 'open_share_qr_code',
+        })
+      })
+      const result = await recordShareOpenWithRetry(code)
+      reportRealtimeInfo('client.share.open_recorded', {
+        operation: 'open_share_qr_code',
+        path: '/community/share-links/:code/open',
+        reasonType: result.rewardGranted ? 'reward_granted' : 'reward_not_granted',
+      })
       await this.loadPublication(result.publicationId)
     } catch (error) {
+      reportRealtimeWarn('client.share.open_failed', {
+        ...errorLogFields(error),
+        operation: 'open_share_qr_code',
+        path: '/community/share-links/:code/open',
+      })
       showErrorToast(error, { fallback: '分享作品打开失败' })
       this.setData({ isLoading: false, notFound: true })
     }
   },
 
   async trackShareOpen(code: string) {
-    await ensureInstallation().catch(() => undefined)
-    await recordPublicationShareOpen(code).catch(() => undefined)
+    try {
+      await ensureInstallation().catch((error) => {
+        reportRealtimeWarn('client.share.installation_prepare_failed', {
+          ...errorLogFields(error),
+          operation: 'open_share_path',
+        })
+      })
+      const result = await recordShareOpenWithRetry(code)
+      reportRealtimeInfo('client.share.open_recorded', {
+        operation: 'open_share_path',
+        path: '/community/share-links/:code/open',
+        reasonType: result.rewardGranted ? 'reward_granted' : 'reward_not_granted',
+      })
+    } catch (error) {
+      reportRealtimeWarn('client.share.open_failed', {
+        ...errorLogFields(error),
+        operation: 'open_share_path',
+        path: '/community/share-links/:code/open',
+      })
+    }
   },
 
   handleBack() {
@@ -706,6 +765,7 @@ Page({
     publication: CommunityPublication,
     isPublic: boolean,
     tunePatternNames: TunePatternNames,
+    onApplied?: () => void,
   ) {
     const currentUser = cachedUser()
     const authorAvatarUrl =
@@ -774,13 +834,21 @@ Page({
       posterReady: normalizedPublication.posterReady,
       posterBackgroundReady: normalizedPublication.posterBackgroundReady,
       materialBackgroundReady,
+      isPreparingFriendShare: false,
+      friendShareReady: !hasAccessToken(),
+      friendSharePath: '',
+      sharePosterPath: '',
+      posterSharePosterPath: '',
+      timelineSharePosterPath: '',
     }, () => {
-      if (isPublic) {
+      wx.hideShareMenu()
+      if (isPublic && !hasAccessToken()) {
         wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
-      } else {
-        wx.hideShareMenu()
+      } else if (isPublic) {
+        void this.prepareFriendSharePath()
       }
       this.maybePlayCardHint()
+      onApplied?.()
     })
   },
 
@@ -1352,6 +1420,88 @@ Page({
   showShareSheet() {
     if (!this.data.isPublic) return
     this.setData({ shareSheetVisible: true })
+    if (hasAccessToken() && !this.data.friendShareReady) {
+      void this.prepareFriendSharePath()
+    }
+  },
+
+  async prepareFriendSharePath() {
+    const publication = this.data.publication
+    if (
+      !publication?.id ||
+      !this.data.isPublic ||
+      !hasAccessToken() ||
+      this.data.friendShareReady ||
+      this.data.isPreparingFriendShare
+    ) {
+      return
+    }
+    const publicationId = publication.id
+    this.setData({ isPreparingFriendShare: true })
+    try {
+      await ensureInstallation()
+      const shareLink = await createPublicationShareLink(publicationId, 'FRIEND')
+      if (this.data.publication?.id !== publicationId) return
+      this.setData({
+        friendSharePath: shareLink.path,
+        friendShareReady: true,
+      })
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+      reportRealtimeInfo('client.share.link_prepared', {
+        operation: 'prepare_friend_or_group_share',
+      })
+    } catch (error) {
+      reportRealtimeWarn('client.share.link_prepare_failed', {
+        ...errorLogFields(error),
+        operation: 'prepare_friend_or_group_share',
+      })
+    } finally {
+      if (this.data.publication?.id === publicationId) {
+        this.setData({ isPreparingFriendShare: false })
+      }
+    }
+  },
+
+  async retryFriendSharePreparation() {
+    await this.prepareFriendSharePath()
+    if (!this.data.friendShareReady) {
+      wx.showToast({ title: '分享准备失败，请稍后重试', icon: 'none' })
+    }
+  },
+
+  async preparePrivateShare() {
+    const publication = this.data.publication
+    if (
+      !publication?.workId ||
+      publication.status === 'REJECTED' ||
+      this.data.isPreparingPrivateShare
+    ) {
+      return
+    }
+    this.setData({ isPreparingPrivateShare: true })
+    wx.showLoading({ title: '准备分享中', mask: true })
+    try {
+      const prepared = await shareLibraryWork(publication.workId)
+      if (prepared.status !== 'PUBLISHED') {
+        throw new ApiError(
+          '作品正在审核，审核通过后即可分享',
+          'PUBLICATION_NOT_SHAREABLE',
+          409,
+        )
+      }
+      const [sharedPublication, tunePatternNames] = await Promise.all([
+        getPublication(prepared.id),
+        loadTunePatternNames().catch(() => ({})),
+      ])
+      this.applyPublication(sharedPublication, true, tunePatternNames, () => {
+        this.setData({ shareSheetVisible: true })
+      })
+    } catch (error) {
+      showErrorToast(error, { fallback: '分享准备失败，请稍后重试' })
+    } finally {
+      wx.hideLoading()
+      this.setData({ isPreparingPrivateShare: false })
+    }
   },
 
   closeShareSheet() {
@@ -1383,6 +1533,8 @@ Page({
     wx.showLoading({ title: '正在登录', mask: true })
     try {
       await loginWithWechat()
+      this.setData({ friendShareReady: false, friendSharePath: '' })
+      void this.prepareFriendSharePath()
       return true
     } catch (error) {
       showErrorToast(error, { fallback: '登录失败' })
@@ -1405,8 +1557,14 @@ Page({
       }
       return
     }
-    if (this.data.sharePosterPath) {
-      await this.finishSharePosterAction(action, this.data.sharePosterPath)
+    const channel = action === 'timeline' ? 'TIMELINE' : 'POSTER'
+    const cachedPath =
+      channel === 'TIMELINE'
+        ? this.data.timelineSharePosterPath
+        : this.data.posterSharePosterPath
+    if (cachedPath) {
+      this.setData({ sharePosterPath: cachedPath })
+      await this.finishSharePosterAction(action, cachedPath)
       return
     }
     if (!(await this.ensureShareLogin())) return
@@ -1414,11 +1572,24 @@ Page({
     wx.showLoading({ title: '海报生成中', mask: true })
     try {
       await ensureInstallation()
-      const shareLink = await createPublicationShareLink(publication.id, 'POSTER')
+      const shareLink = await createPublicationShareLink(publication.id, channel)
       const path = await this.composeSharePoster(publication.posterUrl, shareLink.qrCodeUrl)
-      this.setData({ sharePosterPath: path, shareSheetVisible: false })
+      this.setData({
+        sharePosterPath: path,
+        shareSheetVisible: false,
+        ...(channel === 'TIMELINE'
+          ? { timelineSharePosterPath: path }
+          : { posterSharePosterPath: path }),
+      })
+      reportRealtimeInfo('client.share.poster_prepared', {
+        operation: channel === 'TIMELINE' ? 'prepare_timeline_share' : 'prepare_poster_share',
+      })
       await this.finishSharePosterAction(action, path)
     } catch (error) {
+      reportRealtimeWarn('client.share.poster_prepare_failed', {
+        ...errorLogFields(error),
+        operation: action === 'timeline' ? 'prepare_timeline_share' : 'prepare_poster_share',
+      })
       showErrorToast(error, { fallback: '分享海报生成失败，请稍后重试' })
     } finally {
       wx.hideLoading()
@@ -1608,15 +1779,14 @@ Page({
       ...(publication?.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
     }
     if (!publication?.id || !hasAccessToken()) return fallback
-    return {
-      ...fallback,
-      promise: ensureInstallation()
-        .then(() => createPublicationShareLink(publication.id, 'FRIEND'))
-        .then((shareLink) => ({
-          ...fallback,
-          path: shareLink.path,
-        }))
-        .catch(() => fallback),
-    } as AsyncShareContent
+    if (this.data.friendSharePath) {
+      return { ...fallback, path: this.data.friendSharePath }
+    }
+    reportRealtimeWarn('client.share.missing_prepared_link', {
+      operation: 'share_friend_or_group',
+      reasonType: 'share_invoked_before_link_ready',
+    })
+    void this.prepareFriendSharePath()
+    return fallback
   },
 })

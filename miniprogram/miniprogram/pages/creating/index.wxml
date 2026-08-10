@@ -76,7 +76,10 @@
                 <text class="stage-trace-copy">{{trace}}</text>
               </view>
               <view wx:if="{{item.liveProgress}}" class="stage-trace-row stage-trace-row--live">
-                <text class="stage-trace-mark">·</text>
+                <view class="stage-trace-live-mark">
+                  <view class="stage-trace-live-ring"></view>
+                  <view class="stage-trace-live-dot"></view>
+                </view>
                 <text class="stage-trace-copy">{{item.liveProgress}}</text>
               </view>
             </view>
@@ -121,7 +124,10 @@
                     <text class="stage-trace-copy">{{revisionTrace}}</text>
                   </view>
                   <view wx:if="{{revision.liveProgress}}" class="stage-trace-row stage-trace-row--live">
-                    <text class="stage-trace-mark">·</text>
+                    <view class="stage-trace-live-mark">
+                      <view class="stage-trace-live-ring"></view>
+                      <view class="stage-trace-live-dot"></view>
+                    </view>
                     <text class="stage-trace-copy">{{revision.liveProgress}}</text>
                   </view>
                 </view>
@@ -208,12 +214,21 @@
             <text>调整要求</text>
           </button>
           <button
-            wx:if="{{creation.saved}}"
+            wx:if="{{creation.saved && friendShareReady}}"
             class="native-button-reset result-action poem-display"
             open-type="share"
           >
             <image class="result-action__icon" src="/assets/icons/result-share.png"></image>
             <text>分享给好友/群</text>
+          </button>
+          <button
+            wx:elif="{{creation.saved}}"
+            class="native-button-reset result-action poem-display {{isPreparingFriendShare ? 'result-action--disabled' : ''}}"
+            disabled="{{isPreparingFriendShare}}"
+            bindtap="retryCreationFriendSharePreparation"
+          >
+            <image class="result-action__icon" src="/assets/icons/result-share.png"></image>
+            <text>{{isPreparingFriendShare ? '分享准备中' : '分享给好友/群'}}</text>
           </button>
           <button
             wx:if="{{creation.saved}}"

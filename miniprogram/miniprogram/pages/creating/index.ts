@@ -36,6 +36,11 @@ import { createPublicationShareLink } from '../../services/community'
 import { ensureInstallation } from '../../services/installation'
 import { type SseEvent, type SseSubscription, openSseStream } from '../../services/sse'
 import { getErrorMessage, showErrorToast } from '../../utils/error'
+import {
+  errorLogFields,
+  reportRealtimeInfo,
+  reportRealtimeWarn,
+} from '../../utils/realtime-log'
 import { isHanCharacter } from '../../utils/text'
 
 type StepState = 'waiting' | 'active' | 'done'
@@ -79,9 +84,6 @@ interface ValueChangeEvent {
 }
 
 type AvatarChoiceEvent = WechatMiniprogram.CustomEvent<{ avatarUrl: string }>
-type AsyncShareContent = WechatMiniprogram.Page.ICustomShareContent & {
-  promise: Promise<WechatMiniprogram.Page.ICustomShareContent>
-}
 
 function initialSteps(): CreatingStep[] {
   return [
@@ -217,6 +219,9 @@ Page({
     isSavingDraft: false,
     isSaving: false,
     isPublishing: false,
+    isPreparingFriendShare: false,
+    friendShareReady: false,
+    friendSharePath: '',
     isRecreating: false,
     isTyping: false,
     isLeaving: false,
@@ -1336,10 +1341,11 @@ Page({
       coreReady: true,
       finished: true,
       streamMessage: '诗词创作与审校已经完成',
+      friendShareReady: false,
+      friendSharePath: '',
+    }, () => {
+      if (creation.saved) void this.prepareCreationFriendShare(normalizedCreation)
     })
-    if (creation.saved) {
-      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
-    }
     void this.resolveTunePatternLabel(creation.result.tunePatternCode)
   },
 
@@ -1745,9 +1751,11 @@ Page({
         adjustmentInstruction: '',
         canSubmitAdjustment: false,
         keyboardHeight: 0,
+        friendShareReady: false,
+        friendSharePath: '',
       })
       wx.hideKeyboard()
-      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+      void this.prepareCreationFriendShare(updated)
       wx.showToast({ title: '作品已保存', icon: 'success' })
     } catch (error) {
       showErrorToast(error, { fallback: '作品保存失败，请稍后重试', duration: 2800 })
@@ -1953,6 +1961,62 @@ Page({
     })
   },
 
+  async prepareCreationFriendShare(targetCreation?: PendingCreation | null) {
+    const creation = targetCreation || this.data.creation
+    if (
+      !creation?.saved ||
+      !creation.workId ||
+      this.data.friendShareReady ||
+      this.data.isPreparingFriendShare
+    ) {
+      return
+    }
+    const workId = creation.workId
+    this.setData({ isPreparingFriendShare: true })
+    try {
+      await ensureInstallation()
+      let publicationId = creation.sharePublicationId
+      let shareImageUrl = creation.shareImageUrl
+      if (!publicationId) {
+        const publication = await prepareCreationShare(creation)
+        publicationId = publication.id
+        shareImageUrl = publication.shareImageUrl || undefined
+      }
+      const shareLink = await createPublicationShareLink(publicationId, 'FRIEND')
+      const currentCreation = this.data.creation
+      if (currentCreation?.workId !== workId) return
+      this.setData({
+        creation: {
+          ...currentCreation,
+          sharePublicationId: publicationId,
+          ...(shareImageUrl ? { shareImageUrl } : {}),
+        },
+        friendSharePath: shareLink.path,
+        friendShareReady: true,
+      })
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+      reportRealtimeInfo('client.share.link_prepared', {
+        operation: 'prepare_creation_friend_or_group_share',
+      })
+    } catch (error) {
+      reportRealtimeWarn('client.share.link_prepare_failed', {
+        ...errorLogFields(error),
+        operation: 'prepare_creation_friend_or_group_share',
+      })
+    } finally {
+      if (this.data.creation?.workId === workId) {
+        this.setData({ isPreparingFriendShare: false })
+      }
+    }
+  },
+
+  async retryCreationFriendSharePreparation() {
+    await this.prepareCreationFriendShare()
+    if (!this.data.friendShareReady) {
+      wx.showToast({ title: '分享准备失败，请稍后重试', icon: 'none' })
+    }
+  },
+
   async performPublish() {
     const creation = this.data.creation
     if (!creation?.saved || this.data.isPublishing) return
@@ -1994,53 +2058,18 @@ Page({
       path: '/pages/community/index',
     }
     if (!creation?.saved || !creation.workId) return fallbackShare
-    const publicationPath = (publicationId: string) =>
-      `/pages/publication-detail/index?id=${encodeURIComponent(publicationId)}`
-    if (creation.sharePublicationId) {
+    if (this.data.friendSharePath) {
       return {
         title,
-        path: publicationPath(creation.sharePublicationId),
+        path: this.data.friendSharePath,
         ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
-        promise: ensureInstallation()
-          .then(() => createPublicationShareLink(creation.sharePublicationId as string, 'FRIEND'))
-          .then((shareLink) => ({
-            title,
-            path: shareLink.path,
-            ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
-          }))
-          .catch(() => ({
-            title,
-            path: publicationPath(creation.sharePublicationId as string),
-            ...(creation.shareImageUrl ? { imageUrl: creation.shareImageUrl } : {}),
-          })),
-      } as AsyncShareContent
+      }
     }
-    return {
-      ...fallbackShare,
-      promise: prepareCreationShare(creation)
-        .then(async (publication) => {
-          const currentCreation = this.data.creation
-          if (currentCreation?.workId === creation.workId) {
-            this.setData({
-              creation: {
-                ...currentCreation,
-                sharePublicationId: publication.id,
-                ...(publication.shareImageUrl ? { shareImageUrl: publication.shareImageUrl } : {}),
-              },
-            })
-          }
-          await ensureInstallation()
-          const shareLink = await createPublicationShareLink(publication.id, 'FRIEND')
-          return {
-            title,
-            path: shareLink.path,
-            ...(publication.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
-          }
-        })
-        .catch((error: unknown) => {
-          showErrorToast(error, { fallback: '分享链接生成失败，请稍后重试' })
-          return fallbackShare
-        }),
-    } as AsyncShareContent
+    reportRealtimeWarn('client.share.missing_prepared_link', {
+      operation: 'share_creation_friend_or_group',
+      reasonType: 'share_invoked_before_link_ready',
+    })
+    void this.prepareCreationFriendShare(creation)
+    return fallbackShare
   },
 })

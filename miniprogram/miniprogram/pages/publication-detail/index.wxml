@@ -254,6 +254,18 @@
           ></image>
           <text>{{isSavingPoster ? '正在保存' : '保存到手机'}}</text>
         </button>
+        <button
+          class="native-button-reset native-button-reset--flex detail-action detail-action--private-share {{publication.status === 'REJECTED' || isPreparingPrivateShare ? 'detail-action--disabled' : ''}}"
+          disabled="{{publication.status === 'REJECTED' || isPreparingPrivateShare}}"
+          bindtap="preparePrivateShare"
+        >
+          <image
+            class="detail-action__share-icon"
+            src="/assets/icons/action-share-v2.png"
+            mode="aspectFit"
+          ></image>
+          <text>{{publication.status === 'REJECTED' ? '作品不可分享' : isPreparingPrivateShare ? '准备分享中' : '分享作品'}}</text>
+        </button>
       </view>
       <button
         wx:if="{{isPublic}}"
@@ -481,9 +493,19 @@
       <button class="native-button-reset share-sheet__close" bindtap="closeShareSheet" aria-label="关闭">×</button>
     </view>
     <view class="share-sheet__actions">
-      <button class="native-button-reset share-sheet__action" open-type="share">
+      <button wx:if="{{friendShareReady}}" class="native-button-reset share-sheet__action" open-type="share">
         <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
         <text>微信好友/群聊</text>
+      </button>
+      <button
+        wx:else
+        class="native-button-reset share-sheet__action share-sheet__action--unavailable"
+        disabled="{{isPreparingFriendShare}}"
+        bindtap="retryFriendSharePreparation"
+        aria-label="{{isPreparingFriendShare ? '好友和群聊分享准备中' : '重新准备好友和群聊分享'}}"
+      >
+        <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
+        <text>{{isPreparingFriendShare ? '好友/群聊准备中' : '微信好友/群聊'}}</text>
       </button>
       <button
         class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
@@ -522,9 +544,19 @@
   </view>
   <view class="share-preview-sheet" catchtap="stopShareTap">
     <view class="share-sheet__actions share-sheet__actions--preview">
-      <button class="native-button-reset share-sheet__action" open-type="share">
+      <button wx:if="{{friendShareReady}}" class="native-button-reset share-sheet__action" open-type="share">
         <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
         <text>微信好友/群聊</text>
+      </button>
+      <button
+        wx:else
+        class="native-button-reset share-sheet__action share-sheet__action--unavailable"
+        disabled="{{isPreparingFriendShare}}"
+        bindtap="retryFriendSharePreparation"
+        aria-label="{{isPreparingFriendShare ? '好友和群聊分享准备中' : '重新准备好友和群聊分享'}}"
+      >
+        <image src="/assets/icons/share-friend-ref.png" mode="aspectFit"></image>
+        <text>{{isPreparingFriendShare ? '好友/群聊准备中' : '微信好友/群聊'}}</text>
       </button>
       <button class="native-button-reset share-sheet__action" bindtap="sharePosterToTimeline">
         <image src="/assets/icons/share-timeline-ref.png" mode="aspectFit"></image>

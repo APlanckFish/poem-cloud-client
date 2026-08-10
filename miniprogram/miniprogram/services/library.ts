@@ -160,6 +160,19 @@ export function publishLibraryWork(id: string): Promise<WorkPublication> {
   })
 }
 
+export function shareLibraryWork(id: string): Promise<WorkPublication> {
+  return request<WorkPublication>({
+    path: `/works/${encodeURIComponent(id)}/publications`,
+    method: 'POST',
+    data: {
+      workId: id,
+      visibility: 'UNLISTED',
+      acceptedCommunityRules: true,
+    },
+    idempotencyKey: idempotencyKey('share-work'),
+  })
+}
+
 export function hideLibraryWork(id: string): Promise<void> {
   return request<void>({
     path: `/works/${encodeURIComponent(id)}/publication/hide`,
