@@ -57,6 +57,10 @@ export interface PublicationShareLink {
   qrCodeUrl: string
 }
 
+export function publicationShareEntryPath(code: string): string {
+  return `/pages/publication-detail/index?scene=${encodeURIComponent(code)}`
+}
+
 export interface ShareOpenResult {
   publicationId: string
   rewardGranted: boolean
@@ -216,7 +220,7 @@ export function createPublicationShareLink(
     data: { channel },
   }).then((response) => ({
     code: response.code,
-    path: response.path,
+    path: publicationShareEntryPath(response.code),
     qrCodeUrl: `${getApiBaseUrl()}${response.qrCodePath}`,
   }))
 }
