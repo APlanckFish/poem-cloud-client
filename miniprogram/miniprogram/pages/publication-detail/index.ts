@@ -14,16 +14,15 @@ import {
   loadCommentReplies,
   loadPublicationComments,
   loadPublicationCreationJournal,
-  recordPublicationShareOpen,
   type PublicationCoverSource,
   type PublicationCreationJournalEntry,
   type PublicationMaterial,
-  type ShareOpenResult,
   unfollowUser,
   unlikePublication,
   updatePublicationSettings,
 } from '../../services/community'
 import { ensureInstallation } from '../../services/installation'
+import { trackPublicationShareOpen } from '../../services/share-open'
 import {
   type CreationHistoryEntry,
   type CreationTimelineEvent,
@@ -139,23 +138,6 @@ type SharePosterAction = 'preview' | 'timeline' | 'save'
 type ShareCanvas = WechatMiniprogram.Canvas & {
   width: number
   height: number
-}
-
-const SHARE_OPEN_RETRY_DELAYS_MS = [0, 400, 1_200] as const
-
-async function recordShareOpenWithRetry(code: string): Promise<ShareOpenResult> {
-  let lastError: unknown
-  for (const delayMs of SHARE_OPEN_RETRY_DELAYS_MS) {
-    if (delayMs > 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
-    }
-    try {
-      return await recordPublicationShareOpen(code)
-    } catch (error) {
-      lastError = error
-    }
-  }
-  throw lastError
 }
 
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
@@ -583,12 +565,12 @@ Page({
     wx.hideShareMenu()
 
     if (options.scene) {
-      void this.openSharedPublication(decodeURIComponent(options.scene))
+      void this.openSharedPublication(options.scene)
       return
     }
     if (options.id) {
       void this.loadPublication(options.id)
-      if (options.s) void this.trackShareOpen(decodeURIComponent(options.s))
+      if (options.s) void this.trackShareOpen(options.s)
       return
     }
     if (options.workId) {
@@ -600,51 +582,16 @@ Page({
 
   async openSharedPublication(code: string) {
     try {
-      await ensureInstallation().catch((error) => {
-        reportRealtimeWarn('client.share.installation_prepare_failed', {
-          ...errorLogFields(error),
-          operation: 'open_share_qr_code',
-        })
-      })
-      const result = await recordShareOpenWithRetry(code)
-      reportRealtimeInfo('client.share.open_recorded', {
-        operation: 'open_share_qr_code',
-        path: '/community/share-links/:code/open',
-        reasonType: result.rewardGranted ? 'reward_granted' : 'reward_not_granted',
-      })
+      const result = await trackPublicationShareOpen(code, 'page_open_share_qr_code')
       await this.loadPublication(result.publicationId)
     } catch (error) {
-      reportRealtimeWarn('client.share.open_failed', {
-        ...errorLogFields(error),
-        operation: 'open_share_qr_code',
-        path: '/community/share-links/:code/open',
-      })
       showErrorToast(error, { fallback: '分享作品打开失败' })
       this.setData({ isLoading: false, notFound: true })
     }
   },
 
   async trackShareOpen(code: string) {
-    try {
-      await ensureInstallation().catch((error) => {
-        reportRealtimeWarn('client.share.installation_prepare_failed', {
-          ...errorLogFields(error),
-          operation: 'open_share_path',
-        })
-      })
-      const result = await recordShareOpenWithRetry(code)
-      reportRealtimeInfo('client.share.open_recorded', {
-        operation: 'open_share_path',
-        path: '/community/share-links/:code/open',
-        reasonType: result.rewardGranted ? 'reward_granted' : 'reward_not_granted',
-      })
-    } catch (error) {
-      reportRealtimeWarn('client.share.open_failed', {
-        ...errorLogFields(error),
-        operation: 'open_share_path',
-        path: '/community/share-links/:code/open',
-      })
-    }
+    await trackPublicationShareOpen(code, 'page_open_share_path').catch(() => undefined)
   },
 
   handleBack() {

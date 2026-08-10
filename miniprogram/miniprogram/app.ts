@@ -2,6 +2,10 @@ import { STORAGE_KEYS } from './config/api'
 import { restoreSession } from './services/auth'
 import { ensureInstallation } from './services/installation'
 import {
+  shareCodeFromEnterOptions,
+  trackPublicationShareOpen,
+} from './services/share-open'
+import {
   reportGlobalRuntimeError,
   reportRealtimeInfo,
 } from './utils/realtime-log'
@@ -52,6 +56,15 @@ App<IAppOption>({
       .finally(() => {
         this.globalData.sessionReady = true
       })
+  },
+
+  onShow(options) {
+    const shareCode = shareCodeFromEnterOptions(options)
+    if (shareCode) {
+      void trackPublicationShareOpen(shareCode, 'app_enter_shared_publication').catch(
+        () => undefined,
+      )
+    }
   },
 
   onError(error) {
