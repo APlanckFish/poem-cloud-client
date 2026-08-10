@@ -316,6 +316,7 @@
         </view>
         <view wx:if="{{canComment}}" class="detail-comment-composer__row">
           <textarea
+            wx:if="{{!shareSheetVisible && !posterPreviewVisible}}"
             class="detail-comment-composer__input poem-display"
             value="{{commentDraft}}"
             maxlength="300"
@@ -508,13 +509,13 @@
         <text>{{isPreparingFriendShare ? '好友/群聊准备中' : '微信好友/群聊'}}</text>
       </button>
       <button
-        class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
-        disabled="{{!posterReady || isPreparingSharePoster}}"
-        bindtap="sharePosterToTimeline"
-        aria-label="{{posterReady ? '分享到朋友圈' : '朋友圈分享不可用，作品海报图尚未生成'}}"
+        class="native-button-reset share-sheet__action {{!timelineShareReady ? 'share-sheet__action--unavailable' : ''}}"
+        disabled="{{isPreparingTimelineShare}}"
+        bindtap="shareWorkToTimeline"
+        aria-label="{{isPreparingTimelineShare ? '作品朋友圈分享准备中' : '将作品分享到朋友圈'}}"
       >
         <image src="/assets/icons/share-timeline-ref.png" mode="aspectFit"></image>
-        <text>朋友圈</text>
+        <text>{{isPreparingTimelineShare ? '朋友圈准备中' : '作品到朋友圈'}}</text>
       </button>
       <button
         class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
@@ -560,7 +561,7 @@
       </button>
       <button class="native-button-reset share-sheet__action" bindtap="sharePosterToTimeline">
         <image src="/assets/icons/share-timeline-ref.png" mode="aspectFit"></image>
-        <text>朋友圈</text>
+        <text>海报到朋友圈</text>
       </button>
       <button class="native-button-reset share-sheet__action" bindtap="saveSharePoster">
         <view class="share-sheet__save-icon">

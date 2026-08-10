@@ -540,8 +540,11 @@ Page({
     isPreparingSharePoster: false,
     isPreparingPrivateShare: false,
     isPreparingFriendShare: false,
+    isPreparingTimelineShare: false,
     friendShareReady: !hasAccessToken(),
     friendSharePath: '',
+    timelineShareReady: !hasAccessToken(),
+    timelineShareQuery: '',
     sharePosterPath: '',
     posterSharePosterPath: '',
     timelineSharePosterPath: '',
@@ -782,17 +785,21 @@ Page({
       posterBackgroundReady: normalizedPublication.posterBackgroundReady,
       materialBackgroundReady,
       isPreparingFriendShare: false,
+      isPreparingTimelineShare: false,
       friendShareReady: !hasAccessToken(),
       friendSharePath: '',
+      timelineShareReady: !hasAccessToken(),
+      timelineShareQuery: '',
       sharePosterPath: '',
       posterSharePosterPath: '',
       timelineSharePosterPath: '',
     }, () => {
       wx.hideShareMenu()
       if (isPublic && !hasAccessToken()) {
-        wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+        this.showNativeShareMenuIfReady()
       } else if (isPublic) {
         void this.prepareFriendSharePath()
+        void this.prepareTimelineShareQuery()
       }
       this.maybePlayCardHint()
       onApplied?.()
@@ -1366,9 +1373,40 @@ Page({
 
   showShareSheet() {
     if (!this.data.isPublic) return
-    this.setData({ shareSheetVisible: true })
+    this.setData(
+      { shareSheetVisible: true, commentInputFocused: false },
+      () => wx.hideKeyboard({ fail: () => undefined }),
+    )
     if (hasAccessToken() && !this.data.friendShareReady) {
       void this.prepareFriendSharePath()
+    }
+    if (hasAccessToken() && !this.data.timelineShareReady) {
+      void this.prepareTimelineShareQuery()
+    }
+  },
+
+  showNativeShareMenuIfReady() {
+    if (!this.data.isPublic) return
+    if (!hasAccessToken()) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline'],
+      })
+      return
+    }
+    if (this.data.friendShareReady && this.data.timelineShareReady) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline'],
+      })
+      return
+    }
+    if (this.data.friendShareReady) {
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+      return
+    }
+    if (this.data.timelineShareReady) {
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareTimeline'] })
     }
   },
 
@@ -1393,7 +1431,7 @@ Page({
         friendSharePath: shareLink.path,
         friendShareReady: true,
       })
-      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+      this.showNativeShareMenuIfReady()
       reportRealtimeInfo('client.share.link_prepared', {
         operation: 'prepare_friend_or_group_share',
       })
@@ -1414,6 +1452,65 @@ Page({
     if (!this.data.friendShareReady) {
       wx.showToast({ title: '分享准备失败，请稍后重试', icon: 'none' })
     }
+  },
+
+  async prepareTimelineShareQuery() {
+    const publication = this.data.publication
+    if (
+      !publication?.id ||
+      !this.data.isPublic ||
+      !hasAccessToken() ||
+      this.data.timelineShareReady ||
+      this.data.isPreparingTimelineShare
+    ) {
+      return
+    }
+    const publicationId = publication.id
+    this.setData({ isPreparingTimelineShare: true })
+    try {
+      await ensureInstallation()
+      const shareLink = await createPublicationShareLink(publicationId, 'TIMELINE')
+      if (this.data.publication?.id !== publicationId) return
+      this.setData({
+        timelineShareQuery: `scene=${encodeURIComponent(shareLink.code)}`,
+        timelineShareReady: true,
+      })
+      this.showNativeShareMenuIfReady()
+      reportRealtimeInfo('client.share.link_prepared', {
+        operation: 'prepare_work_timeline_share',
+      })
+    } catch (error) {
+      reportRealtimeWarn('client.share.link_prepare_failed', {
+        ...errorLogFields(error),
+        operation: 'prepare_work_timeline_share',
+      })
+    } finally {
+      if (this.data.publication?.id === publicationId) {
+        this.setData({ isPreparingTimelineShare: false })
+      }
+    }
+  },
+
+  async shareWorkToTimeline() {
+    if (!this.data.timelineShareReady) {
+      await this.prepareTimelineShareQuery()
+    }
+    if (!this.data.timelineShareReady) {
+      wx.showToast({ title: '朋友圈分享准备失败，请稍后重试', icon: 'none' })
+      return
+    }
+    this.showNativeShareMenuIfReady()
+    wx.hideKeyboard({ fail: () => undefined })
+    wx.showModal({
+      title: '分享到朋友圈',
+      content: '微信仅支持从右上角菜单发布作品卡片。请点击右上角「···」，选择「分享到朋友圈」，发布文案可自行填写。',
+      showCancel: false,
+      confirmText: '我知道了',
+      confirmColor: '#3f6758',
+      complete: () => {
+        this.setData({ shareSheetVisible: false, commentInputFocused: false })
+      },
+    })
   },
 
   async preparePrivateShare() {
@@ -1480,8 +1577,14 @@ Page({
     wx.showLoading({ title: '正在登录', mask: true })
     try {
       await loginWithWechat()
-      this.setData({ friendShareReady: false, friendSharePath: '' })
+      this.setData({
+        friendShareReady: false,
+        friendSharePath: '',
+        timelineShareReady: false,
+        timelineShareQuery: '',
+      })
       void this.prepareFriendSharePath()
+      void this.prepareTimelineShareQuery()
       return true
     } catch (error) {
       showErrorToast(error, { fallback: '登录失败' })
@@ -1550,8 +1653,24 @@ Page({
       return
     }
     if (action === 'timeline') {
-      this.setData({ posterPreviewVisible: true, shareSheetVisible: false })
-      await wx.showShareImageMenu({ path }).catch(() => undefined)
+      await new Promise<void>((resolve) => {
+        this.setData(
+          { shareSheetVisible: false, commentInputFocused: false },
+          resolve,
+        )
+      })
+      wx.hideKeyboard({ fail: () => undefined })
+      try {
+        await wx.showShareImageMenu({ path })
+      } catch (error) {
+        reportRealtimeWarn('client.share.image_menu_failed', {
+          ...errorLogFields(error),
+          operation: 'share_poster_to_timeline',
+        })
+        showErrorToast(error, {
+          fallback: '微信未能打开图片分享，请升级微信后重试',
+        })
+      }
       return
     }
     await this.saveImageToAlbum(path)
@@ -1735,5 +1854,29 @@ Page({
     })
     void this.prepareFriendSharePath()
     return fallback
+  },
+
+  onShareTimeline() {
+    const publication = this.data.publication
+    const title = publication
+      ? this.data.isOwner
+        ? `我在诗云写下了《${publication.title}》`
+        : `${publication.author.nickname}的作品《${publication.title}》`
+      : '诗云'
+    const query = this.data.timelineShareQuery || (
+      publication?.id ? `id=${encodeURIComponent(publication.id)}` : ''
+    )
+    if (hasAccessToken() && publication?.id && !this.data.timelineShareQuery) {
+      reportRealtimeWarn('client.share.missing_prepared_link', {
+        operation: 'share_work_timeline',
+        reasonType: 'share_invoked_before_link_ready',
+      })
+      void this.prepareTimelineShareQuery()
+    }
+    return {
+      title,
+      ...(query ? { query } : {}),
+      ...(publication?.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
+    }
   },
 })
