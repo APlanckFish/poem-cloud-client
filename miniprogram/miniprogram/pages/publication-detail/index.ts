@@ -1454,10 +1454,6 @@ Page({
     }
     if (this.data.friendShareReady) {
       wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
-      return
-    }
-    if (this.data.timelineShareReady) {
-      wx.showShareMenu({ withShareTicket: true, menus: ['shareTimeline'] })
     }
   },
 
