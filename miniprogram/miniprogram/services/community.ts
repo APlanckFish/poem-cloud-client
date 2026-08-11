@@ -227,11 +227,12 @@ export function createPublicationShareLink(
 
 export function recordPublicationShareOpen(
   code: string,
-  options: { previewOnly?: boolean } = {},
+  options: { previewOnly?: boolean; wechatLoginCode?: string } = {},
 ): Promise<ShareOpenResult> {
   return request<ShareOpenResult>({
     path: `/community/share-links/${encodeURIComponent(code)}/open${options.previewOnly ? '?mode=preview' : ''}`,
     method: 'POST',
+    data: options.wechatLoginCode ? { wechatLoginCode: options.wechatLoginCode } : {},
   })
 }
 

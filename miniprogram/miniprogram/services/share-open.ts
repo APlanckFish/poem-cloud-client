@@ -45,9 +45,25 @@ export function shareCodeFromEnterOptions(options: {
   return normalizedShareCode(options.query?.s) || normalizedShareCode(options.query?.scene)
 }
 
+function requestShareWechatLoginCode(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success(result) {
+        if (result.code) {
+          resolve(result.code)
+          return
+        }
+        reject(new Error('微信身份凭证为空'))
+      },
+      fail: reject,
+    })
+  })
+}
+
 async function recordShareOpenWithRetry(
   code: string,
   previewOnly: boolean,
+  operation: string,
 ): Promise<ShareOpenResult> {
   let lastError: unknown
   for (const delayMs of SHARE_OPEN_RETRY_DELAYS_MS) {
@@ -55,7 +71,20 @@ async function recordShareOpenWithRetry(
       await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
     }
     try {
-      return await recordPublicationShareOpen(code, { previewOnly })
+      let wechatLoginCode: string | undefined
+      if (!previewOnly) {
+        try {
+          // A WeChat login code can only be exchanged once. Acquire a fresh one
+          // for every network retry without creating a Poem Cloud login session.
+          wechatLoginCode = await requestShareWechatLoginCode()
+        } catch (error) {
+          reportRealtimeWarn('client.share.wechat_identity_prepare_failed', {
+            ...errorLogFields(error),
+            operation,
+          })
+        }
+      }
+      return await recordPublicationShareOpen(code, { previewOnly, wechatLoginCode })
     } catch (error) {
       lastError = error
     }
@@ -76,7 +105,7 @@ async function recordShareOpen(
       })
     })
   }
-  const result = await recordShareOpenWithRetry(code, previewOnly)
+  const result = await recordShareOpenWithRetry(code, previewOnly, operation)
   reportRealtimeInfo('client.share.open_recorded', {
     operation,
     path: '/community/share-links/:code/open',
