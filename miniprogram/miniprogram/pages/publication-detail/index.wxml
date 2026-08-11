@@ -181,11 +181,6 @@
       </view>
     </view>
 
-    <view wx:if="{{isTimelineSinglePage}}" class="timeline-single-page-note">
-      <text class="timeline-single-page-note__mark poem-display">诗云</text>
-      <text class="timeline-single-page-note__copy">朋友圈预览模式 · 互动功能在完整小程序中提供</text>
-    </view>
-
     <button
       wx:if="{{isPublic}}"
       class="native-button-reset detail-action detail-action--like {{publication.likedByMe ? 'detail-action--liked' : ''}}"
