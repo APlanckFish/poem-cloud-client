@@ -11,6 +11,20 @@ const SHARE_OPEN_RETRY_DELAYS_MS = [0, 400, 1_200] as const
 const MAX_TRACKED_CODES = 32
 const trackedOpenTasks = new Map<string, Promise<ShareOpenResult>>()
 
+export const TIMELINE_SINGLE_PAGE_SCENE = 1154
+
+export function isTimelineSinglePageScene(scene: unknown): boolean {
+  return Number(scene) === TIMELINE_SINGLE_PAGE_SCENE
+}
+
+export function isTimelineSinglePageMode(): boolean {
+  try {
+    return isTimelineSinglePageScene(wx.getEnterOptionsSync().scene)
+  } catch {
+    return isTimelineSinglePageScene(wx.getLaunchOptionsSync().scene)
+  }
+}
+
 function normalizedShareCode(value: unknown): string | null {
   if (typeof value !== 'string' || !value) return null
   let decoded = value
@@ -31,14 +45,17 @@ export function shareCodeFromEnterOptions(options: {
   return normalizedShareCode(options.query?.s) || normalizedShareCode(options.query?.scene)
 }
 
-async function recordShareOpenWithRetry(code: string): Promise<ShareOpenResult> {
+async function recordShareOpenWithRetry(
+  code: string,
+  previewOnly: boolean,
+): Promise<ShareOpenResult> {
   let lastError: unknown
   for (const delayMs of SHARE_OPEN_RETRY_DELAYS_MS) {
     if (delayMs > 0) {
       await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
     }
     try {
-      return await recordPublicationShareOpen(code)
+      return await recordPublicationShareOpen(code, { previewOnly })
     } catch (error) {
       lastError = error
     }
@@ -46,14 +63,20 @@ async function recordShareOpenWithRetry(code: string): Promise<ShareOpenResult> 
   throw lastError
 }
 
-async function recordShareOpen(code: string, operation: string): Promise<ShareOpenResult> {
-  await ensureInstallation().catch((error) => {
-    reportRealtimeWarn('client.share.installation_prepare_failed', {
-      ...errorLogFields(error),
-      operation,
+async function recordShareOpen(
+  code: string,
+  operation: string,
+  previewOnly: boolean,
+): Promise<ShareOpenResult> {
+  if (!previewOnly) {
+    await ensureInstallation().catch((error) => {
+      reportRealtimeWarn('client.share.installation_prepare_failed', {
+        ...errorLogFields(error),
+        operation,
+      })
     })
-  })
-  const result = await recordShareOpenWithRetry(code)
+  }
+  const result = await recordShareOpenWithRetry(code, previewOnly)
   reportRealtimeInfo('client.share.open_recorded', {
     operation,
     path: '/community/share-links/:code/open',
@@ -65,18 +88,21 @@ async function recordShareOpen(code: string, operation: string): Promise<ShareOp
 export function trackPublicationShareOpen(
   code: string,
   operation: string,
+  options: { previewOnly?: boolean } = {},
 ): Promise<ShareOpenResult> {
   const normalizedCode = normalizedShareCode(code)
   if (!normalizedCode) return Promise.reject(new Error('分享码无效'))
-  const existing = trackedOpenTasks.get(normalizedCode)
+  const previewOnly = options.previewOnly === true
+  const taskKey = `${previewOnly ? 'preview' : 'full'}:${normalizedCode}`
+  const existing = trackedOpenTasks.get(taskKey)
   if (existing) return existing
 
   if (trackedOpenTasks.size >= MAX_TRACKED_CODES) {
     const oldestCode = trackedOpenTasks.keys().next().value as string | undefined
     if (oldestCode) trackedOpenTasks.delete(oldestCode)
   }
-  const task = recordShareOpen(normalizedCode, operation).catch((error: unknown) => {
-    trackedOpenTasks.delete(normalizedCode)
+  const task = recordShareOpen(normalizedCode, operation, previewOnly).catch((error: unknown) => {
+    trackedOpenTasks.delete(taskKey)
     reportRealtimeWarn('client.share.open_failed', {
       ...errorLogFields(error),
       operation,
@@ -84,6 +110,6 @@ export function trackPublicationShareOpen(
     })
     throw error
   })
-  trackedOpenTasks.set(normalizedCode, task)
+  trackedOpenTasks.set(taskKey, task)
   return task
 }

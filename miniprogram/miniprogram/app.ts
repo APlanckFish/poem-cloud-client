@@ -2,6 +2,7 @@ import { STORAGE_KEYS } from './config/api'
 import { restoreSession } from './services/auth'
 import { ensureInstallation } from './services/installation'
 import {
+  isTimelineSinglePageScene,
   shareCodeFromEnterOptions,
   trackPublicationShareOpen,
 } from './services/share-open'
@@ -45,8 +46,12 @@ App<IAppOption>({
     sessionReady: false,
   },
 
-  onLaunch() {
+  onLaunch(options) {
     reportRealtimeInfo('client.app.launched', { operation: 'app_launch' })
+    if (isTimelineSinglePageScene(options.scene)) {
+      this.globalData.sessionReady = true
+      return
+    }
     resetTestDataOnce()
     void ensureInstallation().catch(() => undefined)
     void restoreSession()
@@ -59,6 +64,7 @@ App<IAppOption>({
   },
 
   onShow(options) {
+    if (isTimelineSinglePageScene(options.scene)) return
     const shareCode = shareCodeFromEnterOptions(options)
     if (shareCode) {
       void trackPublicationShareOpen(shareCode, 'app_enter_shared_publication').catch(

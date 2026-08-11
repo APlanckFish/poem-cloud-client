@@ -1,5 +1,8 @@
 {
   "disableScroll": true,
+  "navigationBarTitleText": "作品详情",
+  "navigationBarBackgroundColor": "#fffefa",
+  "navigationBarTextStyle": "black",
   "usingComponents": {
     "navigation-bar": "/components/navigation-bar/navigation-bar"
   }

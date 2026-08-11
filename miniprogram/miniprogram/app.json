@@ -54,6 +54,9 @@
     }
   },
   "componentFramework": "glass-easel",
+  "singlePage": {
+    "navigationBarFit": "squeezed"
+  },
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"
 }

@@ -225,9 +225,12 @@ export function createPublicationShareLink(
   }))
 }
 
-export function recordPublicationShareOpen(code: string): Promise<ShareOpenResult> {
+export function recordPublicationShareOpen(
+  code: string,
+  options: { previewOnly?: boolean } = {},
+): Promise<ShareOpenResult> {
   return request<ShareOpenResult>({
-    path: `/community/share-links/${encodeURIComponent(code)}/open`,
+    path: `/community/share-links/${encodeURIComponent(code)}/open${options.previewOnly ? '?mode=preview' : ''}`,
     method: 'POST',
   })
 }

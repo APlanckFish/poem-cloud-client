@@ -22,7 +22,10 @@ import {
   updatePublicationSettings,
 } from '../../services/community'
 import { ensureInstallation } from '../../services/installation'
-import { trackPublicationShareOpen } from '../../services/share-open'
+import {
+  isTimelineSinglePageMode,
+  trackPublicationShareOpen,
+} from '../../services/share-open'
 import {
   type CreationHistoryEntry,
   type CreationTimelineEvent,
@@ -502,6 +505,7 @@ function loadCanvasImage(
 Page({
   data: {
     publication: null as PublicationView | null,
+    isTimelineSinglePage: false,
     publicationContentRuns: [] as PoemDisplayRun[],
     categoryName: '',
     publishedDate: '',
@@ -565,10 +569,17 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    const isTimelineSinglePage = isTimelineSinglePageMode()
+    this.setData({
+      isTimelineSinglePage,
+      ...(isTimelineSinglePage
+        ? { canComment: false, commentInputFocused: false }
+        : {}),
+    })
     wx.hideShareMenu()
 
     if (options.scene) {
-      void this.openSharedPublication(options.scene)
+      void this.openSharedPublication(options.scene, isTimelineSinglePage)
       return
     }
     if (options.id) {
@@ -583,9 +594,13 @@ Page({
     this.setData({ isLoading: false, notFound: true })
   },
 
-  async openSharedPublication(code: string) {
+  async openSharedPublication(code: string, previewOnly = false) {
     try {
-      const result = await trackPublicationShareOpen(code, 'page_open_share_qr_code')
+      const result = await trackPublicationShareOpen(
+        code,
+        previewOnly ? 'timeline_single_page_preview' : 'page_open_share_qr_code',
+        { previewOnly },
+      )
       await this.loadPublication(result.publicationId)
     } catch (error) {
       showErrorToast(error, { fallback: '分享作品打开失败' })
@@ -614,6 +629,10 @@ Page({
       ])
       this.applyPublication(publication, true, tunePatternNames)
       void this.loadComments(publication.id)
+      if (this.data.isTimelineSinglePage) {
+        this.setData({ canFollow: true, followedByMe: false })
+        return
+      }
       const currentUser = cachedUser()
       if (publication.author.id !== currentUser?.id) {
         const author = await getPublicUser(publication.author.id)
@@ -738,10 +757,11 @@ Page({
     const isOwner = normalizedPublication.author.id === currentUser?.id
     const validationMarks = isOwner ? normalizedPublication.validationMarks ?? [] : []
     const canViewCreationJourney = Boolean(
-      isOwner
-        ? normalizedPublication.selectedGenerationId
-        : normalizedPublication.canViewCreationJournal &&
-            normalizedPublication.hasCreationJournal,
+      !this.data.isTimelineSinglePage &&
+        (isOwner
+          ? normalizedPublication.selectedGenerationId
+          : normalizedPublication.canViewCreationJournal &&
+              normalizedPublication.hasCreationJournal),
     )
     this.setData({
       publication: normalizedPublication,
@@ -795,6 +815,10 @@ Page({
       timelineSharePosterPath: '',
     }, () => {
       wx.hideShareMenu()
+      if (this.data.isTimelineSinglePage) {
+        onApplied?.()
+        return
+      }
       if (isPublic && !hasAccessToken()) {
         this.showNativeShareMenuIfReady()
       } else if (isPublic) {
@@ -807,6 +831,7 @@ Page({
   },
 
   showModerationReason() {
+    if (this.blockSinglePageInteraction()) return
     wx.showModal({
       title: '作品已下架',
       content: '该作品或素材涉嫌违反社区规范',
@@ -817,7 +842,18 @@ Page({
   },
 
   goToCommunity() {
+    if (this.blockSinglePageInteraction()) return
     wx.switchTab({ url: '/pages/community/index' })
+  },
+
+  blockSinglePageInteraction(): boolean {
+    if (!this.data.isTimelineSinglePage) return false
+    wx.showToast({
+      title: '请前往小程序使用完整服务',
+      icon: 'none',
+      duration: 2000,
+    })
+    return true
   },
 
   async loadComments(publicationId: string, append = false) {
@@ -870,11 +906,13 @@ Page({
   },
 
   retryComments() {
+    if (this.blockSinglePageInteraction()) return
     const publicationId = this.data.publication?.id
     if (publicationId) void this.loadComments(publicationId)
   },
 
   loadMoreComments() {
+    if (this.blockSinglePageInteraction()) return
     const publicationId = this.data.publication?.id
     if (publicationId) void this.loadComments(publicationId, true)
   },
@@ -896,6 +934,7 @@ Page({
   },
 
   async activateCommentComposer() {
+    if (this.blockSinglePageInteraction()) return
     if (await this.ensureCommentLogin()) {
       this.setData({ canComment: true, commentInputFocused: true })
     }
@@ -914,6 +953,7 @@ Page({
   },
 
   async beginCommentReply(event: WechatMiniprogram.TouchEvent) {
+    if (this.blockSinglePageInteraction()) return
     if (!(await this.ensureCommentLogin())) return
     const id = String(event.currentTarget.dataset.id || '')
     const nickname = String(event.currentTarget.dataset.nickname || '')
@@ -937,6 +977,7 @@ Page({
   },
 
   async submitComment() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     const content = this.data.commentDraft.trim()
     if (!publication?.id || this.data.isSubmittingComment) return
@@ -1027,16 +1068,19 @@ Page({
   },
 
   expandCommentReplies(event: WechatMiniprogram.TouchEvent) {
+    if (this.blockSinglePageInteraction()) return
     const id = String(event.currentTarget.dataset.id || '')
     if (id) void this.loadReplies(id, false)
   },
 
   loadMoreCommentReplies(event: WechatMiniprogram.TouchEvent) {
+    if (this.blockSinglePageInteraction()) return
     const id = String(event.currentTarget.dataset.id || '')
     if (id) void this.loadReplies(id, true)
   },
 
   async deleteComment(event: WechatMiniprogram.TouchEvent) {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     const commentId = String(event.currentTarget.dataset.id || '')
     const rootCommentId = String(event.currentTarget.dataset.rootCommentId || commentId)
@@ -1131,6 +1175,7 @@ Page({
   },
 
   toggleCreationCard() {
+    if (this.blockSinglePageInteraction()) return
     if (!this.data.canViewCreationJourney || this.data.isCardHinting) return
     const isCardFlipped = !this.data.isCardFlipped
     this.setData({ isCardFlipped })
@@ -1140,6 +1185,7 @@ Page({
   preventCardFlip() {},
 
   previewOriginalMaterial(event: WechatMiniprogram.TouchEvent) {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     const materialId = String(event.currentTarget.dataset.id || '')
     const current = publication?.materials.findIndex(
@@ -1225,6 +1271,7 @@ Page({
   },
 
   handleJournalVisibilityChange(event: SwitchChangeEvent) {
+    if (this.blockSinglePageInteraction()) return
     void this.savePublicationSettings({
       creationJournalPublic: event.detail.value,
       coverSource: this.data.coverSource,
@@ -1238,6 +1285,7 @@ Page({
       }
     }
   }) {
+    if (this.blockSinglePageInteraction()) return
     const source = event.currentTarget.dataset.source
     if (
       !source ||
@@ -1259,6 +1307,7 @@ Page({
   },
 
   async publishToCommunity() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     if (
       !publication ||
@@ -1319,6 +1368,7 @@ Page({
   },
 
   async savePosterToAlbum() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     if (!publication?.posterReady || !publication.posterUrl) {
       wx.showToast({ title: '有字海报尚未生成完成', icon: 'none' })
@@ -1372,6 +1422,7 @@ Page({
   },
 
   showShareSheet() {
+    if (this.blockSinglePageInteraction()) return
     if (!this.data.isPublic) return
     this.setData(
       { shareSheetVisible: true, commentInputFocused: false },
@@ -1514,6 +1565,7 @@ Page({
   },
 
   async preparePrivateShare() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     if (
       !publication?.workId ||
@@ -1761,6 +1813,7 @@ Page({
   },
 
   async toggleLike() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     if (!publication?.id || this.data.isLiking) return
     if (!hasAccessToken()) {
@@ -1800,6 +1853,7 @@ Page({
   },
 
   async toggleFollow() {
+    if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
     if (!publication || !this.data.canFollow || this.data.isFollowing) return
     if (!hasAccessToken()) {

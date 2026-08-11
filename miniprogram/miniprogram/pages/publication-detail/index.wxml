@@ -1,5 +1,6 @@
 <view class="app-viewport detail-viewport">
 <navigation-bar
+  wx:if="{{!isTimelineSinglePage}}"
   title="作品详情"
   back="{{true}}"
   custom-back="{{true}}"
@@ -9,7 +10,7 @@
 ></navigation-bar>
 
 <scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
-  <view wx:if="{{publication}}" class="detail-page">
+  <view wx:if="{{publication}}" class="detail-page {{isTimelineSinglePage ? 'detail-page--single-page' : ''}}">
     <view class="detail-card-scene" style="height: {{cardHeightRpx}}rpx;">
       <view
         class="detail-flip-card {{isCardFlipped ? 'detail-flip-card--back' : ''}} {{isCardHinting ? 'detail-flip-card--hinting' : ''}}"
@@ -178,6 +179,11 @@
           </scroll-view>
         </view>
       </view>
+    </view>
+
+    <view wx:if="{{isTimelineSinglePage}}" class="timeline-single-page-note">
+      <text class="timeline-single-page-note__mark poem-display">诗云</text>
+      <text class="timeline-single-page-note__copy">朋友圈预览模式 · 互动功能在完整小程序中提供</text>
     </view>
 
     <button
@@ -486,7 +492,7 @@
   <view wx:else class="detail-empty poem-display">这首诗暂时无法查看</view>
 </scroll-view>
 
-<view wx:if="{{shareSheetVisible}}" class="share-layer" catchtap="closeShareSheet">
+<view wx:if="{{shareSheetVisible && !isTimelineSinglePage}}" class="share-layer" catchtap="closeShareSheet">
   <view class="share-sheet" catchtap="stopShareTap">
     <view class="share-sheet__handle"></view>
     <view class="share-sheet__header">
@@ -538,7 +544,7 @@
   </view>
 </view>
 
-<view wx:if="{{posterPreviewVisible}}" class="share-preview-layer" catchtap="closePosterPreview">
+<view wx:if="{{posterPreviewVisible && !isTimelineSinglePage}}" class="share-preview-layer" catchtap="closePosterPreview">
   <view class="share-preview" catchtap="stopShareTap">
     <button class="native-button-reset share-preview__close" bindtap="closePosterPreview" aria-label="关闭海报预览">×</button>
     <image class="share-preview__poster" src="{{sharePosterPath}}" mode="widthFix"></image>
