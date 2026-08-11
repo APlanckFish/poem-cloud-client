@@ -16,14 +16,22 @@ const API_BASE_URL_BY_ENV = {
   release: 'https://api.poem-cloud.example.com/v1',
 } as const
 
-function resolveEnvBaseUrl(): string {
+export type MiniProgramEnvVersion = keyof typeof API_BASE_URL_BY_ENV
+
+export function getMiniProgramEnvVersion(): MiniProgramEnvVersion {
   try {
     const { envVersion } = wx.getAccountInfoSync().miniProgram
-    return API_BASE_URL_BY_ENV[envVersion] ?? API_BASE_URL_BY_ENV.release
+    if (envVersion === 'develop' || envVersion === 'trial' || envVersion === 'release') {
+      return envVersion
+    }
   } catch {
-    // 极早期调用或接口不可用时回退到正式环境，避免误连本地地址
-    return API_BASE_URL_BY_ENV.release
+    // 极早期调用或接口不可用时回退到正式环境。
   }
+  return 'release'
+}
+
+function resolveEnvBaseUrl(): string {
+  return API_BASE_URL_BY_ENV[getMiniProgramEnvVersion()]
 }
 
 export const DEFAULT_API_BASE_URL = API_BASE_URL_BY_ENV.develop

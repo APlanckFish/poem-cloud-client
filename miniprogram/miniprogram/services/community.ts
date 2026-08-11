@@ -1,4 +1,4 @@
-import { getApiBaseUrl, STORAGE_KEYS } from '../config/api'
+import { getApiBaseUrl, getMiniProgramEnvVersion, STORAGE_KEYS } from '../config/api'
 import { request } from './api'
 import type { CreationTimelineEvent, PoemCategory } from './creation'
 import type { PoemValidationMark } from './creation'
@@ -217,7 +217,7 @@ export function createPublicationShareLink(
   return request<{ code: string; path: string; qrCodePath: string }>({
     path: `/community/publications/${encodeURIComponent(id)}/share-links`,
     method: 'POST',
-    data: { channel },
+    data: { channel, envVersion: getMiniProgramEnvVersion() },
   }).then((response) => ({
     code: response.code,
     path: publicationShareEntryPath(response.code),
