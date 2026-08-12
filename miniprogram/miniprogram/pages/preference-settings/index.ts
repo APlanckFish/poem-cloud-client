@@ -60,6 +60,7 @@ Page({
     selectedRhymeDescription: '',
     poetOptions: [] as SettingOption[],
     styleOptions: [] as SettingOption[],
+    themeOptions: [] as SettingOption[],
     autoGeneratePoster: true,
   },
 
@@ -108,6 +109,7 @@ Page({
         ?? '设定古体诗与词的默认用韵方式',
       poetOptions: questionOptions(questionByKey.poets, this.data.answers),
       styleOptions: questionOptions(questionByKey.styles, this.data.answers),
+      themeOptions: questionOptions(questionByKey.themes, this.data.answers),
     })
   },
 
@@ -136,7 +138,12 @@ Page({
     const question = this.data.questions.find((item) => item.key === key)
     if (!question?.allowCustom) return
     wx.showModal({
-      title: key === 'poets' ? '添加喜欢的诗人' : '添加喜欢的风格',
+      title:
+        key === 'poets'
+          ? '添加喜欢的诗人'
+          : key === 'themes'
+            ? '添加喜欢的题材'
+            : '添加喜欢的风格',
       editable: true,
       placeholderText: question.customPlaceholder || '请输入自定义选项',
       confirmText: '添加',

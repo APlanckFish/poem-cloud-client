@@ -104,6 +104,32 @@
         <text class="setting-card__hint">设定默认的风格倾向，创作时仍可调整</text>
       </view>
 
+      <view class="setting-card">
+        <view class="setting-card__title">
+          <image class="setting-card__icon" src="/assets/icons/preference-style.png" mode="aspectFit"></image>
+          <text class="poem-display">偏爱题材</text>
+        </view>
+        <view class="chip-grid">
+          <view
+            wx:for="{{themeOptions}}"
+            wx:key="value"
+            class="preference-chip {{item.selected ? 'preference-chip--selected' : ''}}"
+            data-key="themes"
+            data-value="{{item.value}}"
+            bindtap="selectOption"
+            aria-role="button"
+            aria-checked="{{item.selected}}"
+          >{{item.label}}</view>
+          <view
+            class="preference-chip preference-chip--add"
+            data-key="themes"
+            bindtap="addCustomOption"
+            aria-role="button"
+          >＋ 自定义</view>
+        </view>
+        <text class="setting-card__hint">题材与语言风格分开保存，可多选</text>
+      </view>
+
       <view class="setting-card setting-card--generation">
         <view class="setting-card__title">
           <image class="setting-card__icon" src="/assets/icons/preference-generation.png" mode="aspectFit"></image>

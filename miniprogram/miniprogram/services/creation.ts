@@ -18,6 +18,7 @@ export interface CreationPreferences {
   rhymeScheme: 'TRADITIONAL' | 'NEW_CHINESE'
   preferredPoets: string[]
   styleTags: string[]
+  themeTags: string[]
   lengthHint: number | null
 }
 

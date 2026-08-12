@@ -926,6 +926,7 @@ Page({
       styleTags: (this.data.preferenceAnswers.styles ?? [])
         .filter((style) => style !== '打油诗')
         .slice(0, 10),
+      themeTags: (this.data.preferenceAnswers.themes ?? []).slice(0, 10),
       lengthHint: null,
     }
 

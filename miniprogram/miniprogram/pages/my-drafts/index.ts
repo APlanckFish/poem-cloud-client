@@ -340,6 +340,7 @@ Page({
       rhymeScheme: 'NEW_CHINESE',
       preferredPoets: [],
       styleTags: [],
+      themeTags: [],
       lengthHint: null,
     }
     if (work.latestGeneration?.result) {
