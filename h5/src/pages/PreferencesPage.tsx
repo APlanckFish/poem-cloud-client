@@ -23,7 +23,8 @@ function localPreferences(answers: Record<string, string[]>): PoemPreferences {
     category: (answers.poemType?.[0] as PoemCategory) || 'CLASSICAL',
     classicalFormCode: 'WUYAN_JUEJU', tunePatternCode: null,
     rhymeScheme: answers.rhymeScheme?.[0] === 'TRADITIONAL' ? 'TRADITIONAL' : 'NEW_CHINESE',
-    preferredPoets: answers.poets || [], styleTags: answers.styles || [], lengthHint: null,
+    preferredPoets: answers.poets || [], styleTags: answers.styles || [], themeTags: answers.themes || [],
+    autoGeneratePoster: (answers.autoGeneratePoster?.[0] || 'true') !== 'false', lengthHint: null,
   }
 }
 
@@ -41,8 +42,7 @@ export default function PreferencesPage({ questionnaire = false }: { questionnai
   const [index, setIndex] = useState(0)
   const [customInput, setCustomInput] = useState('')
   const [expandedOption, setExpandedOption] = useState('')
-  const [customDialogKey, setCustomDialogKey] = useState('')
-  const [customDialogValue, setCustomDialogValue] = useState('')
+  const [customEditorKey, setCustomEditorKey] = useState('')
 
   async function load() {
     setLoading(true)
@@ -82,8 +82,7 @@ export default function PreferencesPage({ questionnaire = false }: { questionnai
     if (!clean) return
     setAnswers((current) => ({ ...current, [key]: [...new Set([...(current[key] || []), clean])] }))
     setCustomInput('')
-    setCustomDialogKey('')
-    setCustomDialogValue('')
+    setCustomEditorKey('')
   }
 
   async function save() {
@@ -126,14 +125,21 @@ export default function PreferencesPage({ questionnaire = false }: { questionnai
       <main className="settings-page">{loading ? <div className="state-view">正在加载…</div> : <div className="settings-scroll page-scroll"><div className="settings-content">
         <SettingCard icon="preference-type.png" title="默认诗词类型"><div className="segment-control">{questionByKey.poemType?.options.map((option) => <button className={`segment-control__item ${(answers.poemType || []).includes(option.value) ? 'segment-control__item--selected' : ''}`} key={option.value} onClick={() => select('poemType', option.value, 'single')}>{option.label}</button>)}</div><span className="setting-card__hint">设定默认的诗词类型，创作时可随时切换</span></SettingCard>
         <SettingCard icon="preference-rhyme.png" title="默认韵表"><div className="segment-control segment-control--rhyme">{questionByKey.rhymeScheme?.options.map((option) => <button className={`segment-control__item segment-control__item--rhyme ${(answers.rhymeScheme || []).includes(option.value) ? 'segment-control__item--selected' : ''}`} key={option.value} onClick={() => select('rhymeScheme', option.value, 'single')}>{option.label}</button>)}</div><span className="setting-card__hint">{questionByKey.rhymeScheme?.options.find((item) => (answers.rhymeScheme || []).includes(item.value))?.description || '设定古体诗与词的默认用韵方式'}</span></SettingCard>
-        <SettingCard icon="preference-poets.png" title="喜欢的诗人"><div className="chip-grid">{[...(questionByKey.poets?.options || []), ...(answers.poets || []).filter((value) => !(questionByKey.poets?.options.some((item) => item.value === value))).map((value) => ({ value, label: value }))].map((option) => <button className={`preference-chip ${(answers.poets || []).includes(option.value) ? 'preference-chip--selected' : ''}`} key={option.value} onClick={() => select('poets', option.value, 'multiple')}>{option.label}</button>)}<button className="preference-chip preference-chip--add" onClick={() => setCustomDialogKey('poets')}>＋ 自定义</button></div><span className="setting-card__hint">可多选，用于理解你偏好的表达方式</span></SettingCard>
-        <SettingCard icon="preference-style.png" title="默认风格"><div className="chip-grid">{[...(questionByKey.styles?.options || []), ...(answers.styles || []).filter((value) => !(questionByKey.styles?.options.some((item) => item.value === value))).map((value) => ({ value, label: value }))].map((option) => <button className={`preference-chip ${(answers.styles || []).includes(option.value) ? 'preference-chip--selected' : ''}`} key={option.value} onClick={() => select('styles', option.value, 'multiple')}>{option.label}</button>)}<button className="preference-chip preference-chip--add" onClick={() => setCustomDialogKey('styles')}>＋ 自定义</button></div><span className="setting-card__hint">设定默认的风格倾向，创作时仍可调整</span></SettingCard>
+        <PreferenceChoiceCard icon="preference-poets.png" title="喜欢的诗人" preferenceKey="poets" hint="可多选，用于理解你偏好的表达方式" question={questionByKey.poets} answers={answers} editorOpen={customEditorKey === 'poets'} customInput={customInput} onCustomInput={setCustomInput} onSelect={select} onToggleEditor={() => { setCustomInput(''); setCustomEditorKey((current) => current === 'poets' ? '' : 'poets') }} onAddCustom={addCustom} />
+        <PreferenceChoiceCard icon="preference-style.png" title="默认风格" preferenceKey="styles" hint="设定默认的风格倾向，创作时仍可调整" question={questionByKey.styles} answers={answers} editorOpen={customEditorKey === 'styles'} customInput={customInput} onCustomInput={setCustomInput} onSelect={select} onToggleEditor={() => { setCustomInput(''); setCustomEditorKey((current) => current === 'styles' ? '' : 'styles') }} onAddCustom={addCustom} />
+        <PreferenceChoiceCard icon="preference-style.png" title="偏爱题材" preferenceKey="themes" hint="题材与语言风格分开保存，可多选" question={questionByKey.themes} answers={answers} editorOpen={customEditorKey === 'themes'} customInput={customInput} onCustomInput={setCustomInput} onSelect={select} onToggleEditor={() => { setCustomInput(''); setCustomEditorKey((current) => current === 'themes' ? '' : 'themes') }} onAddCustom={addCustom} />
         <SettingCard icon="preference-generation.png" title="生成偏好" extraClass="setting-card--generation"><label className="switch-row"><span className="switch-row__label">自动生成作品海报图</span><input className="mp-switch" type="checkbox" checked={(answers.autoGeneratePoster?.[0] || 'true') !== 'false'} onChange={(event) => setAnswers((current) => ({ ...current, autoGeneratePoster: [String(event.target.checked)] }))} /></label><span className="setting-card__hint setting-card__hint--generation">开启后，将自动为作品生成便于分享的海报图</span></SettingCard>
         <span className="settings-note">偏好仅作为默认选项，创作时仍可调整</span><button className={`save-button ${saving ? 'save-button--disabled' : ''}`} onClick={() => void save()}>{saving ? '正在保存…' : '保存偏好'}</button><div className="bottom-safe-area" />
       </div></div>}</main>
-      {customDialogKey ? <div className="wechat-dialog-overlay"><section className="wechat-dialog"><div className="wechat-dialog__body"><h2>{customDialogKey === 'poets' ? '添加喜欢的诗人' : '添加喜欢的风格'}</h2><input className="custom-dialog-input" autoFocus value={customDialogValue} placeholder={questionByKey[customDialogKey]?.customPlaceholder || '请输入自定义选项'} onChange={(event) => setCustomDialogValue(event.target.value)} /></div><div className="wechat-dialog__actions"><button onClick={() => setCustomDialogKey('')}>取消</button><button className="wechat-dialog__confirm" onClick={() => addCustom(customDialogKey, customDialogValue)}>添加</button></div></section></div> : null}
     </div>
   )
+}
+
+function PreferenceChoiceCard({ icon, title, preferenceKey, hint, question, answers, editorOpen, customInput, onCustomInput, onSelect, onToggleEditor, onAddCustom }: { icon: string; title: string; preferenceKey: string; hint: string; question?: Question; answers: Record<string, string[]>; editorOpen: boolean; customInput: string; onCustomInput: (value: string) => void; onSelect: (key: string, value: string, type: Question['type']) => void; onToggleEditor: () => void; onAddCustom: (key: string, value?: string) => void }) {
+  const configured = question?.options || []
+  const configuredValues = new Set(configured.map((item) => item.value))
+  const options = [...configured, ...(answers[preferenceKey] || []).filter((value) => !configuredValues.has(value)).map((value) => ({ value, label: value }))]
+  return <SettingCard icon={icon} title={title}><div className="chip-grid">{options.map((option) => <button className={`preference-chip ${(answers[preferenceKey] || []).includes(option.value) ? 'preference-chip--selected' : ''}`} key={option.value} onClick={() => onSelect(preferenceKey, option.value, 'multiple')}>{option.label}</button>)}<button className="preference-chip preference-chip--add" onClick={onToggleEditor}>{editorOpen ? '收起输入' : '＋ 自定义'}</button></div>{editorOpen ? <div className="custom"><div className="custom__row"><input className="custom__input" autoFocus maxLength={40} value={customInput} placeholder={question?.customPlaceholder || '请输入自定义选项'} onChange={(event) => onCustomInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onAddCustom(preferenceKey) }} /><button className="custom__add" onClick={() => onAddCustom(preferenceKey)}>添加</button></div></div> : null}<span className="setting-card__hint">{hint}</span></SettingCard>
 }
 
 function SettingCard({ icon, title, extraClass = '', children }: { icon: string; title: string; extraClass?: string; children: React.ReactNode }) {

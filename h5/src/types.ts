@@ -49,6 +49,8 @@ export interface PoemPreferences {
   rhymeScheme: 'TRADITIONAL' | 'NEW_CHINESE'
   preferredPoets: string[]
   styleTags: string[]
+  themeTags: string[]
+  autoGeneratePoster?: boolean
   lengthHint: number | null
 }
 

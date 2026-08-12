@@ -698,7 +698,7 @@ Page({
         displayCoverUrl:
           coverSource === 'POSTER' && posterBackgroundReady
             ? poster?.backgroundUrl || null
-            : materialCoverUrl,
+            : materialCoverUrl || poster?.url || null,
         shareImageUrl: null,
         materials: (work.assets || []).flatMap((asset) => {
           if (!asset.accessUrl) return []

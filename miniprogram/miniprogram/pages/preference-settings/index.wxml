@@ -73,7 +73,13 @@
             data-key="poets"
             bindtap="addCustomOption"
             aria-role="button"
-          >＋ 自定义</view>
+          >{{customEditorKey === 'poets' ? '收起输入' : '＋ 自定义'}}</view>
+        </view>
+        <view wx:if="{{customEditorKey === 'poets'}}" class="custom">
+          <view class="custom__row">
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
+          </view>
         </view>
         <text class="setting-card__hint">可多选，用于理解你偏好的表达方式</text>
       </view>
@@ -99,7 +105,13 @@
             data-key="styles"
             bindtap="addCustomOption"
             aria-role="button"
-          >＋ 自定义</view>
+          >{{customEditorKey === 'styles' ? '收起输入' : '＋ 自定义'}}</view>
+        </view>
+        <view wx:if="{{customEditorKey === 'styles'}}" class="custom">
+          <view class="custom__row">
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
+          </view>
         </view>
         <text class="setting-card__hint">设定默认的风格倾向，创作时仍可调整</text>
       </view>
@@ -125,7 +137,13 @@
             data-key="themes"
             bindtap="addCustomOption"
             aria-role="button"
-          >＋ 自定义</view>
+          >{{customEditorKey === 'themes' ? '收起输入' : '＋ 自定义'}}</view>
+        </view>
+        <view wx:if="{{customEditorKey === 'themes'}}" class="custom">
+          <view class="custom__row">
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
+          </view>
         </view>
         <text class="setting-card__hint">题材与语言风格分开保存，可多选</text>
       </view>

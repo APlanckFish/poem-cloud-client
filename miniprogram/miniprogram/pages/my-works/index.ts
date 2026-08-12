@@ -141,7 +141,9 @@ Page({
     isLoading: false,
     hasLoaded: false,
     isOperating: false,
-    worksScrollAnchor: '',
+    worksScrollAnchorId: 'works-scroll-top-0',
+    worksScrollTarget: '',
+    worksScrollResetVersion: 0,
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -230,9 +232,14 @@ Page({
   },
 
   resetWorksScroll() {
-    // scroll-view 会在数据刷新后保留旧滚动位置；先清空再重新指定锚点才能重复回到顶部。
-    this.setData({ worksScrollAnchor: '' }, () => {
-      this.setData({ worksScrollAnchor: 'works-scroll-top' })
+    // scroll-into-view 对相同目标不会重复触发。每次生成新锚点，确保返回页面、刷新和切换
+    // Tab 时都真正回到列表顶部，不会让首张卡片停在固定 Tab 下方被裁掉。
+    const worksScrollResetVersion = this.data.worksScrollResetVersion + 1
+    const worksScrollAnchorId = `works-scroll-top-${worksScrollResetVersion}`
+    this.setData({
+      worksScrollResetVersion,
+      worksScrollAnchorId,
+      worksScrollTarget: worksScrollAnchorId,
     })
   },
 

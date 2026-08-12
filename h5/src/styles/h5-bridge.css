@@ -616,6 +616,7 @@
 }
 
 .mp-creation-preferences .custom__input,
+.mp-preference-settings .custom__input,
 .mp-preference-settings .custom-dialog-input {
   border: 0;
   outline: none;

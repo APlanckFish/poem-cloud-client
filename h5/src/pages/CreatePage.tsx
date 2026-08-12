@@ -348,11 +348,12 @@ export default function CreatePage() {
         classicalFormCode: selectedCategory === 'CLASSICAL' ? selectedForm : null,
         tunePatternCode: selectedCategory === 'CI' ? selectedTuneCode : null,
       }
+      const posterEnabled = storedPreferences.autoGeneratePoster !== false
       const run = await apiRequest<CreationRun>('/creation-runs', {
         method: 'POST',
         body: {
           prompt: prompt.trim(), assetIds, preferences, instruction: '',
-          poster: { enabled: true, variants: ['BACKGROUND', 'COMPOSED'] },
+          poster: { enabled: posterEnabled, variants: ['BACKGROUND', 'COMPOSED'] },
         },
         idempotencyKey: idempotencyKey('creation-run'),
       })

@@ -938,6 +938,7 @@ Page({
         assetIds: this.data.materials.map((material) => material.id),
         assetKinds: this.data.materials.map((material) => material.kind),
         preferences,
+        posterEnabled: this.data.preferenceAnswers.autoGeneratePoster?.[0] !== 'false',
         ...(this.data.editingWorkId
           ? {
               workId: this.data.editingWorkId,

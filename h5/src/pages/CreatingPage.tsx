@@ -648,7 +648,7 @@ export default function CreatingPage() {
     try {
       const response = await apiRequest<{ runId: string }>('/creation-runs', {
         method: 'POST',
-        body: { creationId: snapshot?.creationId, baseGenerationId: snapshot?.generationId, prompt: active?.prompt || '', assetIds: active?.assetIds || [], preferences: active?.preferences, instruction, poster: { enabled: true, variants: ['BACKGROUND', 'COMPOSED'] } },
+        body: { creationId: snapshot?.creationId, baseGenerationId: snapshot?.generationId, prompt: active?.prompt || '', assetIds: active?.assetIds || [], preferences: active?.preferences, instruction, poster: { enabled: active?.preferences?.autoGeneratePoster !== false, variants: ['BACKGROUND', 'COMPOSED'] } },
         idempotencyKey: idempotencyKey('recreate'),
       })
       setStoredJson(storageKeys.activeCreationRun, { ...active, runId: response.runId })

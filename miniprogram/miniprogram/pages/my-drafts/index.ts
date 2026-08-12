@@ -20,6 +20,7 @@ import {
   loadTunePatternNames,
   type TunePatternNames,
 } from '../../services/library'
+import { loadCreationPreferences } from '../../services/preferences'
 import { showErrorToast } from '../../utils/error'
 
 interface DraftCard {
@@ -365,6 +366,7 @@ Page({
     this.setData({ continuingDraftId: id })
     wx.showLoading({ title: '正在继续创作', mask: true })
     try {
+      const preferenceState = await loadCreationPreferences().catch(() => null)
       const run = await startCreationRun({
         prompt: work.prompt,
         assetIds: work.assetIds || [],
@@ -372,6 +374,8 @@ Page({
         preferences,
         workId: work.id,
         version: work.version,
+        posterEnabled:
+          preferenceState?.preference?.answers.autoGeneratePoster?.[0] !== 'false',
       })
       wx.navigateTo({
         url: `/pages/creating/index?runId=${encodeURIComponent(run.runId)}&fromDraft=1`,

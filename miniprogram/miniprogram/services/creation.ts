@@ -107,6 +107,8 @@ export interface ActiveCreationRun {
   assetIds: string[]
   assetKinds: Array<'IMAGE' | 'VIDEO'>
   preferences: CreationPreferences
+  /** 旧缓存可能没有该字段；缺省按开启处理。 */
+  posterEnabled?: boolean
   remainingQuota: number | null
   lastEventId: string
   queue: CreationQueueStatus | null
@@ -245,6 +247,7 @@ export async function startCreationRun(options: {
   version?: number
   baseGenerationId?: string
   instruction?: string
+  posterEnabled?: boolean
 }): Promise<ActiveCreationRun> {
   await ensureInstallation()
   const response = await request<CreationRunResponse>({
@@ -259,7 +262,7 @@ export async function startCreationRun(options: {
       preferences: options.preferences,
       instruction: options.instruction?.trim() ?? '',
       poster: {
-        enabled: true,
+        enabled: options.posterEnabled !== false,
         variants: ['BACKGROUND', 'COMPOSED'],
       },
     },
@@ -274,6 +277,7 @@ export async function startCreationRun(options: {
     assetIds: options.assetIds,
     assetKinds: options.assetKinds,
     preferences: options.preferences,
+    posterEnabled: options.posterEnabled !== false,
     remainingQuota: response.quota?.remaining ?? null,
     lastEventId: '0-0',
     queue: response.queue,
@@ -284,7 +288,9 @@ export async function startCreationRun(options: {
 
 export function getActiveCreationRun(): ActiveCreationRun | null {
   const value = wx.getStorageSync(STORAGE_KEYS.activeCreationRun)
-  return value && typeof value === 'object' ? value as ActiveCreationRun : null
+  return value && typeof value === 'object'
+    ? { ...value, posterEnabled: value.posterEnabled !== false } as ActiveCreationRun
+    : null
 }
 
 export function updateActiveCreationCursor(lastEventId: string): void {

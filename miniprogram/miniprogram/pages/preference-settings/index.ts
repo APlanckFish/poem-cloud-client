@@ -13,6 +13,7 @@ type SettingOption = PreferenceOption & {
 }
 
 type SwitchEvent = WechatMiniprogram.CustomEvent<{ value: boolean }>
+type ValueEvent = WechatMiniprogram.CustomEvent<{ value: string }>
 
 const POSTER_PREFERENCE_KEY = 'autoGeneratePoster'
 
@@ -62,6 +63,9 @@ Page({
     styleOptions: [] as SettingOption[],
     themeOptions: [] as SettingOption[],
     autoGeneratePoster: true,
+    customEditorKey: '',
+    customInput: '',
+    customPlaceholder: '',
   },
 
   onLoad() {
@@ -137,32 +141,35 @@ Page({
     const key = String(event.currentTarget.dataset.key)
     const question = this.data.questions.find((item) => item.key === key)
     if (!question?.allowCustom) return
-    wx.showModal({
-      title:
-        key === 'poets'
-          ? '添加喜欢的诗人'
-          : key === 'themes'
-            ? '添加喜欢的题材'
-            : '添加喜欢的风格',
-      editable: true,
-      placeholderText: question.customPlaceholder || '请输入自定义选项',
-      confirmText: '添加',
-      confirmColor: '#3f6758',
-      success: (result) => {
-        if (!result.confirm) return
-        const value = String(result.content ?? '').trim()
-        if (!value) return
-        const current = this.data.answers[key] ?? []
-        if (current.includes(value)) return
-        this.setData({
-          answers: {
-            ...this.data.answers,
-            [key]: [...current, value],
-          },
-        })
-        this.refreshOptions()
-      },
+    const opening = this.data.customEditorKey !== key
+    this.setData({
+      customEditorKey: opening ? key : '',
+      customInput: '',
+      customPlaceholder: question.customPlaceholder || '请输入自定义选项',
     })
+  },
+
+  handleCustomInput(event: ValueEvent) {
+    this.setData({ customInput: event.detail.value })
+  },
+
+  submitCustomOption() {
+    const key = this.data.customEditorKey
+    const value = this.data.customInput.trim()
+    if (!key || !value) return
+    const current = this.data.answers[key] ?? []
+    if (current.includes(value)) {
+      this.setData({ customInput: '' })
+      return
+    }
+    this.setData({
+      answers: {
+        ...this.data.answers,
+        [key]: [...current, value],
+      },
+      customInput: '',
+    })
+    this.refreshOptions()
   },
 
   toggleAutoPoster(event: SwitchEvent) {
