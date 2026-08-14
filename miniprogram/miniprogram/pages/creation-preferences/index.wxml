@@ -57,7 +57,7 @@
               class="custom__input"
               value="{{customInput}}"
               maxlength="40"
-              placeholder="{{currentQuestion.customPlaceholder || '输入其他选项'}}"
+              placeholder="{{currentQuestion.customPlaceholder || '输入其他选项'}}，可用逗号分隔"
               bindinput="handleCustomInput"
               bindconfirm="addCustomValue"
               confirm-type="done"

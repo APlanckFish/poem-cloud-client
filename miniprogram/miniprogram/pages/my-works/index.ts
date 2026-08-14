@@ -141,9 +141,7 @@ Page({
     isLoading: false,
     hasLoaded: false,
     isOperating: false,
-    worksScrollAnchorId: 'works-scroll-top-0',
     worksScrollTarget: '',
-    worksScrollResetVersion: 0,
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -232,14 +230,12 @@ Page({
   },
 
   resetWorksScroll() {
-    // scroll-into-view 对相同目标不会重复触发。每次生成新锚点，确保返回页面、刷新和切换
-    // Tab 时都真正回到列表顶部，不会让首张卡片停在固定 Tab 下方被裁掉。
-    const worksScrollResetVersion = this.data.worksScrollResetVersion + 1
-    const worksScrollAnchorId = `works-scroll-top-${worksScrollResetVersion}`
-    this.setData({
-      worksScrollResetVersion,
-      worksScrollAnchorId,
-      worksScrollTarget: worksScrollAnchorId,
+    // 微信原生 scroll-view 会忽略重复的 scroll-into-view，并且同一次 setData 中
+    // 动态创建锚点再定位存在渲染时序问题。先清空目标，下一帧再定位固定锚点。
+    this.setData({ worksScrollTarget: '' }, () => {
+      wx.nextTick(() => {
+        this.setData({ worksScrollTarget: 'works-scroll-top' })
+      })
     })
   },
 

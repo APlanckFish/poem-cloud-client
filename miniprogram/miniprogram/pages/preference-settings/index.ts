@@ -6,6 +6,7 @@ import {
   saveCreationPreferences,
 } from '../../services/preferences'
 import { showErrorToast } from '../../utils/error'
+import { parseCustomPreferenceValues } from '../../utils/preference-values'
 
 type SettingOption = PreferenceOption & {
   selected: boolean
@@ -155,17 +156,18 @@ Page({
 
   submitCustomOption() {
     const key = this.data.customEditorKey
-    const value = this.data.customInput.trim()
-    if (!key || !value) return
+    const values = parseCustomPreferenceValues(this.data.customInput)
+    if (!key || values.length === 0) return
     const current = this.data.answers[key] ?? []
-    if (current.includes(value)) {
-      this.setData({ customInput: '' })
+    const next = [...new Set([...current, ...values])]
+    if (next.length > 20) {
+      wx.showToast({ title: '最多选择 20 项', icon: 'none' })
       return
     }
     this.setData({
       answers: {
         ...this.data.answers,
-        [key]: [...current, value],
+        [key]: next,
       },
       customInput: '',
     })

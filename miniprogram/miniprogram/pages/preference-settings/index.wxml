@@ -77,7 +77,7 @@
         </view>
         <view wx:if="{{customEditorKey === 'poets'}}" class="custom">
           <view class="custom__row">
-            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}，可用逗号分隔" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
             <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
           </view>
         </view>
@@ -109,7 +109,7 @@
         </view>
         <view wx:if="{{customEditorKey === 'styles'}}" class="custom">
           <view class="custom__row">
-            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}，可用逗号分隔" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
             <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
           </view>
         </view>
@@ -141,7 +141,7 @@
         </view>
         <view wx:if="{{customEditorKey === 'themes'}}" class="custom">
           <view class="custom__row">
-            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
+            <input class="custom__input" value="{{customInput}}" maxlength="40" focus placeholder="{{customPlaceholder}}，可用逗号分隔" bindinput="handleCustomInput" bindconfirm="submitCustomOption" confirm-type="done" />
             <view class="custom__add" bindtap="submitCustomOption" hover-class="custom__add--pressed" aria-role="button">添加</view>
           </view>
         </view>

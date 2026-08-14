@@ -40,7 +40,7 @@
   scroll-into-view="{{worksScrollTarget}}"
   bindscrolltolower="loadMore"
 >
-  <view id="{{worksScrollAnchorId}}" class="works-scroll__anchor"></view>
+  <view id="works-scroll-top" class="works-scroll__anchor"></view>
   <view wx:if="{{visibleWorks.length > 0}}" class="works-list">
     <view
       wx:for="{{visibleWorks}}"
