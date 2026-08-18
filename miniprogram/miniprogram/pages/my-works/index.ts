@@ -13,10 +13,11 @@ import {
   publishLibraryWork,
   restoreLibraryWork,
   type TunePatternNames,
+  type WorkListFilter,
 } from '../../services/library'
 import { showErrorToast } from '../../utils/error'
 
-type WorkFilter = 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'HIDDEN'
+type WorkFilter = WorkListFilter
 type WorkState = Exclude<WorkFilter, 'ALL'> | 'REJECTED'
 
 interface WorkCard {
@@ -141,7 +142,6 @@ Page({
     isLoading: false,
     hasLoaded: false,
     isOperating: false,
-    worksScrollTarget: '',
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -159,9 +159,9 @@ Page({
   async loadWorks(reset = true) {
     if (
       this.data.isLoading
-      || (this.data.isViewingOther && !reset && !this.data.nextCursor)
+      || (!reset && !this.data.nextCursor)
     ) return
-    if (reset) this.resetWorksScroll()
+    const requestedFilter = this.data.activeFilter
     this.setData({ isLoading: true, loadError: '' })
     try {
       if (this.data.isViewingOther) {
@@ -193,55 +193,64 @@ Page({
         return
       }
       const [response, tunePatternNames] = await Promise.all([
-        loadMyWorks(),
-        loadTunePatternNames().catch(() => ({})),
+        loadMyWorks({
+          cursor: reset ? undefined : this.data.nextCursor || undefined,
+          filter: requestedFilter,
+        }),
+        Object.keys(this.data.tunePatternNames).length > 0
+          ? Promise.resolve(this.data.tunePatternNames)
+          : loadTunePatternNames().catch(() => ({})),
       ])
-      const allWorks = response.items.map((work, index) => (
-        toCard(work, index, tunePatternNames)
+      if (requestedFilter !== this.data.activeFilter) return
+      const offset = reset ? 0 : this.data.allWorks.length
+      const page = response.items.map((work, index) => (
+        toCard(work, offset + index, tunePatternNames)
       ))
-      this.setData({ allWorks, tunePatternNames, hasLoaded: true })
-      this.applyFilter(this.data.activeFilter, allWorks)
+      const allWorks = reset ? page : [...this.data.allWorks, ...page]
+      this.setData({
+        allWorks,
+        visibleWorks: allWorks,
+        nextCursor: response.nextCursor,
+        tunePatternNames,
+        hasLoaded: true,
+      })
     } catch (error) {
+      if (!this.data.isViewingOther && requestedFilter !== this.data.activeFilter) return
       const loadError = this.data.isViewingOther
         ? '暂时无法加载这位作者的作品'
         : '暂时无法加载作品'
       this.setData({ hasLoaded: true, loadError })
       showErrorToast(error, { fallback: `${loadError}，请稍后重试` })
     } finally {
-      this.setData({ isLoading: false })
+      this.setData({ isLoading: false }, () => {
+        if (!this.data.isViewingOther && requestedFilter !== this.data.activeFilter) {
+          void this.loadWorks(true)
+        }
+      })
     }
   },
 
   loadMore() {
-    if (this.data.isViewingOther) void this.loadWorks(false)
+    void this.loadWorks(false)
   },
 
   retryLoad() {
     void this.loadWorks(true)
   },
 
-  applyFilter(filter: WorkFilter, works?: WorkCard[]) {
-    const source = works || this.data.allWorks
+  selectFilter(event: WechatMiniprogram.TouchEvent) {
+    const filter = String(event.currentTarget.dataset.code) as WorkFilter
+    if (filter === this.data.activeFilter) return
     this.setData({
       activeFilter: filter,
-      visibleWorks:
-        filter === 'ALL' ? source : source.filter((work) => work.state === filter),
+      allWorks: [],
+      visibleWorks: [],
+      nextCursor: null,
+      hasLoaded: false,
+      loadError: '',
+    }, () => {
+      void this.loadWorks(true)
     })
-  },
-
-  resetWorksScroll() {
-    // 微信原生 scroll-view 会忽略重复的 scroll-into-view，并且同一次 setData 中
-    // 动态创建锚点再定位存在渲染时序问题。先清空目标，下一帧再定位固定锚点。
-    this.setData({ worksScrollTarget: '' }, () => {
-      wx.nextTick(() => {
-        this.setData({ worksScrollTarget: 'works-scroll-top' })
-      })
-    })
-  },
-
-  selectFilter(event: WechatMiniprogram.TouchEvent) {
-    this.resetWorksScroll()
-    this.applyFilter(String(event.currentTarget.dataset.code) as WorkFilter)
   },
 
   showModerationReason(event: WechatMiniprogram.TouchEvent) {

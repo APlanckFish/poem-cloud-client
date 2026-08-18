@@ -124,13 +124,6 @@
   background: #f6f4f2;
 }
 
-.works-scroll__anchor {
-  width: 1rpx;
-  height: 1rpx;
-  margin-bottom: -1rpx;
-  pointer-events: none;
-}
-
 .works-list {
   position: relative;
   min-height: 100%;
@@ -140,6 +133,7 @@
 
 .work-card {
   position: relative;
+  z-index: 1;
   display: flex;
   height: 282rpx;
   overflow: hidden;
@@ -283,6 +277,7 @@
 .mountain-wash {
   display: block;
   position: absolute;
+  z-index: 0;
   left: 0;
   right: 0;
   bottom: 0;

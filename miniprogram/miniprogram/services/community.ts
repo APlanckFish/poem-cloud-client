@@ -174,7 +174,7 @@ export function loadUserPublications(
   id: string,
   cursor?: string,
 ): Promise<UserPublicationsResponse> {
-  const query = `limit=30${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+  const query = `limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
   return request<UserPublicationsResponse>({
     path: `/users/${encodeURIComponent(id)}/publications?${query}`,
   })
@@ -189,7 +189,7 @@ export function loadCommunityFeed(
   } = {},
 ): Promise<FeedResponse> {
   const query = [
-    'limit=30',
+    'limit=16',
     ...(options.category ? [`category=${encodeURIComponent(options.category)}`] : []),
     ...(options.classicalFormCode
       ? [`classicalFormCode=${encodeURIComponent(options.classicalFormCode)}`]

@@ -45,15 +45,31 @@
   class="feed-scroll {{activeCategory === 'CLASSICAL' ? 'feed-scroll--classical' : ''}} {{activeCategory === 'CI' ? 'feed-scroll--ci' : ''}}"
   scroll-y
   enhanced
-  bounces="{{false}}"
-  refresher-enabled="{{false}}"
+  bounces="{{true}}"
+  refresher-enabled
+  refresher-triggered="{{isRefreshing}}"
+  refresher-threshold="56"
+  refresher-default-style="none"
+  refresher-background="#f8f7f2"
   show-scrollbar="{{false}}"
   lower-threshold="180"
+  bindrefresherrefresh="handlePullRefresh"
   bindscrolltolower="loadMore"
 >
+  <view slot="refresher" class="feed-refresher" aria-role="status" aria-label="{{isRefreshing ? '正在刷新诗词圈' : '下拉刷新诗词圈'}}">
+    <view class="feed-refresher__content">
+      <image
+        class="feed-refresher__icon {{isRefreshing ? 'feed-refresher__icon--loading' : ''}}"
+        src="{{isRefreshing ? '/assets/icons/community-refreshing.svg' : '/assets/icons/community-pull-refresh.svg'}}"
+        mode="aspectFit"
+      ></image>
+      <text class="feed-refresher__text">{{isRefreshing ? '正在刷新' : '下拉刷新'}}</text>
+    </view>
+  </view>
+
   <view class="feed-shell">
     <view class="feed-column">
-      <view wx:for="{{leftColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
+      <view wx:for="{{leftColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" data-card-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
         <image class="poem-cover" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
         <view class="poem-card__body">
           <view class="poem-card__heading">
@@ -79,7 +95,7 @@
     </view>
 
     <view class="feed-column">
-      <view wx:for="{{rightColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
+      <view wx:for="{{rightColumn}}" wx:key="id" class="poem-card" aria-role="button" aria-label="查看作品《{{item.title}}》" data-id="{{item.id}}" data-card-id="{{item.id}}" bindtap="openPoem" hover-class="poem-card--pressed">
         <image class="poem-cover poem-cover--right" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
         <view class="poem-card__body">
           <view class="poem-card__heading">

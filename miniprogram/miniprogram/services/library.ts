@@ -61,6 +61,8 @@ interface ListResponse<T> {
   nextCursor: string | null
 }
 
+export type WorkListFilter = 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'HIDDEN'
+
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
   WUYAN_JUEJU: '五言绝句',
   QIYAN_JUEJU: '七言绝句',
@@ -116,9 +118,17 @@ function idempotencyKey(action: string): string {
   return `${action}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
-export function loadMyWorks(): Promise<ListResponse<LibraryWork>> {
+export function loadMyWorks(options: {
+  cursor?: string
+  filter?: WorkListFilter
+} = {}): Promise<ListResponse<LibraryWork>> {
+  const query = [
+    'limit=10',
+    `filter=${encodeURIComponent(options.filter ?? 'ALL')}`,
+    ...(options.cursor ? [`cursor=${encodeURIComponent(options.cursor)}`] : []),
+  ].join('&')
   return request<ListResponse<LibraryWork>>({
-    path: '/me/works?limit=50',
+    path: `/me/works?${query}`,
   })
 }
 

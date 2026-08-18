@@ -31,6 +31,13 @@ interface ValueChangeEvent {
   }
 }
 
+interface MeasuredCardRect {
+  height: number
+  dataset?: {
+    cardId?: string
+  }
+}
+
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
   WUYAN_JUEJU: '五言绝句',
   QIYAN_JUEJU: '七言绝句',
@@ -38,6 +45,13 @@ const CLASSICAL_FORM_NAMES: Record<string, string> = {
   QIYAN_LVSHI: '七言律诗',
   DAYOU_SHI: '打油诗',
 }
+
+const measuredCardHeights = new Map<string, number>()
+const CARD_COLUMN_GAP_RPX = 16
+const CARD_FIXED_HEIGHT_RPX = 456
+const EXCERPT_LINE_HEIGHT_RPX = 39.2
+const EXCERPT_MAX_LINES = 4
+const EXCERPT_UNITS_PER_LINE = 13
 
 function categoryName(publication: CommunityPublication): string {
   if (publication.category === 'CLASSICAL') {
@@ -85,14 +99,57 @@ function toCard(publication: CommunityPublication): PoemCard {
   }
 }
 
-function splitColumns(poems: PoemCard[]): { left: PoemCard[]; right: PoemCard[] } {
-  return poems.reduce(
-    (columns, poem, index) => {
-      columns[index % 2 === 0 ? 'left' : 'right'].push(poem)
-      return columns
-    },
-    { left: [] as PoemCard[], right: [] as PoemCard[] },
+function shuffleItems<T>(items: T[]): T[] {
+  const shuffled = [...items]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    const current = shuffled[index]
+    shuffled[index] = shuffled[target] as T
+    shuffled[target] = current as T
+  }
+  return shuffled
+}
+
+function excerptDisplayUnits(value: string): number {
+  return Array.from(value).reduce((units, character) => {
+    if (/\s/.test(character)) return units + 0.45
+    if (character.charCodeAt(0) <= 0xff) return units + 0.58
+    return units + 1
+  }, 0)
+}
+
+function estimateCardHeightRpx(poem: PoemCard): number {
+  const excerptLines = Math.min(
+    EXCERPT_MAX_LINES,
+    Math.max(1, Math.ceil(excerptDisplayUnits(poem.excerpt) / EXCERPT_UNITS_PER_LINE)),
   )
+  return CARD_FIXED_HEIGHT_RPX + excerptLines * EXCERPT_LINE_HEIGHT_RPX
+}
+
+function currentRpxScale(): number {
+  return wx.getSystemInfoSync().windowWidth / 750
+}
+
+function splitColumns(poems: PoemCard[]): { left: PoemCard[]; right: PoemCard[] } {
+  const scale = currentRpxScale()
+  const gap = CARD_COLUMN_GAP_RPX * scale
+  const columns = { left: [] as PoemCard[], right: [] as PoemCard[] }
+  let leftHeight = 0
+  let rightHeight = 0
+
+  poems.forEach((poem) => {
+    const cardHeight =
+      measuredCardHeights.get(poem.id) ?? estimateCardHeightRpx(poem) * scale
+    if (leftHeight <= rightHeight) {
+      columns.left.push(poem)
+      leftHeight += cardHeight + gap
+      return
+    }
+    columns.right.push(poem)
+    rightHeight += cardHeight + gap
+  })
+
+  return columns
 }
 
 Page({
@@ -105,6 +162,7 @@ Page({
     tuneSearch: '',
     showTunePicker: false,
     isLoading: false,
+    isRefreshing: false,
     hasLoaded: false,
     tabs: [
       { code: 'ALL', name: '全部' },
@@ -144,6 +202,47 @@ Page({
       .catch(() => undefined)
   },
 
+  measureAndBalanceColumns(poems: PoemCard[]): Promise<void> {
+    if (poems.length < 2) return Promise.resolve()
+
+    return new Promise((resolve) => {
+      wx.nextTick(() => {
+        wx.createSelectorQuery()
+          .in(this)
+          .selectAll('.poem-card')
+          .boundingClientRect((result) => {
+            const rects = (
+              Array.isArray(result) ? result : result ? [result] : []
+            ) as MeasuredCardRect[]
+            rects.forEach((rect) => {
+              const cardId = rect.dataset?.cardId
+              if (cardId && rect.height > 0) {
+                measuredCardHeights.set(cardId, rect.height)
+              }
+            })
+
+            const isCurrentFeed =
+              this.data.poems.length === poems.length &&
+              poems.every((poem, index) => this.data.poems[index]?.id === poem.id)
+            if (!isCurrentFeed) {
+              resolve()
+              return
+            }
+
+            const columns = splitColumns(poems)
+            this.setData(
+              {
+                leftColumn: columns.left,
+                rightColumn: columns.right,
+              },
+              () => resolve(),
+            )
+          })
+          .exec()
+      })
+    })
+  },
+
   onShow() {
     const tabBar = this.getTabBar()
     if (tabBar) {
@@ -172,7 +271,7 @@ Page({
           : {}),
         ...(append && this.data.nextCursor ? { cursor: this.data.nextCursor } : {}),
       })
-      const incoming = feed.items.map(toCard)
+      const incoming = shuffleItems(feed.items).map(toCard)
       const poems = append
         ? [
             ...this.data.poems,
@@ -189,6 +288,7 @@ Page({
         nextCursor: feed.nextCursor,
         hasLoaded: true,
       })
+      await this.measureAndBalanceColumns(poems)
     } catch (error) {
       if (showError || !this.data.hasLoaded) {
         showErrorToast(error, { fallback: '诗词圈加载失败' })
@@ -197,6 +297,19 @@ Page({
     } finally {
       this.setData({ isLoading: false })
     }
+  },
+
+  handlePullRefresh() {
+    if (this.data.isRefreshing) return
+    if (this.data.isLoading) {
+      this.setData({ isRefreshing: false })
+      return
+    }
+
+    this.setData({ isRefreshing: true })
+    void this.refreshFeed(true, false).finally(() => {
+      this.setData({ isRefreshing: false })
+    })
   },
 
   selectCategory(event: WechatMiniprogram.TouchEvent) {
