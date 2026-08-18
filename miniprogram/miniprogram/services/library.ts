@@ -42,6 +42,7 @@ export interface LibraryWork {
   createdAt: string
   updatedAt: string
   assetIds?: string[]
+  defaultCoverUrl?: string
   assets?: Array<{
     id?: string
     kind: 'IMAGE' | 'VIDEO'

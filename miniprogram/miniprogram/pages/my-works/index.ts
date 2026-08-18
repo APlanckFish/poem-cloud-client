@@ -94,7 +94,7 @@ function toCard(work: LibraryWork, index: number, tunePatternNames: TunePatternN
     title: work.title?.trim() || '未命名作品',
     description: describeWorkType(work, tunePatternNames),
     date: formatDate(work.latestActivityAt || work.updatedAt),
-    cover: materialCover || COVERS[index % COVERS.length],
+    cover: materialCover || work.defaultCoverUrl || COVERS[index % COVERS.length],
     ...workState(work),
   }
 }
