@@ -1,11 +1,11 @@
-<view class="tab-bar">
+<view class="tab-bar {{skylineMode ? 'tab-bar--skyline' : ''}}" catchtap="preventTouch">
   <view
     wx:for="{{list}}"
     wx:key="pagePath"
     class="tab-item {{selected === index ? 'tab-item--active' : ''}}"
     data-index="{{index}}"
     data-path="{{item.pagePath}}"
-    bindtap="switchTab"
+    catchtap="switchTab"
     hover-class="tab-item--pressed"
     aria-role="button"
     aria-label="{{item.text}}"

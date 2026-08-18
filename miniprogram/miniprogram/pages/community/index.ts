@@ -31,12 +31,30 @@ interface ValueChangeEvent {
   }
 }
 
-interface MeasuredCardRect {
-  height: number
-  dataset?: {
-    cardId?: string
+interface FeedScrollEvent {
+  detail: {
+    scrollTop: number
   }
 }
+
+interface CommunityScrollViewContext {
+  triggerRefresh(options?: { duration?: number }): void
+  closeRefresh(): void
+  scrollTo(options: {
+    top?: number
+    left?: number
+    duration?: number
+    animated?: boolean
+  }): void
+}
+
+interface TabBarInstance {
+  setData(data: { selected: number; skylineMode: boolean }): void
+}
+
+type GetTabBar = (
+  callback?: (tabBar: TabBarInstance) => void,
+) => TabBarInstance | undefined
 
 const CLASSICAL_FORM_NAMES: Record<string, string> = {
   WUYAN_JUEJU: '五言绝句',
@@ -46,12 +64,10 @@ const CLASSICAL_FORM_NAMES: Record<string, string> = {
   DAYOU_SHI: '打油诗',
 }
 
-const measuredCardHeights = new Map<string, number>()
-const CARD_COLUMN_GAP_RPX = 16
-const CARD_FIXED_HEIGHT_RPX = 456
-const EXCERPT_LINE_HEIGHT_RPX = 39.2
-const EXCERPT_MAX_LINES = 4
-const EXCERPT_UNITS_PER_LINE = 13
+const TOP_REFRESH_THRESHOLD_PX = 12
+const REFRESH_REVEAL_DURATION_MS = 280
+let communityScrollTop = 0
+let communityScrollContext: CommunityScrollViewContext | null = null
 
 function categoryName(publication: CommunityPublication): string {
   if (publication.category === 'CLASSICAL') {
@@ -110,46 +126,29 @@ function shuffleItems<T>(items: T[]): T[] {
   return shuffled
 }
 
-function excerptDisplayUnits(value: string): number {
-  return Array.from(value).reduce((units, character) => {
-    if (/\s/.test(character)) return units + 0.45
-    if (character.charCodeAt(0) <= 0xff) return units + 0.58
-    return units + 1
-  }, 0)
-}
-
-function estimateCardHeightRpx(poem: PoemCard): number {
-  const excerptLines = Math.min(
-    EXCERPT_MAX_LINES,
-    Math.max(1, Math.ceil(excerptDisplayUnits(poem.excerpt) / EXCERPT_UNITS_PER_LINE)),
-  )
-  return CARD_FIXED_HEIGHT_RPX + excerptLines * EXCERPT_LINE_HEIGHT_RPX
-}
-
-function currentRpxScale(): number {
-  return wx.getSystemInfoSync().windowWidth / 750
-}
-
-function splitColumns(poems: PoemCard[]): { left: PoemCard[]; right: PoemCard[] } {
-  const scale = currentRpxScale()
-  const gap = CARD_COLUMN_GAP_RPX * scale
-  const columns = { left: [] as PoemCard[], right: [] as PoemCard[] }
-  let leftHeight = 0
-  let rightHeight = 0
-
-  poems.forEach((poem) => {
-    const cardHeight =
-      measuredCardHeights.get(poem.id) ?? estimateCardHeightRpx(poem) * scale
-    if (leftHeight <= rightHeight) {
-      columns.left.push(poem)
-      leftHeight += cardHeight + gap
-      return
-    }
-    columns.right.push(poem)
-    rightHeight += cardHeight + gap
-  })
-
-  return columns
+function gridGapsForWindow(): {
+  gridCrossAxisGap: number
+  gridMainAxisGap: number
+  gridPadding: number[]
+} {
+  const windowInfo = wx.getSystemInfoSync()
+  const windowWidth = windowInfo.windowWidth
+  const crossAxisGapRpx = windowWidth >= 430 ? 18 : 14
+  const horizontalPaddingRpx = windowWidth >= 430 ? 28 : 24
+  const toPx = (rpx: number) => Number(((rpx * windowWidth) / 750).toFixed(2))
+  const safeAreaBottom = windowInfo.safeArea
+    ? Math.max(0, windowInfo.screenHeight - windowInfo.safeArea.bottom)
+    : 0
+  return {
+    gridCrossAxisGap: toPx(crossAxisGapRpx),
+    gridMainAxisGap: toPx(16),
+    gridPadding: [
+      toPx(18),
+      toPx(horizontalPaddingRpx),
+      toPx(142) + safeAreaBottom,
+      toPx(horizontalPaddingRpx),
+    ],
+  }
 }
 
 Page({
@@ -164,6 +163,7 @@ Page({
     isLoading: false,
     isRefreshing: false,
     hasLoaded: false,
+    hasAppeared: false,
     tabs: [
       { code: 'ALL', name: '全部' },
       { code: 'CLASSICAL', name: '古体诗' },
@@ -181,12 +181,13 @@ Page({
     tunePatterns: [{ code: 'ALL', name: '全部词牌', aliases: [] }] as TunePatternItem[],
     visibleTunePatterns: [{ code: 'ALL', name: '全部词牌', aliases: [] }] as TunePatternItem[],
     poems: [] as PoemCard[],
-    leftColumn: [] as PoemCard[],
-    rightColumn: [] as PoemCard[],
     nextCursor: null as string | null,
+    ...gridGapsForWindow(),
   },
 
   onLoad() {
+    communityScrollTop = 0
+    communityScrollContext = null
     void loadPoemTaxonomies()
       .then((taxonomies) => {
         const ci = taxonomies.categories.find((category) => category.code === 'CI')
@@ -202,54 +203,37 @@ Page({
       .catch(() => undefined)
   },
 
-  measureAndBalanceColumns(poems: PoemCard[]): Promise<void> {
-    if (poems.length < 2) return Promise.resolve()
+  onShow() {
+    const selectCommunityTab = (tabBar: TabBarInstance) => {
+      tabBar.setData({ selected: 1, skylineMode: true })
+    }
+    const getTabBar = this.getTabBar as unknown as GetTabBar
+    const tabBar = getTabBar.call(this, selectCommunityTab)
+    if (tabBar) {
+      selectCommunityTab(tabBar)
+    }
 
-    return new Promise((resolve) => {
-      wx.nextTick(() => {
-        wx.createSelectorQuery()
-          .in(this)
-          .selectAll('.poem-card')
-          .boundingClientRect((result) => {
-            const rects = (
-              Array.isArray(result) ? result : result ? [result] : []
-            ) as MeasuredCardRect[]
-            rects.forEach((rect) => {
-              const cardId = rect.dataset?.cardId
-              if (cardId && rect.height > 0) {
-                measuredCardHeights.set(cardId, rect.height)
-              }
-            })
+    if (!this.data.hasAppeared) {
+      this.setData({ hasAppeared: true })
+      consumeCommunityRefresh()
+      void this.refreshFeed(false, false)
+      return
+    }
 
-            const isCurrentFeed =
-              this.data.poems.length === poems.length &&
-              poems.every((poem, index) => this.data.poems[index]?.id === poem.id)
-            if (!isCurrentFeed) {
-              resolve()
-              return
-            }
-
-            const columns = splitColumns(poems)
-            this.setData(
-              {
-                leftColumn: columns.left,
-                rightColumn: columns.right,
-              },
-              () => resolve(),
-            )
-          })
-          .exec()
-      })
+    if (communityScrollTop > TOP_REFRESH_THRESHOLD_PX) return
+    consumeCommunityRefresh()
+    wx.nextTick(() => {
+      void this.refreshFeedWithIndicator(false, true)
     })
   },
 
-  onShow() {
-    const tabBar = this.getTabBar()
-    if (tabBar) {
-      tabBar.setData({ selected: 1 })
-    }
-    consumeCommunityRefresh()
-    void this.refreshFeed(false, false)
+  onUnload() {
+    communityScrollTop = 0
+    communityScrollContext = null
+  },
+
+  onResize() {
+    this.setData(gridGapsForWindow())
   },
 
   async refreshFeed(showError: boolean, append: boolean) {
@@ -280,15 +264,11 @@ Page({
             ),
           ]
         : incoming
-      const columns = splitColumns(poems)
       this.setData({
         poems,
-        leftColumn: columns.left,
-        rightColumn: columns.right,
         nextCursor: feed.nextCursor,
         hasLoaded: true,
       })
-      await this.measureAndBalanceColumns(poems)
     } catch (error) {
       if (showError || !this.data.hasLoaded) {
         showErrorToast(error, { fallback: '诗词圈加载失败' })
@@ -299,16 +279,53 @@ Page({
     }
   },
 
-  handlePullRefresh() {
-    if (this.data.isRefreshing) return
-    if (this.data.isLoading) {
-      this.setData({ isRefreshing: false })
-      return
-    }
+  getFeedScrollContext(): Promise<CommunityScrollViewContext | null> {
+    if (communityScrollContext) return Promise.resolve(communityScrollContext)
+    return new Promise((resolve) => {
+      wx.createSelectorQuery()
+        .in(this)
+        .select('#community-feed-scroll')
+        .node((result) => {
+          const node = result?.node as unknown as CommunityScrollViewContext | undefined
+          communityScrollContext = node || null
+          resolve(communityScrollContext)
+        })
+        .exec()
+    })
+  },
 
+  async refreshFeedWithIndicator(showError: boolean, reveal = false) {
+    if (this.data.isRefreshing || this.data.isLoading) return
     this.setData({ isRefreshing: true })
-    void this.refreshFeed(true, false).finally(() => {
+    const scrollContext = await this.getFeedScrollContext()
+    if (reveal) {
+      scrollContext?.triggerRefresh({ duration: REFRESH_REVEAL_DURATION_MS })
+      await new Promise<void>((resolve) =>
+        setTimeout(resolve, REFRESH_REVEAL_DURATION_MS),
+      )
+    }
+    try {
+      await this.refreshFeed(showError, false)
+    } finally {
+      scrollContext?.closeRefresh()
       this.setData({ isRefreshing: false })
+    }
+  },
+
+  handlePullRefresh() {
+    void this.refreshFeedWithIndicator(true)
+  },
+
+  handleFeedScroll(event: FeedScrollEvent) {
+    communityScrollTop = Math.max(0, Number(event.detail.scrollTop) || 0)
+  },
+
+  async handleCommunityTabRetap() {
+    const scrollContext = await this.getFeedScrollContext()
+    scrollContext?.scrollTo({
+      top: 0,
+      duration: 300,
+      animated: true,
     })
   },
 
@@ -323,8 +340,6 @@ Page({
       selectedTuneName: '全部词牌',
       tuneSearch: '',
       poems: [],
-      leftColumn: [],
-      rightColumn: [],
       nextCursor: null,
       hasLoaded: false,
     })
@@ -337,8 +352,6 @@ Page({
     this.setData({
       activeClassicalForm: code,
       poems: [],
-      leftColumn: [],
-      rightColumn: [],
       nextCursor: null,
       hasLoaded: false,
     })
@@ -395,8 +408,6 @@ Page({
       selectedTuneName: selectedTune?.name || '全部词牌',
       showTunePicker: false,
       poems: [],
-      leftColumn: [],
-      rightColumn: [],
       nextCursor: null,
       hasLoaded: false,
     })

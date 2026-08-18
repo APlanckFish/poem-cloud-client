@@ -285,6 +285,10 @@
     0 1.3333333333333333cqw 3.7333333333333334cqw rgba(28, 22, 12, 0.16);
 }
 
+.quota-card--bonus-full {
+  height: 23.733333333333334cqw;
+}
+
 .quota-card--black-gold::before {
   position: absolute;
   z-index: 0;
@@ -455,11 +459,34 @@
   justify-content: center;
 }
 
+.quota-card--bonus-full .quota-copy {
+  height: 18.133333333333333cqw;
+}
+
 .quota-label {
   color: #315f4d;
   font-family: "Songti SC", "STSong", "SimSun", serif;
   font-size: 3.6cqw;
   letter-spacing: 0.26666666666666666cqw;
+  line-height: 1.2;
+}
+
+.quota-heading {
+  display: flex;
+  align-items: center;
+  gap: 1.8666666666666667cqw;
+}
+
+.quota-bonus {
+  padding: 0.5333333333333333cqw 1.3333333333333333cqw 0.4cqw;
+  border: 0.13333333333333333cqw solid rgba(63, 103, 88, 0.2);
+  border-radius: 133.2cqw;
+  background: rgba(255, 255, 255, 0.36);
+  color: #557467;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 2.4cqw;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
@@ -485,6 +512,16 @@
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
   font-size: 3.2cqw;
   line-height: 1;
+}
+
+.quota-bonus-full {
+  margin-top: 0.8cqw;
+  color: rgba(70, 103, 90, 0.72);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 2.4cqw;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .quota-meter {

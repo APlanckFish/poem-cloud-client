@@ -5,10 +5,15 @@
   bottom: 0;
   left: 0;
   display: flex;
+  pointer-events: auto;
   height: calc(108rpx + env(safe-area-inset-bottom));
   padding: 9rpx 48rpx env(safe-area-inset-bottom);
   border-top: 1rpx solid rgba(32, 40, 36, 0.1);
   background: rgba(255, 255, 252, 0.985);
+}
+
+.tab-bar--skyline {
+  position: absolute;
 }
 
 .tab-item {
@@ -17,7 +22,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
   color: #6f7571;
 }
 
@@ -34,6 +38,7 @@
 }
 
 .tab-label {
+  margin-top: 4rpx;
   font-family: "Songti SC", "STSong", "SimSun", serif;
   font-size: 24rpx;
   line-height: 1.2;

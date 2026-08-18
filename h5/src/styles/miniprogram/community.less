@@ -31,7 +31,7 @@
   font-weight: 600;
 }
 
-.category-tab--active::after {
+.category-tab__indicator {
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -40,7 +40,6 @@
   transform: translateX(-50%);
   border-radius: 133.2cqw;
   background: #22644e;
-  content: "";
 }
 
 .feed-scroll {
@@ -58,6 +57,55 @@
   height: 0;
 }
 
+.feed-refresher {
+  display: flex;
+  width: 100vw;
+  height: 13.866666666666667cqw;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #78817c;
+}
+
+.feed-refresher__content {
+  display: flex;
+  width: 26.133333333333333cqw;
+  height: 7.466666666666667cqw;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2.4cqw;
+  border: 0.13333333333333333cqw solid rgba(73, 112, 96, 0.12);
+  border-radius: 133.2cqw;
+  background: rgba(255, 254, 250, 0.86);
+  box-shadow: 0 0.6666666666666666cqw 2.1333333333333333cqw rgba(45, 73, 61, 0.055);
+}
+
+.feed-refresher__icon {
+  display: block;
+  width: 4.266666666666667cqw;
+  height: 4.266666666666667cqw;
+  flex: none;
+}
+
+.feed-refresher__icon--loading {
+  animation: feed-refresh-spin 0.86s linear infinite;
+}
+
+.feed-refresher__text {
+  margin-left: 1.6cqw;
+  color: #697570;
+  font-size: 2.933333333333333cqw;
+  font-weight: 400;
+  letter-spacing: 0.13333333333333333cqw;
+  line-height: 1;
+}
+
+@keyframes feed-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .subfilter-scroll {
   height: 16cqw;
   flex: none;
@@ -66,11 +114,10 @@
 }
 
 .subfilter-row {
-  display: inline-flex;
+  display: flex;
   min-width: 100%;
   height: 16cqw;
   align-items: center;
-  gap: 1.8666666666666667cqw;
   padding: 0 4cqw;
   box-sizing: border-box;
 }
@@ -79,6 +126,7 @@
   flex: none;
   min-width: 13.6cqw;
   height: 6.933333333333334cqw;
+  margin-right: 1.8666666666666667cqw;
   padding: 0 2.4cqw;
   border: 0.13333333333333333cqw solid #b7c9c0;
   border-radius: 133.2cqw;
@@ -128,21 +176,12 @@
   margin-left: auto;
 }
 
-.feed-shell {
-  position: relative;
-  display: flex;
+.feed-grid {
+  display: block;
+  width: 100%;
   min-height: 100%;
-  align-items: flex-start;
-  gap: 1.8666666666666667cqw;
   padding: 2.4cqw 3.2cqw calc(18.933333333333334cqw + env(safe-area-inset-bottom));
-}
-
-.feed-column {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2.1333333333333333cqw;
+  box-sizing: border-box;
 }
 
 .poem-card {
@@ -165,10 +204,6 @@
   background: #dbe5e0;
 }
 
-.poem-cover--right {
-  height: 42.666666666666664cqw;
-}
-
 .poem-card__body {
   padding: 2.2666666666666666cqw 2.4cqw 2.4cqw;
 }
@@ -177,7 +212,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.0666666666666667cqw;
 }
 
 .poem-title {
@@ -193,6 +227,7 @@
 
 .poem-tag {
   flex: none;
+  margin-left: 1.0666666666666667cqw;
   padding: 0.5333333333333333cqw 1.3333333333333333cqw;
   border-radius: 133.2cqw;
   background: #edf2ee;
@@ -201,16 +236,13 @@
 }
 
 .poem-excerpt {
-  display: -webkit-box;
+  display: block;
   overflow: hidden;
-  min-height: 16.8cqw;
   margin-top: 1.7333333333333334cqw;
   color: #303b36;
   font-size: 2.933333333333333cqw;
   letter-spacing: 0.13333333333333333cqw;
   line-height: 1.78;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
 }
 
 .poem-meta {
@@ -333,7 +365,7 @@
   border-radius: 50%;
 }
 
-.tune-search__icon::after {
+.tune-search__icon-tail {
   position: absolute;
   right: -1.3333333333333333cqw;
   bottom: -0.9333333333333333cqw;
@@ -342,7 +374,6 @@
   transform: rotate(45deg);
   border-radius: 13.2cqw;
   background: #8b918e;
-  content: "";
 }
 
 .tune-search__input {
@@ -413,14 +444,14 @@
 }
 
 .empty-state {
-  position: absolute;
-  top: 24cqw;
-  right: 0;
-  left: 0;
   display: flex;
+  width: 100%;
+  min-height: 69.33333333333333cqw;
   flex-direction: column;
   align-items: center;
+  padding-top: 24cqw;
   color: #929995;
+  box-sizing: border-box;
 }
 
 .empty-title {
@@ -434,14 +465,12 @@
 }
 
 @media (min-width: 430px) {
-  .feed-shell {
-    gap: 2.4cqw;
+  .feed-grid {
     padding-right: 3.7333333333333334cqw;
     padding-left: 3.7333333333333334cqw;
   }
 
-  .poem-cover,
-  .poem-cover--right {
+  .poem-cover {
     height: 44.266666666666666cqw;
   }
 }

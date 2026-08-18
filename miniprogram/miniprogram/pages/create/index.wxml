@@ -97,7 +97,7 @@
         </view>
       </view>
 
-      <view class="selection-card {{selectedCategory === 'CI' ? 'selection-card--stacked' : ''}}">
+      <view class="selection-card">
         <view class="type-row">
           <text class="setting-label poem-display">诗词类型</text>
           <view class="category-selector">

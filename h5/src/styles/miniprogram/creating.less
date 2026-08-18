@@ -362,8 +362,35 @@
   color: #7b725f;
 }
 
-.stage-trace-row--live .stage-trace-mark {
-  animation: status-pulse 1.4s ease-in-out infinite;
+.stage-trace-live-mark {
+  position: relative;
+  width: 2.933333333333333cqw;
+  height: 5.333333333333333cqw;
+  flex: 0 0 2.933333333333333cqw;
+}
+
+.stage-trace-live-dot,
+.stage-trace-live-ring {
+  position: absolute;
+  top: 2.1333333333333333cqw;
+  left: 0.26666666666666666cqw;
+  width: 1.0666666666666667cqw;
+  height: 1.0666666666666667cqw;
+  border-radius: 133.2cqw;
+  transform: translateZ(0);
+  transform-origin: 50% 50%;
+}
+
+.stage-trace-live-dot {
+  z-index: 1;
+  background: #bb8d49;
+}
+
+.stage-trace-live-ring {
+  background: rgba(187, 141, 73, 0.3);
+  animation: stage-live-pulse 1.4s ease-out infinite;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .revision-list {
@@ -1037,6 +1064,19 @@
   }
 }
 
+@keyframes stage-live-pulse {
+  0% {
+    transform: translateZ(0) scale(1);
+    opacity: 0.42;
+  }
+
+  72%,
+  100% {
+    transform: translateZ(0) scale(2.8);
+    opacity: 0;
+  }
+}
+
 @keyframes queue-dot {
   0%,
   70%,
@@ -1078,6 +1118,7 @@
   .stage-trace,
   .result-paper__caret,
   .process-status__pulse,
+  .stage-trace-live-ring,
   .queue-notice__dot,
   .exit-draft-dialog,
   .profile-setup-dialog,

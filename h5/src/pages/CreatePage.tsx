@@ -433,7 +433,7 @@ export default function CreatePage() {
               </div>
             </div>
 
-            <div className={`selection-card ${selectedCategory === 'CI' ? 'selection-card--stacked' : ''}`}>
+            <div className="selection-card">
               <div className="type-row">
                 <span className="setting-label poem-display">诗词类型</span>
                 <div className="category-selector">
