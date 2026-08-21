@@ -10,7 +10,12 @@ type ImageAssetKind = 'IMAGE' | 'AVATAR'
 type AssetKind = ImageAssetKind | 'VIDEO'
 export type AssetPurpose = 'FEEDBACK'
 
-const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+const MAX_UPLOAD_BYTES = {
+  AVATAR: 10 * 1024 * 1024,
+  IMAGE: 20 * 1024 * 1024,
+  FEEDBACK_IMAGE: 10 * 1024 * 1024,
+  VIDEO: 50 * 1024 * 1024,
+} as const
 const MAX_VIDEO_DURATION_MS = 5_000
 
 interface UploadIntent {
@@ -205,8 +210,15 @@ async function uploadAsset(options: {
   metadata: UploadMetadata
   purpose?: AssetPurpose
 }): Promise<AssetResponse> {
-  if (options.size < 1 || options.size > MAX_UPLOAD_BYTES) {
-    throw new ApiError('素材文件不能超过200MB', 'FILE_TOO_LARGE')
+  const maximumSize =
+    options.purpose === 'FEEDBACK'
+      ? MAX_UPLOAD_BYTES.FEEDBACK_IMAGE
+      : MAX_UPLOAD_BYTES[options.kind]
+  if (options.size < 1 || options.size > maximumSize) {
+    throw new ApiError(
+      `该类文件不能超过${Math.round(maximumSize / 1024 / 1024)}MB`,
+      'FILE_TOO_LARGE',
+    )
   }
   await ensureInstallation()
   const intent = await request<UploadIntent>({

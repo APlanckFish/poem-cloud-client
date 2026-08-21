@@ -107,7 +107,7 @@ function confirmQuotaLogin(): Promise<boolean> {
   return new Promise((resolve) => {
     wx.showModal({
       title: '游客创作机会已用完',
-      content: '每位游客可以创作一次，登录后可继续创作。',
+      content: '当前游客额度已用完，登录后可按账号等级继续创作。',
       confirmText: '登录',
       confirmColor: '#3f6758',
       success: (result) => resolve(result.confirm),

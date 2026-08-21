@@ -11,13 +11,6 @@ interface SocialUser extends PublicUser {
   displayAvatarUrl: string
 }
 
-const FALLBACK_AVATARS = [
-  '/assets/images/cover-mountain.jpg',
-  '/assets/images/cover-ridge.jpg',
-  '/assets/images/cover-sunrise.jpg',
-  '/assets/images/cover-alley.jpg',
-]
-
 Page({
   data: {
     user: null as PoemCloudUser | null,
@@ -47,10 +40,9 @@ Page({
         user.id,
         reset ? undefined : this.data.nextCursor || undefined,
       )
-      const mappedItems = response.items.map((item, index) => ({
+      const mappedItems = response.items.map((item) => ({
         ...item,
-        displayAvatarUrl:
-          item.avatarUrl || FALLBACK_AVATARS[(this.data.items.length + index) % FALLBACK_AVATARS.length],
+        displayAvatarUrl: item.avatarUrl || '',
       }))
       const items = reset ? mappedItems : [...this.data.items, ...mappedItems]
       this.setData({ items, nextCursor: response.nextCursor, hasLoaded: true })

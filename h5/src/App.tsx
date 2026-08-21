@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AppFrame, LoadingState, RequireLogin } from './components/Layout'
-import { ensureInstallation } from './lib/api'
+import { ensureInstallation, setSessionInvalidHandler } from './lib/api'
 import { useAppStore } from './store/app'
 
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -23,11 +23,18 @@ function Protected({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const navigate = useNavigate()
   const restoreSession = useAppStore((state) => state.restoreSession)
+  const expireSession = useAppStore((state) => state.expireSession)
   useEffect(() => {
+    setSessionInvalidHandler(() => {
+      expireSession()
+      navigate('/profile', { replace: true })
+    })
     void ensureInstallation().catch(() => undefined)
     void restoreSession()
-  }, [restoreSession])
+    return () => setSessionInvalidHandler(null)
+  }, [expireSession, navigate, restoreSession])
 
   return (
     <AppFrame>

@@ -1,4 +1,4 @@
-import { ApiError, resolveApiUrl } from './api'
+import { ApiError, handleSessionInvalidStatus, resolveApiUrl } from './api'
 import { storageKeys } from './storage'
 
 export type BrowserSseEvent = {
@@ -62,6 +62,7 @@ export async function openBrowserSse(options: OpenSseOptions): Promise<void> {
     { headers, credentials: 'include', signal: options.signal },
   )
   if (!response.ok || !response.body) {
+    handleSessionInvalidStatus(response.status, accessToken)
     throw new ApiError(
       `事件流请求失败（${response.status}）`,
       'STREAM_FAILED',

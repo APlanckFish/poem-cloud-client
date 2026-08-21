@@ -182,7 +182,7 @@ Page({
         this.setData({
           author: {
             ...response.author,
-            displayAvatarUrl: response.author.avatarUrl || COVERS[0],
+            displayAvatarUrl: response.author.avatarUrl || '',
           },
           allWorks,
           visibleWorks: allWorks,

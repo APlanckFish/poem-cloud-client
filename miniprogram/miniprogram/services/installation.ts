@@ -34,7 +34,9 @@ export function ensureInstallation(): Promise<InstallationResponse> {
     method: 'POST',
     data: { installationKey },
     authenticated: false,
-    includeInstallation: false,
+    // Existing keys may only rotate their token after proving possession of the
+    // previous token. A brand-new installation naturally sends no header.
+    includeInstallation: true,
   })
     .then((installation) => {
       wx.setStorageSync(STORAGE_KEYS.installationId, installation.installationId)
@@ -49,12 +51,16 @@ export function ensureInstallation(): Promise<InstallationResponse> {
   return installationPromise
 }
 
-export function resetInstallation(options: { preserveKey?: boolean } = {}): void {
+export function resetInstallation(
+  options: { preserveKey?: boolean; preserveToken?: boolean } = {},
+): void {
   installationPromise = null
   activeInstallation = null
   if (!options.preserveKey) {
     wx.removeStorageSync(STORAGE_KEYS.installationKey)
   }
   wx.removeStorageSync(STORAGE_KEYS.installationId)
-  wx.removeStorageSync(STORAGE_KEYS.installationToken)
+  if (!options.preserveToken) {
+    wx.removeStorageSync(STORAGE_KEYS.installationToken)
+  }
 }

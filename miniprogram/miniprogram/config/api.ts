@@ -30,10 +30,6 @@ export function getMiniProgramEnvVersion(): MiniProgramEnvVersion {
   return 'release'
 }
 
-function resolveEnvBaseUrl(): string {
-  return API_BASE_URL_BY_ENV[getMiniProgramEnvVersion()]
-}
-
 export const DEFAULT_API_BASE_URL = API_BASE_URL_BY_ENV.develop
 
 export const STORAGE_KEYS = {
@@ -58,9 +54,14 @@ export const STORAGE_KEYS = {
 } as const
 
 export function getApiBaseUrl(): string {
-  const customBaseUrl = wx.getStorageSync(STORAGE_KEYS.apiBaseUrl)
-  if (typeof customBaseUrl === 'string' && customBaseUrl.length > 0) {
-    return customBaseUrl.replace(/\/$/, '')
+  const envVersion = getMiniProgramEnvVersion()
+  // A developer override must never survive into trial/release and receive
+  // production session or installation tokens.
+  if (envVersion === 'develop') {
+    const customBaseUrl = wx.getStorageSync(STORAGE_KEYS.apiBaseUrl)
+    if (typeof customBaseUrl === 'string' && customBaseUrl.length > 0) {
+      return customBaseUrl.replace(/\/$/, '')
+    }
   }
-  return resolveEnvBaseUrl().replace(/\/$/, '')
+  return API_BASE_URL_BY_ENV[envVersion].replace(/\/$/, '')
 }

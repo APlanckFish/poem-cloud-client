@@ -1,6 +1,11 @@
 import { getApiBaseUrl } from '../config/api'
 import { errorLogFields, reportRealtimeError } from '../utils/realtime-log'
-import { ApiError, createApiHeaders } from './api'
+import {
+  ApiError,
+  createApiHeaders,
+  currentAccessToken,
+  handleSessionInvalidStatus,
+} from './api'
 
 export interface SseEvent<T = Record<string, unknown>> {
   id: string
@@ -120,6 +125,7 @@ export function openSseStream(options: OpenSseOptions): SseSubscription {
   let aborted = false
   let statusCode = 0
   let requestId: string | null = null
+  const requestAccessToken = currentAccessToken()
   const reportStreamError = (error: ApiError): void => {
     reportRealtimeError('client.sse.stream_failed', {
       ...errorLogFields(error),
@@ -145,6 +151,7 @@ export function openSseStream(options: OpenSseOptions): SseSubscription {
     success(response: { statusCode: number }) {
       statusCode = response.statusCode
       if (!aborted && (statusCode < 200 || statusCode >= 300)) {
+        handleSessionInvalidStatus(statusCode, requestAccessToken)
         reportStreamError(
           new ApiError(
             `事件流请求失败（${statusCode}）`,

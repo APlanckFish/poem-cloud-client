@@ -12,6 +12,7 @@ interface AppState {
   clearToast: () => void
   setSession: (user: User, accessToken: string, expiresAt?: string) => void
   setUser: (user: User) => void
+  expireSession: () => void
   restoreSession: () => Promise<User | null>
   logout: () => Promise<void>
 }
@@ -36,6 +37,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setUser(user) {
     setStoredJson(storageKeys.currentUser, user)
     set({ user })
+  },
+  expireSession() {
+    localStorage.removeItem(storageKeys.accessToken)
+    localStorage.removeItem(storageKeys.tokenExpiresAt)
+    localStorage.removeItem(storageKeys.currentUser)
+    set({
+      user: null,
+      dashboard: null,
+      toast: '登录已失效，请重新登录',
+    })
   },
   async restoreSession() {
     if (!localStorage.getItem(storageKeys.accessToken)) return null

@@ -7,6 +7,7 @@
  *   pnpm mp:upload --robot 3
  */
 import {
+  assertReleaseApiConfigured,
   ci,
   createCompileSettings,
   createPreparedProject,
@@ -17,6 +18,7 @@ import {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
+  assertReleaseApiConfigured()
   const meta = resolveMeta(args)
   const prepared = createPreparedProject(meta.appid)
 

@@ -131,6 +131,7 @@ interface CreationRunResponse {
   quota: {
     consumed: number
     limit: number | null
+    reserved: number
     remaining: number | null
     unlimited: boolean
   }

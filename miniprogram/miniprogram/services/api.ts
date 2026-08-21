@@ -114,6 +114,48 @@ export function hasAccessToken(): boolean {
   return storedString(STORAGE_KEYS.accessToken) !== null
 }
 
+export function currentAccessToken(): string | null {
+  return storedString(STORAGE_KEYS.accessToken)
+}
+
+let invalidatedAccessToken: string | null = null
+
+export function handleSessionInvalidStatus(
+  statusCode: number,
+  requestAccessToken = currentAccessToken(),
+): void {
+  if (
+    statusCode !== 401 ||
+    !requestAccessToken ||
+    invalidatedAccessToken === requestAccessToken ||
+    currentAccessToken() !== requestAccessToken
+  ) {
+    return
+  }
+  invalidatedAccessToken = requestAccessToken
+  clearSessionStorage()
+  try {
+    getApp<IAppOption>().globalData.currentUser = null
+  } catch {
+    // The app instance can be unavailable during the earliest launch phase.
+  }
+  setTimeout(() => {
+    const showExpiredToast = () => {
+      wx.showToast({ title: '登录已失效，请重新登录', icon: 'none', duration: 2500 })
+    }
+    const pages = getCurrentPages()
+    const currentPage = pages[pages.length - 1]
+    if (currentPage?.route === 'pages/profile/index') {
+      showExpiredToast()
+      return
+    }
+    wx.switchTab({
+      url: '/pages/profile/index',
+      complete: showExpiredToast,
+    })
+  }, 0)
+}
+
 export function clearSessionStorage(): void {
   wx.removeStorageSync(STORAGE_KEYS.accessToken)
   wx.removeStorageSync(STORAGE_KEYS.tokenExpiresAt)
@@ -126,6 +168,7 @@ export function getUrlOrigin(url: string): string {
 }
 
 export function request<T>(options: RequestOptions): Promise<T> {
+  const requestAccessToken = currentAccessToken()
   const header = createApiHeaders(options)
   const url = `${getApiBaseUrl()}${options.path}`
 
@@ -177,6 +220,9 @@ export function request<T>(options: RequestOptions): Promise<T> {
           envelope.error?.details,
           envelope.requestId ?? null,
         )
+        if (options.authenticated !== false) {
+          handleSessionInvalidStatus(response.statusCode, requestAccessToken)
+        }
         reportRequestFailure(options, error)
         reject(error)
       },

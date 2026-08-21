@@ -137,6 +137,29 @@ export interface PreparedProject {
   cleanup: () => void
 }
 
+/** Prevent submitting a release build that still points at a sample backend. */
+export function assertReleaseApiConfigured(): void {
+  const source = fs.readFileSync(
+    path.join(PROJECT_ROOT, 'miniprogram/config/api.ts'),
+    'utf8',
+  )
+  const match = source.match(/release:\s*['"]([^'"]+)['"]/)
+  if (!match?.[1]) {
+    throw new Error('无法识别小程序 release API 地址，请检查 miniprogram/config/api.ts')
+  }
+  const url = new URL(match[1])
+  if (
+    url.protocol !== 'https:' ||
+    url.hostname.endsWith('.example.com') ||
+    url.hostname === 'example.invalid' ||
+    ['localhost', '127.0.0.1'].includes(url.hostname)
+  ) {
+    throw new Error(
+      `小程序 release API 仍是占位或非 HTTPS 地址：${match[1]}。请先配置正式域名再上传。`,
+    )
+  }
+}
+
 function getCompilerCacheDirectory(projectPath: string, workingDirectory: string): string {
   const directoryName = createHash('md5').update(`${projectPath}|summer`).digest('hex')
   return path.resolve(workingDirectory, directoryName)

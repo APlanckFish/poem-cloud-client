@@ -12,7 +12,7 @@
       ></image>
       <view class="hero-avatar">
         <image wx:if="{{user.avatarUrl}}" src="{{user.avatarUrl}}" mode="aspectFill"></image>
-        <image wx:else src="/assets/images/cover-ridge.jpg" mode="aspectFill"></image>
+        <text wx:else class="avatar-initial poem-display">{{user.nickname[0] || '诗'}}</text>
       </view>
       <view class="hero-copy">
         <view class="hero-number-line poem-display">
@@ -37,7 +37,8 @@
         aria-label="查看{{item.nickname}}的作品"
       >
         <view class="person-avatar">
-          <image src="{{item.displayAvatarUrl}}" mode="aspectFill"></image>
+          <image wx:if="{{item.displayAvatarUrl}}" src="{{item.displayAvatarUrl}}" mode="aspectFill"></image>
+          <text wx:else class="avatar-initial poem-display">{{item.nickname[0] || '诗'}}</text>
         </view>
         <view class="person-copy">
           <text class="person-name poem-display">{{item.nickname}}</text>

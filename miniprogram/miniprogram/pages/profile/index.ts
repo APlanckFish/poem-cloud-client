@@ -366,10 +366,12 @@ Page({
       this.clearUser()
       wx.hideLoading()
       wx.showToast({ title: '已退出登录', icon: 'none' })
+      void this.refreshGuestProfile()
     } catch (error) {
       this.clearUser()
       wx.hideLoading()
       showErrorToast(error, { fallback: '退出登录失败，请稍后重试' })
+      void this.refreshGuestProfile()
     }
   },
 })

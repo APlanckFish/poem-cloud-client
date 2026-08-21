@@ -147,6 +147,7 @@ Page({
     pendingDelete: null as DraftCard | null,
     isLoading: false,
     hasLoaded: false,
+    nextCursor: null as string | null,
     isDeleting: false,
     continuingDraftId: '',
   },
@@ -157,35 +158,41 @@ Page({
   },
 
   onShow() {
-    void this.loadDrafts()
+    void this.loadDrafts(true)
   },
 
-  async loadDrafts() {
-    if (this.data.isLoading) return
+  async loadDrafts(reset = true) {
+    if (this.data.isLoading || (!reset && !this.data.nextCursor)) return
     this.setData({ isLoading: true })
     try {
       const [response, tunePatternNames] = await Promise.all([
         hasAccessToken()
-          ? loadMyDrafts()
+          ? loadMyDrafts(reset ? undefined : this.data.nextCursor || undefined)
           : Promise.resolve({ items: [], nextCursor: null }),
         loadTunePatternNames().catch(() => ({})),
       ])
-      const localDrafts = getLocalCreationDrafts()
+      const localDrafts = reset ? getLocalCreationDrafts() : []
       const completedGenerationIds = new Set(localDrafts.map((draft) => draft.generationId))
-      const runDrafts = getSavedCreationRunDrafts().filter(
-        (draft) => !draft.creationId && !completedGenerationIds.has(draft.runId),
-      )
-      serverDrafts = new Map(response.items.map((work) => [work.id, work]))
+      const runDrafts = reset
+        ? getSavedCreationRunDrafts().filter(
+            (draft) => !draft.creationId && !completedGenerationIds.has(draft.runId),
+          )
+        : []
+      if (reset) serverDrafts = new Map()
+      response.items.forEach((work) => serverDrafts.set(work.id, work))
+      const localCards = [
+        ...runDrafts.map((draft, index) => toRunDraftCard(draft, index, tunePatternNames)),
+        ...localDrafts.map((draft, index) => (
+          toLocalCard(draft, index + runDrafts.length, tunePatternNames)
+        )),
+      ]
+      const remoteOffset = reset ? localCards.length : this.data.drafts.length
+      const remoteCards = response.items.map((work, index) => (
+        toCard(work, remoteOffset + index, tunePatternNames)
+      ))
       this.setData({
-        drafts: [
-          ...runDrafts.map((draft, index) => toRunDraftCard(draft, index, tunePatternNames)),
-          ...localDrafts.map((draft, index) => (
-            toLocalCard(draft, index + runDrafts.length, tunePatternNames)
-          )),
-          ...response.items.map((work, index) => (
-            toCard(work, index + runDrafts.length + localDrafts.length, tunePatternNames)
-          )),
-        ],
+        drafts: reset ? [...localCards, ...remoteCards] : [...this.data.drafts, ...remoteCards],
+        nextCursor: response.nextCursor,
         hasLoaded: true,
       })
     } catch (error) {
@@ -194,6 +201,10 @@ Page({
     } finally {
       this.setData({ isLoading: false })
     }
+  },
+
+  loadMore() {
+    void this.loadDrafts(false)
   },
 
   closeSwipes(exceptId = '') {

@@ -13,6 +13,7 @@ export interface User {
   avatarAssetId: string | null
   avatarUrl?: string | null
   level: number
+  membershipExpiresAt: string | null
   gender: 0 | 1 | 2
   registrationSource?: 'WEB' | 'MINIPROGRAM'
   phone?: string | null

@@ -12,6 +12,7 @@ interface BackendUser {
   signature: string
   avatarAssetId: string | null
   level: number
+  membershipExpiresAt: string | null
   gender: 0 | 1 | 2
   profileCompleted: boolean
   followerCount: number
@@ -243,7 +244,7 @@ export async function logout(): Promise<void> {
     clearSessionStorage()
     // Keep the device identity stable after logout so a guest quota cannot be
     // reset simply by signing out and receiving a new installation identity.
-    resetInstallation({ preserveKey: true })
+    resetInstallation({ preserveKey: true, preserveToken: true })
     getApp<IAppOption>().globalData.currentUser = null
     void ensureInstallation().catch(() => undefined)
   }

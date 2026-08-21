@@ -3,7 +3,8 @@
 
 <view wx:if="{{isViewingOther && author}}" class="author-profile">
   <view class="author-profile__avatar">
-    <image src="{{author.displayAvatarUrl}}" mode="aspectFill"></image>
+    <image wx:if="{{author.displayAvatarUrl}}" src="{{author.displayAvatarUrl}}" mode="aspectFill"></image>
+    <text wx:else class="author-profile__initial poem-display">{{author.nickname[0] || '诗'}}</text>
   </view>
   <view class="author-profile__copy">
     <text class="author-profile__name poem-display">{{author.nickname}}</text>

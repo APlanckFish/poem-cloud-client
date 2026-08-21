@@ -6,6 +6,7 @@ export interface QuotaResponse {
   bonusLimit: number
   limit: number | null
   used: number
+  reserved: number
   remaining: number | null
   unlimited: boolean
   resetsAt: string | null

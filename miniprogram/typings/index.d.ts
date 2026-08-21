@@ -7,6 +7,7 @@ interface PoemCloudUser {
   avatarAssetId: string | null
   avatarUrl: string | null
   level: number
+  membershipExpiresAt: string | null
   gender?: 0 | 1 | 2
   profileCompleted: boolean
   followerCount: number

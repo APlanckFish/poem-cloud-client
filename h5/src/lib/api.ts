@@ -51,6 +51,31 @@ function normalizeApiBaseUrl(value: string): string {
 export const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || '/api/v1')
 
 let installationPromise: Promise<void> | null = null
+let sessionInvalidHandler: (() => void) | null = null
+let invalidatedAccessToken: string | null = null
+
+export function setSessionInvalidHandler(handler: (() => void) | null): void {
+  sessionInvalidHandler = handler
+}
+
+export function handleSessionInvalidStatus(
+  statusCode: number,
+  accessToken: string | null,
+): void {
+  if (
+    statusCode !== 401 ||
+    !accessToken ||
+    invalidatedAccessToken === accessToken ||
+    localStorage.getItem(storageKeys.accessToken) !== accessToken
+  ) {
+    return
+  }
+  invalidatedAccessToken = accessToken
+  localStorage.removeItem(storageKeys.accessToken)
+  localStorage.removeItem(storageKeys.tokenExpiresAt)
+  localStorage.removeItem(storageKeys.currentUser)
+  sessionInvalidHandler?.()
+}
 
 export function resolveApiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path
@@ -87,11 +112,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> & ApiErrorEnvelope
   if (response.ok && payload && 'data' in payload) return payload.data
 
+  if (options.authenticated !== false) {
+    handleSessionInvalidStatus(response.status, token)
+  }
+
   const canRenewInstallation =
     response.status === 401 &&
     options.retryInstallation !== false &&
     options.includeInstallation !== false &&
-    !localStorage.getItem(storageKeys.accessToken) &&
+    !token &&
     Boolean(installationToken) &&
     !path.startsWith('/installations')
   if (canRenewInstallation) {
@@ -118,6 +147,8 @@ export function idempotencyKey(action: string): string {
 function clearInstallationSession(): void {
   localStorage.removeItem(storageKeys.installationId)
   localStorage.removeItem(storageKeys.installationToken)
+  // Without the previous token the existing key can no longer be rotated.
+  localStorage.removeItem(storageKeys.installationKey)
 }
 
 async function registerInstallation(): Promise<void> {

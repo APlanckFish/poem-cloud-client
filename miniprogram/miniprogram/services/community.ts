@@ -64,8 +64,6 @@ export function publicationShareEntryPath(code: string): string {
 export interface ShareOpenResult {
   publicationId: string
   rewardGranted: boolean
-  rewardCountToday: number
-  rewardLimitToday: number
 }
 
 export interface PublicationCreationJournalEntry {
@@ -133,6 +131,11 @@ export interface DeleteCommunityCommentResponse {
 function commentIdempotencyKey(): string {
   const random = Math.random().toString(36).slice(2, 12)
   return `comment-${Date.now().toString(36)}-${random}`
+}
+
+function shareIdempotencyKey(): string {
+  const random = Math.random().toString(36).slice(2, 12)
+  return `share-${Date.now().toString(36)}-${random}`
 }
 
 export interface PublicUser {
@@ -218,6 +221,7 @@ export function createPublicationShareLink(
     path: `/community/publications/${encodeURIComponent(id)}/share-links`,
     method: 'POST',
     data: { channel, envVersion: getMiniProgramEnvVersion() },
+    idempotencyKey: shareIdempotencyKey(),
   }).then((response) => ({
     code: response.code,
     path: publicationShareEntryPath(response.code),

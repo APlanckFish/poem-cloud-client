@@ -145,9 +145,14 @@ export function getWorkPoster(id: string): Promise<WorkPoster> {
   })
 }
 
-export function loadMyDrafts(): Promise<ListResponse<LibraryWork>> {
+export function loadMyDrafts(cursor?: string): Promise<ListResponse<LibraryWork>> {
+  const query = [
+    'status=DRAFT',
+    'limit=10',
+    ...(cursor ? [`cursor=${encodeURIComponent(cursor)}`] : []),
+  ].join('&')
   return request<ListResponse<LibraryWork>>({
-    path: '/me/creations?status=DRAFT&limit=50',
+    path: `/me/creations?${query}`,
   })
 }
 
