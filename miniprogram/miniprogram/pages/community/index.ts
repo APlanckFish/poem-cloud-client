@@ -11,6 +11,8 @@ interface PoemCard {
   title: string
   excerpt: string
   category: string
+  sourceCategory: PoemCategory
+  tunePatternCode: string
   author: string
   authorInitial: string
   authorAvatarUrl: string
@@ -69,12 +71,23 @@ const REFRESH_REVEAL_DURATION_MS = 280
 let communityScrollTop = 0
 let communityScrollContext: CommunityScrollViewContext | null = null
 
-function categoryName(publication: CommunityPublication): string {
+function tunePatternNameMap(patterns: TunePatternItem[]): Record<string, string> {
+  return Object.fromEntries(
+    patterns
+      .filter((pattern) => pattern.code !== 'ALL')
+      .map((pattern) => [pattern.code, pattern.name]),
+  )
+}
+
+function categoryName(
+  publication: CommunityPublication,
+  tunePatternNames: Record<string, string>,
+): string {
   if (publication.category === 'CLASSICAL') {
     return CLASSICAL_FORM_NAMES[publication.classicalFormCode || ''] || '古体诗'
   }
   if (publication.category === 'MODERN') return '现代诗'
-  return '词'
+  return tunePatternNames[publication.tunePatternCode || ''] || '词'
 }
 
 function fallbackCover(category: PoemCategory): string {
@@ -97,12 +110,17 @@ function matchesTuneSearch(item: TunePatternItem, query: string): boolean {
   )
 }
 
-function toCard(publication: CommunityPublication): PoemCard {
+function toCard(
+  publication: CommunityPublication,
+  tunePatternNames: Record<string, string>,
+): PoemCard {
   return {
     id: publication.id,
     title: publication.title,
     excerpt: normalizePoemContent(publication.content).replace(/\n+/g, ' ').trim(),
-    category: categoryName(publication),
+    category: categoryName(publication, tunePatternNames),
+    sourceCategory: publication.category,
+    tunePatternCode: publication.tunePatternCode || '',
     author: publication.author.nickname,
     authorInitial: publication.author.nickname.slice(0, 1) || '诗',
     authorAvatarUrl: publication.author.avatarUrl || '',
@@ -198,7 +216,16 @@ Page({
             aliases: Array.isArray(pattern.aliases) ? pattern.aliases : [],
           })),
         ]
-        this.setData({ tunePatterns, visibleTunePatterns: tunePatterns })
+        const tunePatternNames = tunePatternNameMap(tunePatterns)
+        const poems = this.data.poems.map((poem) =>
+          poem.sourceCategory === 'CI'
+            ? {
+                ...poem,
+                category: tunePatternNames[poem.tunePatternCode] || '词',
+              }
+            : poem,
+        )
+        this.setData({ tunePatterns, visibleTunePatterns: tunePatterns, poems })
       })
       .catch(() => undefined)
   },
@@ -255,7 +282,10 @@ Page({
           : {}),
         ...(append && this.data.nextCursor ? { cursor: this.data.nextCursor } : {}),
       })
-      const incoming = shuffleItems(feed.items).map(toCard)
+      const tunePatternNames = tunePatternNameMap(this.data.tunePatterns)
+      const incoming = shuffleItems(feed.items).map((publication) =>
+        toCard(publication, tunePatternNames),
+      )
       const poems = append
         ? [
             ...this.data.poems,

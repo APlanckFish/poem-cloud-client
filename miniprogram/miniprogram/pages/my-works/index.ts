@@ -65,7 +65,7 @@ function workState(work: LibraryWork): Pick<WorkCard, 'state' | 'stateLabel' | '
   ) {
     return {
       state: 'UNPUBLISHED',
-      stateLabel: '仅链接可见',
+      stateLabel: '未发布',
       stateClass: 'status--private',
     }
   }
@@ -77,7 +77,7 @@ function workState(work: LibraryWork): Pick<WorkCard, 'state' | 'stateLabel' | '
   }
   return {
     state: 'UNPUBLISHED',
-    stateLabel: '仅自己可见',
+    stateLabel: '未发布',
     stateClass: 'status--private',
   }
 }
