@@ -1,0 +1,56 @@
+<navigation-bar title="开发者的话" back="{{true}}" color="#202824" background="#f7f5ef"></navigation-bar>
+
+<view class="developer-page">
+  <image class="developer-background" src="/assets/images/developer-message-background.jpg" mode="aspectFill" aria-hidden="true"></image>
+
+  <scroll-view class="developer-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="developer-article">
+      <text class="article-title poem-display">开发者的话</text>
+      <view class="article-rule" aria-hidden="true"></view>
+
+      <text class="paragraph paragraph--opening">你好，欢迎来到诗云。</text>
+
+      <text class="paragraph">或许你已经猜到，这个小程序的名字与灵感，来自刘慈欣的同名小说《诗云》。</text>
+
+      <text class="paragraph">在那个故事里，一个拥有近乎无限算力的高等文明，在与人类相遇之后，试图用技术穷尽诗歌的一切可能。他们可以枚举所有文字的排列组合，可以让浩瀚的计算在宇宙间留下壮丽的“诗云”，却依然无法从这无穷无尽的文字之海中，找出那些真正能够媲美李白的诗篇。</text>
+
+      <text class="statement poem-display">穷尽所有可能的文字，并不等于理解诗。</text>
+
+      <text class="paragraph">这或许也是今天的我们面对 AI 时，最有意思的命题。</text>
+
+      <text class="paragraph">大模型熟读古今文章，遍览唐诗宋词；它可以模仿语言，推演文字，甚至写出让人一时难辨真假的喜怒哀乐。可我依然相信，一首诗真正的价值，从来不只在于文字本身。</text>
+
+      <text class="paragraph">2026 年，教皇良十四世在通谕《Magnifica Humanitas》（《人性的伟大》）中谈及人工智能时写道：</text>
+
+      <view class="quotation">
+        <text class="quotation__line poem-display">“They do not understand what they produce.”</text>
+        <text class="quotation__line poem-display">“它们并不理解自己所产生的东西。”</text>
+      </view>
+
+      <view class="verse poem-display">
+        <text>AI 可以生成文字，却不曾见过你见过的那场雨；</text>
+        <text>可以写离别，却不曾与谁真正告别；</text>
+        <text>可以写明月、孤舟、长安与故乡，却没有属于自己的明月、孤舟、长安与故乡。</text>
+      </view>
+
+      <text class="paragraph">而这些，恰恰是诗开始的地方。</text>
+
+      <text class="paragraph">所以，我们更愿意把 AI 看作笔墨，而不是诗人。它可以替你查典、寻韵、推敲字句，也可以陪你在无数种可能之间寻找灵感；但最终决定一首诗为何而写、写给谁，又为何值得留下的，仍然是你自己的经历、审美、情感与意志。</text>
+
+      <text class="paragraph">八百多年前，陆游在《文章》中写：</text>
+      <text class="quotation-single poem-display">“文章本天成，妙手偶得之。”</text>
+
+      <text class="paragraph">而更早以前，《论语》中记下了孔子对儿子的教诲：</text>
+      <text class="quotation-single poem-display">“不学《诗》，无以言；不学礼，无以立。”</text>
+
+      <text class="paragraph">诗从来不只是文字的排列。它关乎我们如何感受，又如何表达；如何理解世界，又如何安放自己。</text>
+
+      <text class="paragraph">在诗云的宇宙里，我们已经拥有了前人留下的万千星辰，也拥有了 AI 展开的近乎无穷的文字可能。</text>
+
+      <view class="article-ending">
+        <text class="article-ending__lead">但我们仍然相信——</text>
+        <text class="article-ending__text poem-display">真正值得被点亮的那一颗，来自于你。</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

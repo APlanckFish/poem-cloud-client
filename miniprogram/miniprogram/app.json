@@ -15,7 +15,8 @@
     "pages/edit-profile/index",
     "pages/help/index",
     "pages/feedback/index",
-    "pages/about/index"
+    "pages/about/index",
+    "pages/developer-message/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

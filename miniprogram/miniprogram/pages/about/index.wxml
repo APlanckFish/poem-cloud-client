@@ -8,18 +8,35 @@
         <view class="brand-version">VERSION {{version}}</view>
       </view>
 
-      <view class="document-card">
+      <view class="about-card">
+        <view
+          class="about-row"
+          bindtap="openDeveloperMessage"
+          hover-class="about-row--pressed"
+          aria-role="button"
+          aria-label="阅读开发者的话"
+        >
+          <image class="about-row__icon" src="/assets/icons/menu-about.svg" mode="aspectFit" aria-hidden="true"></image>
+          <view class="about-row__copy">
+            <text class="about-row__label poem-display">开发者的话</text>
+            <text class="about-row__hint">关于 AI、诗，以及每一个创作者</text>
+          </view>
+          <image class="about-row__arrow" src="/assets/icons/common-chevron-right.png" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <view wx:if="{{showLegalDocuments}}" class="legal-card">
         <view
           wx:for="{{documents}}"
           wx:key="key"
-          class="document-row"
+          class="legal-row"
           bindtap="handleDocumentTap"
-          hover-class="document-row--pressed"
+          hover-class="legal-row--pressed"
           aria-role="button"
         >
-          <image class="document-icon" src="{{item.icon}}" mode="aspectFit"></image>
-          <text class="document-label poem-display">{{item.label}}</text>
-          <image class="document-arrow" src="/assets/icons/common-chevron-right.png" mode="aspectFit"></image>
+          <image class="legal-row__icon" src="{{item.icon}}" mode="aspectFit"></image>
+          <text class="legal-row__label poem-display">{{item.label}}</text>
+          <image class="legal-row__arrow" src="/assets/icons/common-chevron-right.png" mode="aspectFit"></image>
         </view>
       </view>
     </view>
