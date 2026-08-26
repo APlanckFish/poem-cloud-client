@@ -244,8 +244,8 @@
     >
       <view wx:if="{{!isPublic}}" class="detail-actions__secondary">
         <button
-          class="native-button-reset native-button-reset--flex detail-action detail-action--save {{!posterReady ? 'detail-action--disabled' : ''}}"
-          disabled="{{isSavingPoster}}"
+          class="native-button-reset native-button-reset--flex detail-action detail-action--save {{!posterReady && !posterBackgroundReady ? 'detail-action--disabled' : ''}}"
+          disabled="{{(!posterReady && !posterBackgroundReady) || isSavingPoster}}"
           bindtap="savePosterToAlbum"
         >
           <image
@@ -519,13 +519,13 @@
         <text>{{isPreparingTimelineShare ? '朋友圈准备中' : '作品到朋友圈'}}</text>
       </button>
       <button
-        class="native-button-reset share-sheet__action {{!posterReady ? 'share-sheet__action--unavailable' : ''}}"
-        disabled="{{!posterReady || isPreparingSharePoster}}"
+        class="native-button-reset share-sheet__action {{!posterReady && !posterBackgroundReady ? 'share-sheet__action--unavailable' : ''}}"
+        disabled="{{(!posterReady && !posterBackgroundReady) || isPreparingSharePoster}}"
         bindtap="showPosterPreview"
-        aria-label="{{posterReady ? '生成分享海报' : '海报图不可用'}}"
+        aria-label="{{posterReady || posterBackgroundReady ? '生成分享海报' : '海报图不可用'}}"
       >
         <image src="/assets/icons/share-poster-ref.png" mode="aspectFit"></image>
-        <text>{{!posterReady ? '海报图不可用' : isPreparingSharePoster ? '生成中' : '生成分享海报'}}</text>
+        <text>{{!posterReady && !posterBackgroundReady ? '海报图不可用' : isPreparingSharePoster ? '生成中' : '生成分享海报'}}</text>
       </button>
     </view>
     <view wx:if="{{isOwner}}" class="share-sheet__reward">
@@ -542,7 +542,35 @@
 <view wx:if="{{posterPreviewVisible && !isTimelineSinglePage}}" class="share-preview-layer" catchtap="closePosterPreview">
   <view class="share-preview" catchtap="stopShareTap">
     <button class="native-button-reset share-preview__close" bindtap="closePosterPreview" aria-label="关闭海报预览">×</button>
-    <image class="share-preview__poster" src="{{sharePosterPath}}" mode="widthFix"></image>
+    <swiper
+      wx:if="{{posterSharePosterPath && backgroundPosterSharePosterPath}}"
+      class="share-preview__swiper"
+      current="{{sharePosterIndex}}"
+      previous-margin="86rpx"
+      next-margin="86rpx"
+      duration="280"
+      easing-function="easeOutCubic"
+      skip-hidden-item-layout="true"
+      bindchange="changeSharePoster"
+      aria-label="分享海报，可左右滑动切换有字和无字版本"
+    >
+      <swiper-item>
+        <view class="share-preview__slide {{sharePosterIndex === 0 ? 'share-preview__slide--active' : ''}}">
+          <image class="share-preview__poster" src="{{posterSharePosterPath}}" mode="widthFix"></image>
+        </view>
+      </swiper-item>
+      <swiper-item>
+        <view class="share-preview__slide {{sharePosterIndex === 1 ? 'share-preview__slide--active' : ''}}">
+          <image class="share-preview__poster" src="{{backgroundPosterSharePosterPath}}" mode="widthFix"></image>
+        </view>
+      </swiper-item>
+    </swiper>
+    <image
+      wx:else
+      class="share-preview__poster share-preview__poster--single"
+      src="{{sharePosterPath}}"
+      mode="widthFix"
+    ></image>
   </view>
   <view class="share-preview-sheet" catchtap="stopShareTap">
     <view class="share-sheet__actions share-sheet__actions--preview">

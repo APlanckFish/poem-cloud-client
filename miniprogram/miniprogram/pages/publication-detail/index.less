@@ -1005,15 +1005,47 @@ page button.native-button-reset.share-sheet__action[disabled]:not([size="mini"])
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24rpx;
+  overflow: hidden;
+  padding: 24rpx 0;
+}
+
+.share-preview__swiper {
+  width: 100%;
+  height: 100%;
+  animation: share-poster-enter 300ms cubic-bezier(0.18, 0.8, 0.28, 1) both;
+}
+
+.share-preview__swiper swiper-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.share-preview__slide {
+  width: 520rpx;
+  opacity: 0.68;
+  transform: scale(0.94);
+  transition:
+    opacity 280ms ease,
+    transform 280ms cubic-bezier(0.18, 0.8, 0.28, 1);
+}
+
+.share-preview__slide--active {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .share-preview__poster {
   display: block;
-  width: 520rpx;
+  width: 100%;
   overflow: hidden;
   border-radius: 22rpx;
   box-shadow: 0 24rpx 70rpx rgba(0, 0, 0, 0.32);
+}
+
+.share-preview__poster--single {
+  width: 520rpx;
   animation: share-poster-enter 300ms cubic-bezier(0.18, 0.8, 0.28, 1) both;
 }
 

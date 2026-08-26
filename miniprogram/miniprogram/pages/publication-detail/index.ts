@@ -121,6 +121,12 @@ interface TextInputEvent {
   }
 }
 
+interface SwiperChangeEvent {
+  detail: {
+    current: number
+  }
+}
+
 interface CommentView extends Omit<CommunityComment, 'replies'> {
   replies: CommentView[]
   avatarInitial: string
@@ -137,6 +143,7 @@ interface CommentReplyTarget {
 }
 
 type SharePosterAction = 'preview' | 'timeline' | 'save'
+type SharePosterVariant = 'worded' | 'background'
 
 type ShareCanvas = WechatMiniprogram.Canvas & {
   width: number
@@ -549,9 +556,13 @@ Page({
     friendSharePath: '',
     timelineShareReady: !hasAccessToken(),
     timelineShareQuery: '',
+    sharePosterIndex: 0,
+    sharePosterVariant: 'worded' as SharePosterVariant,
     sharePosterPath: '',
     posterSharePosterPath: '',
+    backgroundPosterSharePosterPath: '',
     timelineSharePosterPath: '',
+    backgroundTimelineSharePosterPath: '',
     isPublishing: false,
     comments: [] as CommentView[],
     commentsNextCursor: null as string | null,
@@ -810,9 +821,13 @@ Page({
       friendSharePath: '',
       timelineShareReady: !hasAccessToken(),
       timelineShareQuery: '',
+      sharePosterIndex: 0,
+      sharePosterVariant: 'worded' as SharePosterVariant,
       sharePosterPath: '',
       posterSharePosterPath: '',
+      backgroundPosterSharePosterPath: '',
       timelineSharePosterPath: '',
+      backgroundTimelineSharePosterPath: '',
     }, () => {
       wx.hideShareMenu()
       if (this.data.isTimelineSinglePage) {
@@ -1370,16 +1385,24 @@ Page({
   async savePosterToAlbum() {
     if (this.blockSinglePageInteraction()) return
     const publication = this.data.publication
-    if (!publication?.posterReady || !publication.posterUrl) {
-      wx.showToast({ title: '有字海报尚未生成完成', icon: 'none' })
+    const wordedReady = Boolean(publication?.posterReady && publication.posterUrl)
+    const backgroundReady = Boolean(
+      publication?.posterBackgroundReady && publication.generatedBackgroundUrl,
+    )
+    if (!publication || (!wordedReady && !backgroundReady)) {
+      wx.showToast({ title: '海报尚未生成完成', icon: 'none' })
       return
     }
+    const variant: SharePosterVariant = wordedReady ? 'worded' : 'background'
     if (!this.data.isPublic) {
-      const path = await downloadImage(publication.posterUrl).catch(() => '')
+      const sourceUrl = variant === 'worded'
+        ? publication.posterUrl
+        : publication.generatedBackgroundUrl as string
+      const path = await downloadImage(sourceUrl).catch(() => '')
       if (path) await this.saveImageToAlbum(path)
       return
     }
-    await this.prepareSharePoster('save')
+    await this.prepareSharePoster('save', variant)
   },
 
   async saveImageToAlbum(path: string) {
@@ -1602,13 +1625,47 @@ Page({
   },
 
   closePosterPreview() {
-    this.setData({ posterPreviewVisible: false })
+    const defaultVariant: SharePosterVariant = this.data.posterSharePosterPath
+      ? 'worded'
+      : 'background'
+    this.setData({
+      posterPreviewVisible: false,
+      sharePosterIndex: 0,
+      sharePosterVariant: defaultVariant,
+      sharePosterPath: defaultVariant === 'worded'
+        ? this.data.posterSharePosterPath
+        : this.data.backgroundPosterSharePosterPath,
+    })
   },
 
   stopShareTap() {},
 
   showPosterPreview() {
+    const defaultVariant: SharePosterVariant = this.data.posterSharePosterPath
+      || !this.data.backgroundPosterSharePosterPath
+      ? 'worded'
+      : 'background'
+    this.setData({
+      sharePosterIndex: 0,
+      sharePosterVariant: defaultVariant,
+      sharePosterPath: defaultVariant === 'worded'
+        ? this.data.posterSharePosterPath
+        : this.data.backgroundPosterSharePosterPath,
+    })
     void this.prepareSharePoster('preview')
+  },
+
+  changeSharePoster(event: SwiperChangeEvent) {
+    const nextIndex = event.detail.current === 1 ? 1 : 0
+    const nextPath = nextIndex === 1
+      ? this.data.backgroundPosterSharePosterPath
+      : this.data.posterSharePosterPath
+    if (!nextPath) return
+    this.setData({
+      sharePosterIndex: nextIndex,
+      sharePosterVariant: nextIndex === 1 ? 'background' : 'worded',
+      sharePosterPath: nextPath,
+    })
   },
 
   sharePosterToTimeline() {
@@ -1642,25 +1699,57 @@ Page({
     }
   },
 
-  async prepareSharePoster(action: SharePosterAction) {
+  async prepareSharePoster(
+    action: SharePosterAction,
+    requestedVariant?: SharePosterVariant,
+  ) {
     const publication = this.data.publication
+    const wordedReady = Boolean(publication?.posterReady && publication.posterUrl)
+    const backgroundReady = Boolean(
+      publication?.posterBackgroundReady && publication.generatedBackgroundUrl,
+    )
     if (
       !publication?.id ||
-      !publication.posterReady ||
-      !publication.posterUrl ||
+      (!wordedReady && !backgroundReady) ||
       this.data.isPreparingSharePoster
     ) {
-      if (!publication?.posterReady) {
-        wx.showToast({ title: '有字海报尚未生成完成', icon: 'none' })
+      if (!wordedReady && !backgroundReady) {
+        wx.showToast({ title: '海报尚未生成完成', icon: 'none' })
       }
       return
     }
     const channel = action === 'timeline' ? 'TIMELINE' : 'POSTER'
-    const cachedPath =
-      channel === 'TIMELINE'
-        ? this.data.timelineSharePosterPath
+    const selectedVariant = requestedVariant || this.data.sharePosterVariant
+    const useBackground = action !== 'preview' && (
+      selectedVariant === 'background' || !wordedReady
+    ) && backgroundReady
+    const cachedPath = channel === 'TIMELINE'
+      ? useBackground
+        ? this.data.backgroundTimelineSharePosterPath
+        : this.data.timelineSharePosterPath
+      : useBackground
+        ? this.data.backgroundPosterSharePosterPath
         : this.data.posterSharePosterPath
-    if (cachedPath) {
+    const previewReady = Boolean(
+      (!wordedReady || this.data.posterSharePosterPath) &&
+      (!backgroundReady || this.data.backgroundPosterSharePosterPath),
+    )
+    if (action === 'preview' && previewReady) {
+      const defaultVariant: SharePosterVariant = this.data.posterSharePosterPath
+        ? 'worded'
+        : 'background'
+      const defaultPath = defaultVariant === 'worded'
+        ? this.data.posterSharePosterPath
+        : this.data.backgroundPosterSharePosterPath
+      this.setData({
+        sharePosterIndex: 0,
+        sharePosterVariant: defaultVariant,
+        sharePosterPath: defaultPath,
+      })
+      await this.finishSharePosterAction(action, defaultPath)
+      return
+    }
+    if (action !== 'preview' && cachedPath) {
       this.setData({ sharePosterPath: cachedPath })
       await this.finishSharePosterAction(action, cachedPath)
       return
@@ -1671,16 +1760,83 @@ Page({
     try {
       await ensureInstallation()
       const shareLink = await createPublicationShareLink(publication.id, channel)
-      const path = await this.composeSharePoster(publication.posterUrl, shareLink.qrCodeUrl)
+      if (action === 'preview') {
+        let posterPath = this.data.posterSharePosterPath
+        let backgroundPath = this.data.backgroundPosterSharePosterPath
+        let posterError: unknown
+        let backgroundError: unknown
+        if (wordedReady && !posterPath) {
+          try {
+            posterPath = await this.composeSharePoster(
+              publication.posterUrl,
+              shareLink.qrCodeUrl,
+            )
+          } catch (error) {
+            posterError = error
+            reportRealtimeWarn('client.share.poster_variant_prepare_failed', {
+              ...errorLogFields(error),
+              operation: 'prepare_worded_poster_preview',
+            })
+          }
+        }
+        if (backgroundReady && !backgroundPath) {
+          try {
+            backgroundPath = await this.composeSharePoster(
+              publication.generatedBackgroundUrl as string,
+              shareLink.qrCodeUrl,
+            )
+          } catch (error) {
+            backgroundError = error
+            reportRealtimeWarn('client.share.poster_variant_prepare_failed', {
+              ...errorLogFields(error),
+              operation: 'prepare_background_poster_preview',
+            })
+          }
+        }
+        if (!posterPath && !backgroundPath) {
+          throw posterError || backgroundError || new Error('暂无可用的分享海报')
+        }
+        const defaultVariant: SharePosterVariant = posterPath ? 'worded' : 'background'
+        const defaultPath = defaultVariant === 'worded' ? posterPath : backgroundPath
+        this.setData({
+          sharePosterIndex: 0,
+          sharePosterVariant: defaultVariant,
+          sharePosterPath: defaultPath,
+          posterSharePosterPath: posterPath,
+          backgroundPosterSharePosterPath: backgroundPath,
+          shareSheetVisible: false,
+        })
+        reportRealtimeInfo('client.share.poster_prepared', {
+          operation: posterPath && backgroundPath
+            ? 'prepare_poster_variants'
+            : posterPath
+              ? 'prepare_poster_share'
+              : 'prepare_background_poster_fallback',
+        })
+        await this.finishSharePosterAction(action, defaultPath)
+        return
+      }
+
+      const sourceUrl = useBackground
+        ? publication.generatedBackgroundUrl as string
+        : publication.posterUrl
+      const path = await this.composeSharePoster(sourceUrl, shareLink.qrCodeUrl)
+      const pathUpdate = channel === 'TIMELINE'
+        ? useBackground
+          ? { backgroundTimelineSharePosterPath: path }
+          : { timelineSharePosterPath: path }
+        : useBackground
+          ? { backgroundPosterSharePosterPath: path }
+          : { posterSharePosterPath: path }
       this.setData({
         sharePosterPath: path,
         shareSheetVisible: false,
-        ...(channel === 'TIMELINE'
-          ? { timelineSharePosterPath: path }
-          : { posterSharePosterPath: path }),
+        ...pathUpdate,
       })
       reportRealtimeInfo('client.share.poster_prepared', {
-        operation: channel === 'TIMELINE' ? 'prepare_timeline_share' : 'prepare_poster_share',
+        operation: channel === 'TIMELINE'
+          ? useBackground ? 'prepare_background_timeline_share' : 'prepare_timeline_share'
+          : useBackground ? 'prepare_background_poster_share' : 'prepare_poster_share',
       })
       await this.finishSharePosterAction(action, path)
     } catch (error) {
@@ -1750,9 +1906,51 @@ Page({
     canvas.width = width
     canvas.height = height
     const context = canvas.getContext('2d')
+    const cornerRadius = 32
+    context.save()
+    context.beginPath()
+    context.moveTo(cornerRadius, 0)
+    context.lineTo(width - cornerRadius, 0)
+    context.quadraticCurveTo(width, 0, width, cornerRadius)
+    context.lineTo(width, height - cornerRadius)
+    context.quadraticCurveTo(width, height, width - cornerRadius, height)
+    context.lineTo(cornerRadius, height)
+    context.quadraticCurveTo(0, height, 0, height - cornerRadius)
+    context.lineTo(0, cornerRadius)
+    context.quadraticCurveTo(0, 0, cornerRadius, 0)
+    context.closePath()
+    context.clip()
     context.fillStyle = '#fffefa'
     context.fillRect(0, 0, width, height)
-    context.drawImage(posterImage, 0, 0, width, posterHeight)
+    const sourceRatio = posterImage.width / posterImage.height
+    const targetRatio = width / posterHeight
+    if (sourceRatio > targetRatio) {
+      const sourceWidth = posterImage.height * targetRatio
+      context.drawImage(
+        posterImage,
+        (posterImage.width - sourceWidth) / 2,
+        0,
+        sourceWidth,
+        posterImage.height,
+        0,
+        0,
+        width,
+        posterHeight,
+      )
+    } else {
+      const sourceHeight = posterImage.width / targetRatio
+      context.drawImage(
+        posterImage,
+        0,
+        (posterImage.height - sourceHeight) / 2,
+        posterImage.width,
+        sourceHeight,
+        0,
+        0,
+        width,
+        posterHeight,
+      )
+    }
     context.fillStyle = '#fffefa'
     context.fillRect(0, posterHeight, width, height - posterHeight)
     context.strokeStyle = 'rgba(47, 104, 85, 0.14)'
@@ -1781,6 +1979,7 @@ Page({
       brandSize,
       brandSize,
     )
+    context.restore()
     return new Promise((resolve, reject) => {
       wx.canvasToTempFilePath(
         {
@@ -1789,8 +1988,7 @@ Page({
           height,
           destWidth: width,
           destHeight: height,
-          fileType: 'jpg',
-          quality: 0.94,
+          fileType: 'png',
           success: (result) => resolve(result.tempFilePath),
           fail: reject,
         },
@@ -1892,7 +2090,11 @@ Page({
       path: publication?.id
         ? `/pages/publication-detail/index?id=${encodeURIComponent(publication.id)}`
         : '/pages/community/index',
-      ...(publication?.shareImageUrl ? { imageUrl: publication.shareImageUrl } : {}),
+      ...(this.data.posterPreviewVisible && this.data.sharePosterPath
+        ? { imageUrl: this.data.sharePosterPath }
+        : publication?.shareImageUrl
+          ? { imageUrl: publication.shareImageUrl }
+          : {}),
     }
     if (!publication?.id || !hasAccessToken()) return fallback
     if (this.data.friendSharePath) {
