@@ -287,6 +287,25 @@ page {
   letter-spacing: 3rpx;
 }
 
+.stage-loading-dots {
+  display: inline-block;
+  width: 30rpx;
+  color: currentColor;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: 0;
+}
+
+.stage-loading-dot--two {
+  animation: stage-loading-dot-two 1.2s steps(1, end) infinite;
+}
+
+.stage-loading-dot--three {
+  animation: stage-loading-dot-three 1.2s steps(1, end) infinite;
+}
+
 .stage-summary {
   display: flex;
   align-items: center;
@@ -1040,6 +1059,30 @@ page button.result-primary--saved[disabled] {
   }
 }
 
+@keyframes stage-loading-dot-two {
+  0%,
+  32% {
+    opacity: 0;
+  }
+
+  33%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes stage-loading-dot-three {
+  0%,
+  65% {
+    opacity: 0;
+  }
+
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes caret-blink {
   0%,
   48% {
@@ -1114,6 +1157,7 @@ page button.result-primary--saved[disabled] {
 
 @media (prefers-reduced-motion: reduce) {
   .stage-spinner,
+  .stage-loading-dot,
   .stage-trace,
   .result-paper__caret,
   .process-status__pulse,
@@ -1123,6 +1167,10 @@ page button.result-primary--saved[disabled] {
   .profile-setup-dialog,
   .adjustment-overlay {
     animation: none;
+  }
+
+  .stage-loading-dot {
+    opacity: 1;
   }
 
   .stage-chevron,

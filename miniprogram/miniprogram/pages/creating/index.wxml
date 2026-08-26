@@ -71,9 +71,19 @@
             </view>
 
             <view wx:if="{{item.expanded && (item.traces.length || item.liveProgress)}}" class="stage-trace">
-              <view wx:for="{{item.traces}}" wx:for-item="trace" wx:key="*this" class="stage-trace-row">
+              <view
+                wx:for="{{item.traces}}"
+                wx:for-item="trace"
+                wx:for-index="traceIndex"
+                wx:key="*this"
+                class="stage-trace-row"
+              >
                 <text class="stage-trace-mark">·</text>
-                <text class="stage-trace-copy">{{trace}}</text>
+                <text class="stage-trace-copy">{{trace}}<text
+                  wx:if="{{item.state === 'active' && traceIndex === item.traces.length - 1 && (trace === '正在理解素材' || trace === '正在检索诗意' || trace === '正在落笔')}}"
+                  class="stage-loading-dots"
+                  aria-hidden="true"
+                ><text class="stage-loading-dot">.</text><text class="stage-loading-dot stage-loading-dot--two">.</text><text class="stage-loading-dot stage-loading-dot--three">.</text></text></text>
               </view>
               <view wx:if="{{item.liveProgress}}" class="stage-trace-row stage-trace-row--live">
                 <view class="stage-trace-live-mark">
@@ -315,8 +325,8 @@
       aria-disabled="{{isLeaving}}"
     ></view>
     <image class="exit-draft-ornament" src="/assets/icons/exit-draft-cloud.png" mode="aspectFit"></image>
-    <text class="exit-draft-title poem-display">要离开本次创作吗？</text>
-    <text class="exit-draft-copy poem-display">{{openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '当前内容尚未完成，保存草稿后可在「我的草稿」中继续创作。'}}</text>
+    <text class="exit-draft-title poem-display">{{!finished && !isFailed ? '要暂时离开吗？' : '要离开本次创作吗？'}}</text>
+    <text class="exit-draft-copy poem-display">{{!finished && !isFailed ? '保存草稿后，本次创作会在后台继续。完成后可在「我的草稿」中查看结果。' : openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '保存后可在「我的草稿」中继续编辑。'}}</text>
     <view
       class="exit-draft-primary poem-display {{isLeaving ? 'exit-draft-action--disabled' : ''}}"
       bindtap="handleExitSave"
@@ -330,7 +340,7 @@
       hover-class="exit-draft-action--pressed"
       aria-role="button"
       aria-disabled="{{isLeaving}}"
-    >不保存直接退出</view>
+    >{{!finished && !isFailed ? '结束创作并退出' : '不保存直接退出'}}</view>
   </view>
 </view>
 
