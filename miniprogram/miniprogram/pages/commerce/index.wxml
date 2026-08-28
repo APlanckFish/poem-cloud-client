@@ -1,0 +1,174 @@
+<view class="app-viewport commerce-viewport">
+  <navigation-bar title="会员与额度" back="{{true}}" color="#202824" background="#f8f6f1"></navigation-bar>
+
+  <scroll-view class="commerce-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="commerce-page">
+    <view wx:if="{{loading}}" class="commerce-loading">
+      <view class="commerce-loading__line"></view>
+      <text>正在加载权益</text>
+    </view>
+
+    <view
+      wx:elif="{{memberships.length === 0 && creditPackages.length === 0}}"
+      class="commerce-empty"
+    >
+      <text class="commerce-empty__kicker">MEMBERSHIP · CREATION</text>
+      <view class="commerce-empty__emblem">
+        <view class="commerce-empty__seal poem-display">候</view>
+      </view>
+      <text class="commerce-empty__title poem-display">会籍与额度暂未开放</text>
+      <view class="commerce-empty__description">
+        <text>新的会籍与创作额度包正在准备中</text>
+        <text>请稍后再来看看</text>
+      </view>
+      <text wx:if="{{purchasedCreditBalance > 0}}" class="commerce-empty__balance">当前额度包余额 {{purchasedCreditBalance}} 次</text>
+      <button class="commerce-empty__back" bindtap="handleEmptyBack">返回我的</button>
+    </view>
+
+    <view wx:else class="commerce-content">
+    <view class="section-heading">
+      <view>
+        <text class="section-kicker">MEMBERSHIP</text>
+        <text class="section-title poem-display">会员会籍</text>
+      </view>
+      <text class="section-note">到期回退普通会员</text>
+    </view>
+
+    <view class="membership-list">
+      <view wx:for="{{memberships}}" wx:key="level" class="membership-card {{item.themeClass}}">
+        <view class="membership-glint"></view>
+        <text class="membership-watermark">{{item.themeMark}}</text>
+        <view class="membership-copy">
+          <text class="membership-eyebrow">POEM CLOUD · MEMBER {{item.level}}</text>
+          <text class="membership-name poem-display">{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="membership-description poem-display">{{item.description}}</text>
+        </view>
+        <view class="membership-couplet poem-display">
+          <text>诗有清光</text>
+          <text>落笔成章</text>
+        </view>
+
+        <view class="membership-benefits">
+          <view class="membership-benefit">
+            <text class="membership-benefit__value">{{item.dailyCreationQuota === null ? '∞' : item.dailyCreationQuota}}</text>
+            <text class="membership-benefit__unit">次 / 日</text>
+          </view>
+          <view class="membership-benefit-rule"></view>
+          <view class="membership-benefit">
+            <text class="membership-benefit__value">{{item.durationDays}}</text>
+            <text class="membership-benefit__unit">天会籍</text>
+          </view>
+        </view>
+
+        <view class="membership-commerce">
+          <view class="membership-price">
+            <text class="membership-price__symbol">¥</text>
+            <text class="membership-price__integer">{{item.integer}}</text>
+            <text wx:if="{{item.decimal}}" class="membership-price__decimal">{{item.decimal}}</text>
+            <text class="membership-price__period"> / {{item.durationDays}}天</text>
+          </view>
+          <button
+            class="membership-buy"
+            disabled="{{!paymentEnabled || purchasingKey || item.purchaseDisabled}}"
+            loading="{{purchasingKey === 'membership:' + item.level}}"
+            data-type="membership"
+            data-id="{{item.level}}"
+            bindtap="handlePurchase"
+          >{{item.purchaseLabel}}</button>
+        </view>
+      </view>
+      <view wx:if="{{memberships.length === 0}}" class="state-card">暂无可购买会籍</view>
+    </view>
+
+    <view class="ink-divider"><view></view><text></text><view></view></view>
+
+    <view class="section-heading">
+      <view>
+        <text class="section-kicker">CREATION TICKETS</text>
+        <text class="section-title poem-display">创作额度包</text>
+      </view>
+      <text class="credit-balance">额度包余额 {{purchasedCreditBalance}} 次</text>
+    </view>
+    <text class="credit-intro">不受每日限额影响 · 每次创作消耗 1 次 · 长期有效</text>
+
+    <view class="ticket-list">
+      <view wx:for="{{creditPackages}}" wx:key="id" class="ticket-card">
+        <view class="ticket-notch ticket-notch--top"></view>
+        <view class="ticket-notch ticket-notch--bottom"></view>
+        <view wx:if="{{item.originalPriceText}}" class="ticket-discount-corner">
+          <text>限时折扣</text>
+        </view>
+        <view class="ticket-count">
+          <view class="ticket-count__line">
+            <text class="ticket-count__value">{{item.creditCount}}</text>
+            <text class="ticket-count__unit">次</text>
+          </view>
+        </view>
+        <view class="ticket-copy">
+          <text class="ticket-name poem-display">{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="ticket-description">{{item.description}}</text>
+        </view>
+        <view class="ticket-action">
+          <view class="ticket-price">
+            <text wx:if="{{item.originalPriceText}}" class="ticket-price__original">{{item.originalPriceText}}</text>
+            <view class="ticket-price__actual">
+              <text class="ticket-price__symbol">¥</text>
+              <text class="ticket-price__integer">{{item.integer}}</text>
+              <text wx:if="{{item.decimal}}" class="ticket-price__decimal">{{item.decimal}}</text>
+            </view>
+          </view>
+          <button
+            class="ticket-buy"
+            disabled="{{!paymentEnabled || purchasingKey}}"
+            loading="{{purchasingKey === 'credit:' + item.id}}"
+            data-type="credit"
+            data-id="{{item.id}}"
+            bindtap="handlePurchase"
+          >购买</button>
+        </view>
+      </view>
+      <view wx:if="{{!loading && creditPackages.length === 0}}" class="state-card">暂无可购买额度包</view>
+    </view>
+    </view>
+    </view>
+  </scroll-view>
+
+  <view
+    wx:if="{{upgradeTarget}}"
+    class="upgrade-mask"
+    bindtap="handleUpgradeCancel"
+    catchtouchmove="noop"
+  >
+    <view class="upgrade-dialog" catchtap="noop">
+      <text class="upgrade-kicker">MEMBERSHIP UPGRADE</text>
+      <text class="upgrade-title poem-display">确认升级会籍</text>
+      <text class="upgrade-summary">升级后立即享受更高等级权益</text>
+
+      <view class="upgrade-route">
+        <view class="upgrade-tier upgrade-tier--current">
+          <text class="upgrade-tier__label">当前会籍</text>
+          <text class="upgrade-tier__name poem-display">{{currentMembershipName}}</text>
+        </view>
+        <view class="upgrade-route__bridge">
+          <view></view>
+          <text>升级为</text>
+          <view></view>
+        </view>
+        <view class="upgrade-tier upgrade-tier--target">
+          <text class="upgrade-tier__label">目标会籍</text>
+          <text class="upgrade-tier__name poem-display">{{upgradeTarget.name}}</text>
+        </view>
+      </view>
+
+      <view class="upgrade-rule">
+        <text class="upgrade-rule__title">会籍保留规则</text>
+        <text class="upgrade-rule__content">您的{{currentMembershipName}}剩余会籍将暂停并保留。{{upgradeTarget.name}}到期后，将自动恢复{{currentMembershipName}}；所有付费会籍到期后，将回退到普通会员。</text>
+      </view>
+
+      <view class="upgrade-actions">
+        <button class="upgrade-action upgrade-action--cancel" bindtap="handleUpgradeCancel">暂不升级</button>
+        <button class="upgrade-action upgrade-action--confirm" bindtap="handleUpgradeConfirm">确认升级</button>
+      </view>
+    </view>
+  </view>
+</view>

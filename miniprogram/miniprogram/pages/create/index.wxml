@@ -20,8 +20,8 @@
 <scroll-view class="page-scroll create-scroll" scroll-y enhanced bounces="{{false}}" refresher-enabled="{{false}}" show-scrollbar="{{false}}">
   <view class="create-page">
     <view class="quota-pill poem-display">
-      <text>今日创作额度剩余</text>
-      <text class="quota-pill__number">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.remaining) : '--'}}</text>
+      <text>可用创作额度</text>
+      <text class="quota-pill__number">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.totalRemaining) : '--'}}</text>
       <text wx:if="{{!quota.unlimited}}">次</text>
     </view>
 

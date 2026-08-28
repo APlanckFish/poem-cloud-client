@@ -17,7 +17,7 @@
       ></image>
       <text class="result-eyebrow">本次创作</text>
       <text wx:if="{{quotaUnlimited || quotaRemaining !== null}}" class="quota-copy">
-        {{quotaUnlimited ? 'SVIP 可无限创作' : '今日还可创作 ' + quotaRemaining + ' 次'}}
+        {{quotaUnlimited ? 'SVIP 可无限创作' : '还可创作 ' + quotaRemaining + ' 次'}}
       </text>
     </view>
 

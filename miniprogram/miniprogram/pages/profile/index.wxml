@@ -39,7 +39,7 @@
                 <image class="edit-mark" src="/assets/icons/common-edit.svg" mode="aspectFit"></image>
               </view>
             </view>
-            <view class="account-tag {{isLevelZeroVip ? 'account-tag--black-gold' : ''}}">
+            <view class="account-tag {{isLevelZeroVip ? 'account-tag--black-gold' : accountThemeClass}}">
               <text class="account-tag__copy">{{rankLabel}}</text>
             </view>
           </block>
@@ -111,7 +111,7 @@
       </view>
     </view>
 
-    <view class="quota-card {{isLevelZeroVip ? 'quota-card--black-gold' : ''}} {{quotaLoaded && !quota.unlimited && quota.bonusLimit > 0 && quota.bonus >= quota.bonusLimit ? 'quota-card--bonus-full' : ''}}">
+    <view class="quota-card {{isLevelZeroVip ? 'quota-card--black-gold' : quotaThemeClass}} {{quotaLoaded && !quota.unlimited && quota.bonusLimit > 0 && quota.bonus >= quota.bonusLimit ? 'quota-card--bonus-full' : ''}}">
       <block wx:if="{{isLevelZeroVip}}">
         <view class="vip-copy">
           <view class="vip-eyebrow">
@@ -129,11 +129,18 @@
       <block wx:else>
         <view class="quota-copy">
           <view class="quota-heading">
-            <text class="quota-label poem-display">今日可创作</text>
-            <text wx:if="{{quotaLoaded && quota.bonus > 0}}" class="quota-bonus">分享加成 +{{quota.bonus}}</text>
+            <text class="quota-label poem-display">共可创作</text>
+            <view wx:if="{{quotaLoaded && quota.bonusRemaining > 0}}" class="quota-addon">
+              <text class="quota-addon__value">+{{quota.bonusRemaining}}</text>
+              <text class="quota-addon__note">（分享）</text>
+            </view>
+            <view wx:if="{{quotaLoaded && quota.purchasedCredits.remaining > 0}}" class="quota-addon">
+              <text class="quota-addon__value">+{{quota.purchasedCredits.remaining}}</text>
+              <text class="quota-addon__note">（额度包）</text>
+            </view>
           </view>
           <view class="quota-value-row">
-            <text class="quota-value">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.remaining) : '—'}}</text>
+            <text class="quota-value">{{quotaLoaded ? (quota.unlimited ? '不限' : quota.totalRemaining) : '—'}}</text>
             <text wx:if="{{!quotaLoaded || !quota.unlimited}}" class="quota-unit">次</text>
           </view>
           <text
@@ -147,7 +154,7 @@
               <text class="quota-ring__value">{{quotaLoaded ? (quota.unlimited ? '∞' : quota.remaining + '/' + quota.limit) : '—/—'}}</text>
             </view>
           </view>
-          <text class="quota-ring__label">{{quotaLoaded ? (quota.unlimited ? '无限创作' : '每日 ' + quota.limit + ' 次') : '正在同步'}}</text>
+          <text class="quota-ring__label">{{quotaLoaded ? (quota.unlimited ? '无限创作' : '今日 ' + quota.remaining + '/' + quota.limit) : '正在同步'}}</text>
         </view>
       </block>
     </view>
@@ -174,20 +181,21 @@
     </view>
 
     <view class="menu-card">
-      <view
-        wx:for="{{accountMenus}}"
-        wx:key="key"
-        class="menu-row"
-        data-key="{{item.key}}"
-        data-protected="{{item.protected}}"
-        bindtap="handleMenu"
-        hover-class="menu-row--pressed"
-        aria-role="button"
-      >
-        <image class="menu-icon" src="/assets/icons/menu-{{item.key}}.svg" mode="aspectFit"></image>
-        <text class="menu-label">{{item.label}}</text>
-        <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
-      </view>
+      <block wx:for="{{accountMenus}}" wx:key="key">
+        <view
+          wx:if="{{item.key !== 'commerce' || commerceEnabled}}"
+          class="menu-row"
+          data-key="{{item.key}}"
+          data-protected="{{item.protected}}"
+          bindtap="handleMenu"
+          hover-class="menu-row--pressed"
+          aria-role="button"
+        >
+          <image class="menu-icon" src="/assets/icons/menu-{{item.key}}.svg" mode="aspectFit"></image>
+          <text class="menu-label">{{item.label}}</text>
+          <image class="menu-arrow" src="/assets/icons/common-chevron-right.svg" mode="aspectFit"></image>
+        </view>
+      </block>
     </view>
 
     <view class="menu-card">

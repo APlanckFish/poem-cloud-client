@@ -163,6 +163,24 @@
   color: #e5c87e;
 }
 
+.account-tag--jade {
+  border: 1rpx solid rgba(113, 172, 145, 0.36);
+  background: linear-gradient(105deg, #17362c 0%, #2d5b49 100%);
+  color: #d9eee2;
+}
+
+.account-tag--gilt {
+  border: 1rpx solid rgba(217, 168, 77, 0.46);
+  background: linear-gradient(105deg, #553416 0%, #9b672b 100%);
+  color: #ffebbb;
+}
+
+.account-tag--member-default {
+  border: 1rpx solid rgba(105, 131, 116, 0.32);
+  background: linear-gradient(105deg, #34483d 0%, #60796b 100%);
+  color: #eff5f1;
+}
+
 .account-tag__number {
   margin-left: 2rpx;
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
@@ -282,6 +300,99 @@
     inset 0 1rpx 0 rgba(255, 232, 168, 0.16),
     0 10rpx 28rpx rgba(28, 22, 12, 0.16);
 }
+
+.quota-card--jade,
+.quota-card--gilt,
+.quota-card--member-default {
+  border-color: rgba(167, 211, 191, 0.26);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12),
+    0 10rpx 28rpx rgba(28, 44, 36, 0.13);
+}
+
+.quota-card--jade {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(195, 229, 207, 0.18), transparent 34%),
+    linear-gradient(118deg, #112e26 0%, #285646 56%, #17382e 100%);
+}
+
+.quota-card--gilt {
+  border-color: rgba(232, 185, 85, 0.38);
+  background:
+    radial-gradient(circle at 87% 0%, rgba(255, 222, 140, 0.24), transparent 31%),
+    linear-gradient(118deg, #4b2e13 0%, #9a6426 56%, #503015 100%);
+}
+
+.quota-card--member-default {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(255, 255, 255, 0.1), transparent 33%),
+    linear-gradient(118deg, #29362f 0%, #52685c 56%, #2f4037 100%);
+}
+
+.quota-card--jade::before,
+.quota-card--gilt::before,
+.quota-card--member-default::before {
+  position: absolute;
+  z-index: 0;
+  right: 22rpx;
+  bottom: -67rpx;
+  color: rgba(255, 255, 255, 0.055);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 210rpx;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.quota-card--jade::before { content: "玉"; }
+.quota-card--gilt::before { content: "金"; }
+.quota-card--member-default::before { content: "诗"; }
+
+.quota-card--jade .quota-copy,
+.quota-card--jade .quota-meter,
+.quota-card--gilt .quota-copy,
+.quota-card--gilt .quota-meter,
+.quota-card--member-default .quota-copy,
+.quota-card--member-default .quota-meter {
+  position: relative;
+  z-index: 1;
+}
+
+.quota-card--jade .quota-label,
+.quota-card--jade .quota-addon,
+.quota-card--jade .quota-value,
+.quota-card--jade .quota-unit,
+.quota-card--jade .quota-ring__value,
+.quota-card--jade .quota-ring__label,
+.quota-card--member-default .quota-label,
+.quota-card--member-default .quota-addon,
+.quota-card--member-default .quota-value,
+.quota-card--member-default .quota-unit,
+.quota-card--member-default .quota-ring__value,
+.quota-card--member-default .quota-ring__label {
+  color: #d9eee2;
+}
+
+.quota-card--gilt .quota-label,
+.quota-card--gilt .quota-addon,
+.quota-card--gilt .quota-value,
+.quota-card--gilt .quota-unit,
+.quota-card--gilt .quota-ring__value,
+.quota-card--gilt .quota-ring__label {
+  color: #ffebbb;
+}
+
+.quota-card--jade .quota-ring::after,
+.quota-card--member-default .quota-ring::after {
+  background: #1d4034;
+}
+
+.quota-card--gilt .quota-ring::after {
+  background: #6b451e;
+}
+
+.quota-card--jade .quota-bonus-full,
+.quota-card--member-default .quota-bonus-full { color: rgba(217, 238, 226, 0.72); }
+.quota-card--gilt .quota-bonus-full { color: rgba(255, 235, 187, 0.72); }
 
 .quota-card--bonus-full {
   height: 178rpx;
@@ -462,30 +573,44 @@
 }
 
 .quota-label {
+  display: inline-flex;
+  height: 34rpx;
+  align-items: center;
   color: #315f4d;
   font-family: "Songti SC", "STSong", "SimSun", serif;
   font-size: 27rpx;
   letter-spacing: 2rpx;
-  line-height: 1.2;
+  line-height: 34rpx;
 }
 
 .quota-heading {
   display: flex;
+  height: 34rpx;
   align-items: center;
-  gap: 14rpx;
+  gap: 12rpx;
 }
 
-.quota-bonus {
-  padding: 4rpx 10rpx 3rpx;
-  border: 1rpx solid rgba(63, 103, 88, 0.2);
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.36);
+.quota-addon {
+  display: inline-flex;
+  height: 34rpx;
+  align-items: center;
   color: #557467;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
-  font-size: 18rpx;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.quota-addon__value {
+  font-size: 18rpx;
+  line-height: 1;
+}
+
+.quota-addon__note {
+  margin-left: 1rpx;
+  font-size: 14rpx;
+  line-height: 1;
 }
 
 .quota-value-row {
@@ -585,6 +710,42 @@
   font-size: 19rpx;
   line-height: 1;
   white-space: nowrap;
+}
+
+.quota-card--jade .quota-ring--0,
+.quota-card--member-default .quota-ring--0 {
+  background: #55796a;
+}
+
+.quota-card--jade .quota-ring--1,
+.quota-card--member-default .quota-ring--1 {
+  background: conic-gradient(#a8d2bd 0deg 120deg, #55796a 120deg 360deg);
+}
+
+.quota-card--jade .quota-ring--2,
+.quota-card--member-default .quota-ring--2 {
+  background: conic-gradient(#a8d2bd 0deg 240deg, #55796a 240deg 360deg);
+}
+
+.quota-card--jade .quota-ring--3,
+.quota-card--member-default .quota-ring--3 {
+  background: #a8d2bd;
+}
+
+.quota-card--gilt .quota-ring--0 {
+  background: #94703d;
+}
+
+.quota-card--gilt .quota-ring--1 {
+  background: conic-gradient(#e7c47a 0deg 120deg, #94703d 120deg 360deg);
+}
+
+.quota-card--gilt .quota-ring--2 {
+  background: conic-gradient(#e7c47a 0deg 240deg, #94703d 240deg 360deg);
+}
+
+.quota-card--gilt .quota-ring--3 {
+  background: #e7c47a;
 }
 
 .menu-card {

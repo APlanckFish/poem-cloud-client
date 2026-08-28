@@ -134,6 +134,7 @@ interface CreationRunResponse {
     reserved: number
     remaining: number | null
     unlimited: boolean
+    totalRemaining: number | null
   }
 }
 
@@ -279,7 +280,7 @@ export async function startCreationRun(options: {
     assetKinds: options.assetKinds,
     preferences: options.preferences,
     posterEnabled: options.posterEnabled !== false,
-    remainingQuota: response.quota?.remaining ?? null,
+    remainingQuota: response.quota?.totalRemaining ?? response.quota?.remaining ?? null,
     lastEventId: '0-0',
     queue: response.queue,
   }

@@ -218,6 +218,8 @@ Page({
       limit: null as number | null,
       used: 0,
       remaining: null as number | null,
+      dailyRemaining: null as number | null,
+      totalRemaining: null as number | null,
       unlimited: false,
     },
     quotaLoaded: false,
@@ -444,6 +446,8 @@ Page({
           limit: quota.limit,
           used: quota.used,
           remaining: quota.remaining,
+          dailyRemaining: quota.remaining,
+          totalRemaining: quota.totalRemaining,
           unlimited: quota.unlimited,
         },
         quotaLoaded: true,
@@ -885,10 +889,10 @@ Page({
     if (
       this.data.quotaLoaded
       && !this.data.quota.unlimited
-      && (this.data.quota.remaining ?? 0) <= 0
+      && (this.data.quota.totalRemaining ?? this.data.quota.remaining ?? 0) <= 0
     ) {
       if (hasAccessToken()) {
-        wx.showToast({ title: '今日创作次数已用完', icon: 'none' })
+        wx.showToast({ title: '可用创作次数已用完', icon: 'none' })
         return
       }
       if (!(await confirmQuotaLogin())) return
@@ -961,6 +965,7 @@ Page({
       if (error instanceof ApiError && error.code === 'QUOTA_EXCEEDED') {
         this.setData({
           'quota.remaining': 0,
+          'quota.totalRemaining': 0,
           quotaLoaded: true,
         })
       }

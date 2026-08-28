@@ -2,13 +2,21 @@ import { request } from './api'
 
 export interface QuotaResponse {
   baseLimit: number | null
+  baseRemaining?: number | null
   bonus: number
+  bonusRemaining?: number
   bonusLimit: number
   limit: number | null
   used: number
   reserved: number
   remaining: number | null
   unlimited: boolean
+  purchasedCredits: {
+    balance: number
+    reserved: number
+    remaining: number
+  }
+  totalRemaining: number | null
   resetsAt: string | null
 }
 
