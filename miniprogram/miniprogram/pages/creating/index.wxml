@@ -325,8 +325,8 @@
       aria-disabled="{{isLeaving}}"
     ></view>
     <image class="exit-draft-ornament" src="/assets/icons/exit-draft-cloud.png" mode="aspectFit"></image>
-    <text class="exit-draft-title poem-display">{{!finished && !isFailed ? '要暂时离开吗？' : '要离开本次创作吗？'}}</text>
-    <text class="exit-draft-copy poem-display">{{!finished && !isFailed ? '保存草稿后，本次创作会在后台继续。完成后可在「我的草稿」中查看结果。' : openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '保存后可在「我的草稿」中继续编辑。'}}</text>
+    <text class="exit-draft-title poem-display">{{!coreReady && !finished && !isFailed ? '要暂时离开吗？' : '要离开本次创作吗？'}}</text>
+    <text class="exit-draft-copy poem-display">{{!coreReady && !finished && !isFailed ? '保存草稿后，本次创作会在后台继续。完成后可在「我的草稿」中查看结果。' : openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '保存后可在「我的草稿」中继续编辑。'}}</text>
     <view
       class="exit-draft-primary poem-display {{isLeaving ? 'exit-draft-action--disabled' : ''}}"
       bindtap="handleExitSave"
@@ -340,7 +340,7 @@
       hover-class="exit-draft-action--pressed"
       aria-role="button"
       aria-disabled="{{isLeaving}}"
-    >{{!finished && !isFailed ? '结束创作并退出' : '不保存直接退出'}}</view>
+    >{{!coreReady && !finished && !isFailed ? '结束创作并退出' : '不保存直接退出'}}</view>
   </view>
 </view>
 

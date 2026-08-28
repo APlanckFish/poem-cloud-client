@@ -103,6 +103,7 @@ export interface ActiveCreationRun {
   eventsUrl: string
   snapshotUrl: string
   creationId: string | null
+  creationVersion: number | null
   prompt: string
   assetIds: string[]
   assetKinds: Array<'IMAGE' | 'VIDEO'>
@@ -123,6 +124,7 @@ interface CreationRunResponse {
   runId: string
   generationId: string
   creationId: string | null
+  creationVersion: number | null
   coreStatus: string
   posterStatus: string
   eventsUrl: string
@@ -149,6 +151,7 @@ export interface CreationRunSnapshot {
   generationId: string
   baseGenerationId: string | null
   creationId: string | null
+  creationVersion: number | null
   coreStatus: string
   posterStatus: string
   currentStage: string
@@ -275,6 +278,7 @@ export async function startCreationRun(options: {
     eventsUrl: response.eventsUrl.replace(/^\/v1/, ''),
     snapshotUrl: response.snapshotUrl.replace(/^\/v1/, ''),
     creationId: response.creationId,
+    creationVersion: response.creationVersion,
     prompt: options.prompt,
     assetIds: options.assetIds,
     assetKinds: options.assetKinds,
@@ -331,6 +335,10 @@ export function saveCreationRunDraft(active: ActiveCreationRun): SavedCreationRu
 
 export function activateSavedCreationRun(draft: SavedCreationRunDraft): void {
   const { localDraftId: _localDraftId, localUpdatedAt: _localUpdatedAt, ...active } = draft
+  wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
+}
+
+export function activateCreationRun(active: ActiveCreationRun): void {
   wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
 }
 

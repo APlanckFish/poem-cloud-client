@@ -887,7 +887,8 @@ Page({
       }
     }
     if (
-      this.data.quotaLoaded
+      !this.data.editingWorkId
+      && this.data.quotaLoaded
       && !this.data.quota.unlimited
       && (this.data.quota.totalRemaining ?? this.data.quota.remaining ?? 0) <= 0
     ) {
@@ -952,7 +953,7 @@ Page({
       })
       this.setData({
         editingWorkId: run.creationId || '',
-        editingVersion: 0,
+        editingVersion: run.creationVersion || 0,
       })
       await new Promise<void>((resolve, reject) => {
         wx.navigateTo({

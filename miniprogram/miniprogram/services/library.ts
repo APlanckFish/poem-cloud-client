@@ -51,6 +51,15 @@ export interface LibraryWork {
   }>
   latestGeneration?: {
     id: string
+    status:
+      | 'QUEUED'
+      | 'ANALYZING_MATERIALS'
+      | 'RETRIEVING_KNOWLEDGE'
+      | 'GENERATING'
+      | 'SUCCEEDED'
+      | 'FAILED'
+      | 'CANCELED'
+      | 'REJECTED'
     result: PoemResult | null
   }
 }

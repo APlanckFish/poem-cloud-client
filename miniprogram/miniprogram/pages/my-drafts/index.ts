@@ -1,16 +1,18 @@
 import { hasAccessToken } from '../../services/api'
 import { deleteAsset } from '../../services/assets'
 import {
+  activateCreationRun,
   activateSavedCreationRun,
   deleteLocalCreationDraft,
   discardActiveCreationRun,
   getActiveCreationRun,
   getLocalCreationDrafts,
   getSavedCreationRunDrafts,
+  loadCreationRunSnapshotById,
   type LocalCreationDraft,
   type PendingCreation,
+  saveCreationEditDraft,
   savePendingCreation,
-  startCreationRun,
 } from '../../services/creation'
 import type { LibraryWork } from '../../services/library'
 import {
@@ -20,7 +22,6 @@ import {
   loadTunePatternNames,
   type TunePatternNames,
 } from '../../services/library'
-import { loadCreationPreferences } from '../../services/preferences'
 import { showErrorToast } from '../../utils/error'
 
 interface DraftCard {
@@ -34,7 +35,15 @@ interface DraftCard {
   offset: number
   isLocal: boolean
   resumeRunId: string | null
+  actionLabel: '查看草稿' | '继续创作'
 }
+
+const ACTIVE_GENERATION_STATUSES = new Set([
+  'QUEUED',
+  'ANALYZING_MATERIALS',
+  'RETRIEVING_KNOWLEDGE',
+  'GENERATING',
+])
 
 const COVERS = [
   '/assets/images/cover-ridge.jpg',
@@ -89,6 +98,9 @@ function toCard(work: LibraryWork, index: number, tunePatternNames: TunePatternN
     offset: 0,
     isLocal: false,
     resumeRunId: null,
+    actionLabel: ACTIVE_GENERATION_STATUSES.has(work.latestGeneration?.status || '')
+      ? '查看草稿'
+      : '继续创作',
   }
 }
 
@@ -113,6 +125,7 @@ function toLocalCard(
     offset: 0,
     isLocal: true,
     resumeRunId: null,
+    actionLabel: '继续创作',
   }
 }
 
@@ -120,6 +133,7 @@ function toRunDraftCard(
   draft: ReturnType<typeof getSavedCreationRunDrafts>[number],
   index: number,
   tunePatternNames: TunePatternNames,
+  status = 'QUEUED',
 ): DraftCard {
   const prompt = draft.prompt.trim()
   return {
@@ -138,6 +152,7 @@ function toRunDraftCard(
     offset: 0,
     isLocal: true,
     resumeRunId: draft.runId,
+    actionLabel: ACTIVE_GENERATION_STATUSES.has(status) ? '查看草稿' : '继续创作',
   }
 }
 
@@ -178,10 +193,20 @@ Page({
             (draft) => !draft.creationId && !completedGenerationIds.has(draft.runId),
           )
         : []
+      const runStatuses = new Map(
+        await Promise.all(
+          runDrafts.map(async (draft) => {
+            const snapshot = await loadCreationRunSnapshotById(draft.runId).catch(() => null)
+            return [draft.runId, snapshot?.coreStatus || 'QUEUED'] as const
+          }),
+        ),
+      )
       if (reset) serverDrafts = new Map()
       response.items.forEach((work) => serverDrafts.set(work.id, work))
       const localCards = [
-        ...runDrafts.map((draft, index) => toRunDraftCard(draft, index, tunePatternNames)),
+        ...runDrafts.map((draft, index) => (
+          toRunDraftCard(draft, index, tunePatternNames, runStatuses.get(draft.runId))
+        )),
         ...localDrafts.map((draft, index) => (
           toLocalCard(draft, index + runDrafts.length, tunePatternNames)
         )),
@@ -315,23 +340,6 @@ Page({
     const id = String(event.currentTarget.dataset.id)
     if (!id || this.data.continuingDraftId) return
     this.closeSwipes()
-    const savedRun = getSavedCreationRunDrafts().find(
-      (draft) => draft.localDraftId === id || draft.creationId === id,
-    )
-    if (savedRun) {
-      activateSavedCreationRun(savedRun)
-      wx.navigateTo({
-        url: `/pages/creating/index?runId=${encodeURIComponent(savedRun.runId)}&fromDraft=1`,
-      })
-      return
-    }
-    const currentRun = getActiveCreationRun()
-    if (currentRun?.creationId === id) {
-      wx.navigateTo({
-        url: `/pages/creating/index?runId=${encodeURIComponent(currentRun.runId)}&fromDraft=1`,
-      })
-      return
-    }
     const localDraft = getLocalCreationDrafts().find((draft) => draft.localDraftId === id)
     if (localDraft) {
       savePendingCreation(localDraft)
@@ -341,62 +349,99 @@ Page({
       return
     }
     const work = serverDrafts.get(id)
-    if (!work) {
-      wx.showToast({ title: '草稿数据已更新，请刷新后重试', icon: 'none' })
-      return
-    }
-    const preferences = work.preferences || {
-      category: work.category,
-      classicalFormCode: work.classicalFormCode as PendingCreation['preferences']['classicalFormCode'],
-      tunePatternCode: work.tunePatternCode,
-      rhymeScheme: 'NEW_CHINESE',
-      preferredPoets: [],
-      styleTags: [],
-      themeTags: [],
-      lengthHint: null,
-    }
-    if (work.latestGeneration?.result) {
-      savePendingCreation({
-        prompt: work.prompt,
-        assetIds: work.assetIds || [],
-        assetKinds: (work.assets || []).map((asset) => asset.kind),
-        preferences,
-        generationId: work.latestGeneration.id,
-        workId: work.id,
-        result: work.latestGeneration.result,
-        remainingQuota: null,
-        draftSaved: true,
-        saved: false,
-        published: false,
-      })
-      wx.navigateTo({
-        url: `/pages/creating/index?generationId=${encodeURIComponent(work.latestGeneration.id)}&mode=draft`,
-      })
-      return
-    }
-    this.setData({ continuingDraftId: id })
-    wx.showLoading({ title: '正在继续创作', mask: true })
-    try {
-      const preferenceState = await loadCreationPreferences().catch(() => null)
-      const run = await startCreationRun({
-        prompt: work.prompt,
-        assetIds: work.assetIds || [],
-        assetKinds: (work.assets || []).map((asset) => asset.kind),
-        preferences,
+    if (work) {
+      const preferences = work.preferences || {
+        category: work.category,
+        classicalFormCode:
+          work.classicalFormCode as PendingCreation['preferences']['classicalFormCode'],
+        tunePatternCode: work.tunePatternCode,
+        rhymeScheme: 'NEW_CHINESE',
+        preferredPoets: [],
+        styleTags: [],
+        themeTags: [],
+        lengthHint: null,
+      }
+      const latest = work.latestGeneration
+      if (latest && ACTIVE_GENERATION_STATUSES.has(latest.status)) {
+        const currentRun = getActiveCreationRun()
+        const savedRun = getSavedCreationRunDrafts().find(
+          (draft) => draft.runId === latest.id || draft.creationId === id,
+        )
+        if (currentRun?.runId === latest.id) {
+          activateCreationRun({ ...currentRun, creationVersion: work.version })
+        } else if (savedRun?.runId === latest.id) {
+          activateSavedCreationRun({ ...savedRun, creationVersion: work.version })
+        } else {
+          activateCreationRun({
+            runId: latest.id,
+            eventsUrl: `/creation-runs/${encodeURIComponent(latest.id)}/events`,
+            snapshotUrl: `/creation-runs/${encodeURIComponent(latest.id)}`,
+            creationId: work.id,
+            creationVersion: work.version,
+            prompt: work.prompt,
+            assetIds: work.assetIds || [],
+            assetKinds: (work.assets || []).map((asset) => asset.kind),
+            preferences,
+            remainingQuota: null,
+            lastEventId: '0-0',
+            queue: null,
+          })
+        }
+        wx.navigateTo({
+          url: `/pages/creating/index?runId=${encodeURIComponent(latest.id)}&fromDraft=1`,
+        })
+        return
+      }
+      if (latest?.result) {
+        savePendingCreation({
+          prompt: work.prompt,
+          assetIds: work.assetIds || [],
+          assetKinds: (work.assets || []).map((asset) => asset.kind),
+          preferences,
+          generationId: latest.id,
+          workId: work.id,
+          result: latest.result,
+          remainingQuota: null,
+          draftSaved: true,
+          saved: false,
+          published: false,
+        })
+        wx.navigateTo({
+          url: `/pages/creating/index?generationId=${encodeURIComponent(latest.id)}&mode=draft`,
+        })
+        return
+      }
+      saveCreationEditDraft({
         workId: work.id,
         version: work.version,
-        posterEnabled:
-          preferenceState?.preference?.answers.autoGeneratePoster?.[0] !== 'false',
+        prompt: work.prompt,
+        assetIds: work.assetIds || [],
+        assets: (work.assets || []).flatMap((asset) => (
+          asset.id && asset.accessUrl
+            ? [{
+                id: asset.id,
+                kind: asset.kind,
+                accessUrl: asset.accessUrl,
+                thumbnailUrl: asset.thumbnailUrl,
+              }]
+            : []
+        )),
+        preferences,
       })
-      wx.navigateTo({
-        url: `/pages/creating/index?runId=${encodeURIComponent(run.runId)}&fromDraft=1`,
-      })
-    } catch (error) {
-      showErrorToast(error, { fallback: '继续创作失败，请稍后重试' })
-    } finally {
-      wx.hideLoading()
-      this.setData({ continuingDraftId: '' })
+      wx.switchTab({ url: '/pages/create/index' })
+      return
     }
+    const savedRun = getSavedCreationRunDrafts().find(
+      (draft) => draft.localDraftId === id,
+    )
+    if (savedRun) {
+      activateSavedCreationRun(savedRun)
+      wx.navigateTo({
+        url: `/pages/creating/index?runId=${encodeURIComponent(savedRun.runId)}&fromDraft=1`,
+      })
+      return
+    }
+    wx.showToast({ title: '草稿数据已更新，请刷新后重试', icon: 'none' })
   },
 
   startCreating() {
