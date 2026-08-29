@@ -447,6 +447,7 @@ Page({
         eventsUrl: `/creation-runs/${encodeURIComponent(runId)}/events`,
         snapshotUrl: `/creation-runs/${encodeURIComponent(runId)}`,
         creationId: snapshot.creationId,
+        creationVersion: snapshot.creationVersion,
         prompt: snapshot.input.prompt,
         assetIds: snapshot.input.assetIds,
         assetKinds: [],
@@ -461,6 +462,35 @@ Page({
         poemCategoryLabel: categoryLabel(active),
       })
       void this.resolveTunePatternLabel(active.preferences.tunePatternCode)
+      if (editableDraft && snapshot.coreStatus === 'SUCCEEDED' && snapshot.result) {
+        const stored = getPendingCreation()
+        const creation: PendingCreation =
+          stored?.generationId === runId
+            ? stored
+            : {
+                prompt: active.prompt,
+                assetIds: active.assetIds,
+                assetKinds: active.assetKinds,
+                preferences: active.preferences,
+                generationId: runId,
+                workId: active.creationId,
+                result: snapshot.result,
+                remainingQuota: active.remainingQuota,
+                draftSaved: true,
+                saved: false,
+                published: false,
+              }
+        this.draftBaselineTitle = creation.result.title
+        this.draftBaselineCreation = creation
+        savePendingCreation(creation)
+        this.restorePendingCreation(creation)
+        this.setData({
+          activeRun: active,
+          openedFromDraft: true,
+          hasUnsavedChanges: false,
+        })
+        return
+      }
       const history = await loadCreationHistory(runId)
       this.resetCreationHistory()
       this.isApplyingHistoricalEvents = true
@@ -1573,7 +1603,7 @@ Page({
         && this.draftBaselineGenerationId
         && active.runId !== this.draftBaselineGenerationId,
       )
-      if (generationChanged && active && !this.data.finished) {
+      if (generationChanged && active && !this.data.coreReady && !this.data.finished) {
         await cancelCreationRun(active).catch(() => undefined)
       }
       if (this.draftBaselineCreation) {
@@ -1883,6 +1913,9 @@ Page({
         preferences: active.preferences,
         posterEnabled: active.posterEnabled,
         ...(!creation?.saved && creation?.workId ? { workId: creation.workId } : {}),
+        ...(!creation?.saved && creation?.workId && active.creationVersion
+          ? { version: active.creationVersion }
+          : {}),
         baseGenerationId: active.runId,
         ...(instruction ? { instruction } : {}),
       })

@@ -149,7 +149,11 @@ export interface LibraryWork {
     accessUrl?: string | null
     thumbnailUrl?: string | null
   }>
-  latestGeneration?: { id: string; result: PoemResult | null }
+  latestGeneration?: {
+    id: string
+    status: 'QUEUED' | 'ANALYZING_MATERIALS' | 'RETRIEVING_KNOWLEDGE' | 'GENERATING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED' | 'REJECTED'
+    result: PoemResult | null
+  }
 }
 
 export interface PublicUser {
@@ -166,6 +170,7 @@ export interface CreationRun {
   runId: string
   generationId: string
   creationId: string | null
+  creationVersion: number | null
   eventsUrl: string
   snapshotUrl: string
   quota: Quota
@@ -175,6 +180,7 @@ export interface CreationSnapshot {
   runId: string
   generationId: string
   creationId: string | null
+  creationVersion: number | null
   coreStatus: string
   currentStage: string
   result: PoemResult | null

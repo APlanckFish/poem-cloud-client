@@ -90,7 +90,7 @@ Page({
     try {
       const quota = await loadCreationQuota()
       this.setData({
-        quotaRemaining: quota.remaining,
+        quotaRemaining: quota.totalRemaining,
         quotaUnlimited: quota.unlimited,
       })
     } catch {

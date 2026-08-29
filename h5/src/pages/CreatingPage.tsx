@@ -6,7 +6,7 @@ import { apiRequest, idempotencyKey } from '../lib/api'
 import { openBrowserSse, type BrowserSseEvent } from '../lib/sse'
 import { getStoredJson, setStoredJson, storageKeys } from '../lib/storage'
 import { useAppStore } from '../store/app'
-import type { CreationSnapshot, PoemResult } from '../types'
+import type { CreationRun, CreationSnapshot, PoemResult } from '../types'
 
 type StepState = 'waiting' | 'active' | 'done' | 'error'
 type Step = { key: string; title: string; detail: string; state: StepState; traces: string[]; expanded: boolean; liveProgress: string }
@@ -646,12 +646,12 @@ export default function CreatingPage() {
     setRecreating(true)
     setAdjusting(Boolean(instruction))
     try {
-      const response = await apiRequest<{ runId: string }>('/creation-runs', {
+      const response = await apiRequest<CreationRun>('/creation-runs', {
         method: 'POST',
-        body: { creationId: snapshot?.creationId, baseGenerationId: snapshot?.generationId, prompt: active?.prompt || '', assetIds: active?.assetIds || [], preferences: active?.preferences, instruction, poster: { enabled: active?.preferences?.autoGeneratePoster !== false, variants: ['BACKGROUND', 'COMPOSED'] } },
+        body: { creationId: snapshot?.creationId, creationVersion: snapshot?.creationVersion, baseGenerationId: snapshot?.generationId, prompt: active?.prompt || '', assetIds: active?.assetIds || [], preferences: active?.preferences, instruction, poster: { enabled: active?.preferences?.autoGeneratePoster !== false, variants: ['BACKGROUND', 'COMPOSED'] } },
         idempotencyKey: idempotencyKey('recreate'),
       })
-      setStoredJson(storageKeys.activeCreationRun, { ...active, runId: response.runId })
+      setStoredJson(storageKeys.activeCreationRun, { ...active, ...response })
       setShowAdjustmentSheet(false)
       setAdjustmentInstruction('')
       navigate(`/creating/${response.runId}`, { replace: true })
@@ -703,7 +703,7 @@ export default function CreatingPage() {
       </main>
 
       {showAdjustmentSheet ? <div className="adjustment-overlay" onClick={() => !adjusting && setShowAdjustmentSheet(false)}><section className="adjustment-sheet" onClick={(event) => event.stopPropagation()}><div className="adjustment-heading"><h2 className="adjustment-title poem-display">想怎么调整这首诗？</h2><button className="adjustment-close" aria-label="关闭调整要求" onClick={() => setShowAdjustmentSheet(false)} /></div><p className="adjustment-copy poem-display">可以修改意象、语气、用词或格律，本次创作的素材与上下文会保留。</p><label className="adjustment-field"><textarea className="adjustment-textarea poem-display" value={adjustmentInstruction} maxLength={200} autoFocus placeholder="例如：语气更含蓄一些，结尾保留月亮的意象…" onChange={(event) => setAdjustmentInstruction(event.target.value)} /><span className="adjustment-count">{adjustmentInstruction.length}/200</span></label><div className="adjustment-actions"><button className="adjustment-cancel poem-display" onClick={() => setShowAdjustmentSheet(false)}>取消</button><button className={`adjustment-submit poem-display ${!canSubmitAdjustment ? 'adjustment-submit--disabled' : ''}`} disabled={!canSubmitAdjustment} onClick={() => void performRecreate(adjustmentInstruction.trim())}>{adjusting ? '正在重新创作…' : '按此要求重新创作'}</button></div></section></div> : null}
-      {showExitDialog ? <div className="exit-draft-overlay"><section className="exit-draft-dialog"><button className={`exit-draft-close ${leaving ? 'exit-draft-close--disabled' : ''}`} aria-label="关闭" onClick={() => setShowExitDialog(false)} /><img className="exit-draft-ornament" src="/assets/icons/exit-draft-cloud.png" alt="" /><h2 className="exit-draft-title poem-display">要离开本次创作吗？</h2><p className="exit-draft-copy poem-display">{openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : '当前内容尚未完成，保存草稿后可在「我的草稿」中继续创作。'}</p><button className={`exit-draft-primary poem-display ${leaving ? 'exit-draft-action--disabled' : ''}`} onClick={() => void saveAndLeave()}>保存草稿并退出</button><button className={`exit-draft-secondary poem-display ${leaving ? 'exit-draft-action--disabled' : ''}`} onClick={() => navigate(-1)}>不保存直接退出</button></section></div> : null}
+      {showExitDialog ? <div className="exit-draft-overlay"><section className="exit-draft-dialog"><button className={`exit-draft-close ${leaving ? 'exit-draft-close--disabled' : ''}`} aria-label="关闭" onClick={() => setShowExitDialog(false)} /><img className="exit-draft-ornament" src="/assets/icons/exit-draft-cloud.png" alt="" /><h2 className="exit-draft-title poem-display">要离开本次创作吗？</h2><p className="exit-draft-copy poem-display">{openedFromDraft ? '本次修改尚未保存，原草稿仍会为你保留。' : coreReady ? '本次创作已经完成，可保存草稿后继续调整，或直接退出。' : '当前内容尚未完成，保存草稿后可在「我的草稿」中继续创作。'}</p><button className={`exit-draft-primary poem-display ${leaving ? 'exit-draft-action--disabled' : ''}`} onClick={() => void saveAndLeave()}>保存草稿并退出</button><button className={`exit-draft-secondary poem-display ${leaving ? 'exit-draft-action--disabled' : ''}`} onClick={() => navigate(-1)}>不保存直接退出</button></section></div> : null}
       <WechatDialog open={showLoginDialog} title="登录后保存" content="登录后可以保存作品，并发布到诗词圈。" confirmText="登录" onCancel={() => setShowLoginDialog(false)} onConfirm={() => navigate(`/login?returnTo=${encodeURIComponent(`/creating/${runId}`)}`)} />
       <WechatDialog open={showRecreateDialog} title="重新创作" content="将沿用本次素材和要求，再生成一首新的诗词。" confirmText="重新创作" onCancel={() => setShowRecreateDialog(false)} onConfirm={() => { setShowRecreateDialog(false); void performRecreate() }} />
       <WechatDialog open={showPublishDialog} title="发布到诗词圈" content="作品将公开展示。发布即表示你同意诗词圈社区规范。" confirmText="发布" onCancel={() => setShowPublishDialog(false)} onConfirm={performPublish} />

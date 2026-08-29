@@ -12,6 +12,11 @@ interface BackendUser {
   signature: string
   avatarAssetId: string | null
   level: number
+  membership: {
+    name: string
+    description: string | null
+    visualTheme: 'DEFAULT' | 'JADE' | 'GILT'
+  } | null
   membershipExpiresAt: string | null
   gender: 0 | 1 | 2
   profileCompleted: boolean
