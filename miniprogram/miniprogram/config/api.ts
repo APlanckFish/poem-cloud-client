@@ -9,7 +9,7 @@
 const API_BASE_URL_BY_ENV = {
   /** 开发者工具、真机调试 */
   // develop: 'http://127.0.0.1:3000/v1',
-  develop: 'https://qa-api.planckfish.xyz/v1',
+  develop: 'https://api.planckfish.xyz/v1',
   /** 体验版：需替换为测试环境域名 */
   trial: 'https://qa-api.planckfish.xyz/v1',
   /** 正式版：需替换为生产环境域名 */

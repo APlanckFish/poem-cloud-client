@@ -342,9 +342,9 @@ Page({
         typeof preferenceResume.answers === 'object'
           ? preferenceResume.answers as Record<string, string[]>
           : {}
-      const poemType = String(resumeAnswers.poemType?.[0] || '')
-      const selectedCategory = ['CLASSICAL', 'MODERN', 'CI'].includes(poemType)
-        ? poemType as PoemCategory
+      const requestedCategory = String(preferenceResume.requestedCategory || '')
+      const selectedCategory = ['CLASSICAL', 'MODERN', 'CI'].includes(requestedCategory)
+        ? requestedCategory as PoemCategory
         : this.data.selectedCategory
       this.setData({
         selectedCategory,
@@ -864,7 +864,9 @@ Page({
         await ensureInstallation()
         const preferenceState = await loadCreationPreferences()
         if (!preferenceState.completed) {
-          wx.navigateTo({ url: '/pages/creation-preferences/index?returnTo=create' })
+          wx.navigateTo({
+            url: `/pages/creation-preferences/index?returnTo=create&requestedCategory=${this.data.selectedCategory}`,
+          })
           return
         }
         this.setData({

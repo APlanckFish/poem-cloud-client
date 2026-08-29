@@ -44,7 +44,7 @@
             data-id="{{item.id}}"
             catchtap="continueDraft"
             aria-role="button"
-          >继续创作</view>
+          >{{item.actionLabel}}</view>
         </view>
         <image class="drag-icon" src="/assets/icons/action-drag.svg" mode="aspectFit"></image>
       </view>

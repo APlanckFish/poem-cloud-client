@@ -1,12 +1,14 @@
 import { hasAccessToken } from '../../services/api'
 import { deleteAsset } from '../../services/assets'
 import {
+  activateCreationRun,
   activateSavedCreationRun,
   deleteLocalCreationDraft,
   discardActiveCreationRun,
   getActiveCreationRun,
   getLocalCreationDrafts,
   getSavedCreationRunDrafts,
+  loadCreationRunSnapshotById,
   type LocalCreationDraft,
   type PendingCreation,
   savePendingCreation,
@@ -34,7 +36,15 @@ interface DraftCard {
   offset: number
   isLocal: boolean
   resumeRunId: string | null
+  actionLabel: '查看详情' | '继续创作'
 }
+
+const ACTIVE_GENERATION_STATUSES = new Set([
+  'QUEUED',
+  'ANALYZING_MATERIALS',
+  'RETRIEVING_KNOWLEDGE',
+  'GENERATING',
+])
 
 const COVERS = [
   '/assets/images/cover-ridge.jpg',
@@ -89,6 +99,9 @@ function toCard(work: LibraryWork, index: number, tunePatternNames: TunePatternN
     offset: 0,
     isLocal: false,
     resumeRunId: null,
+    actionLabel: ACTIVE_GENERATION_STATUSES.has(work.latestGeneration?.status || '')
+      ? '查看详情'
+      : '继续创作',
   }
 }
 
@@ -113,6 +126,7 @@ function toLocalCard(
     offset: 0,
     isLocal: true,
     resumeRunId: null,
+    actionLabel: '继续创作',
   }
 }
 
@@ -120,6 +134,7 @@ function toRunDraftCard(
   draft: ReturnType<typeof getSavedCreationRunDrafts>[number],
   index: number,
   tunePatternNames: TunePatternNames,
+  status = 'QUEUED',
 ): DraftCard {
   const prompt = draft.prompt.trim()
   return {
@@ -138,6 +153,7 @@ function toRunDraftCard(
     offset: 0,
     isLocal: true,
     resumeRunId: draft.runId,
+    actionLabel: ACTIVE_GENERATION_STATUSES.has(status) ? '查看详情' : '继续创作',
   }
 }
 
@@ -178,10 +194,20 @@ Page({
             (draft) => !draft.creationId && !completedGenerationIds.has(draft.runId),
           )
         : []
+      const runStatuses = new Map(
+        await Promise.all(
+          runDrafts.map(async (draft) => {
+            const snapshot = await loadCreationRunSnapshotById(draft.runId).catch(() => null)
+            return [draft.runId, snapshot?.coreStatus || 'QUEUED'] as const
+          }),
+        ),
+      )
       if (reset) serverDrafts = new Map()
       response.items.forEach((work) => serverDrafts.set(work.id, work))
       const localCards = [
-        ...runDrafts.map((draft, index) => toRunDraftCard(draft, index, tunePatternNames)),
+        ...runDrafts.map((draft, index) => (
+          toRunDraftCard(draft, index, tunePatternNames, runStatuses.get(draft.runId))
+        )),
         ...localDrafts.map((draft, index) => (
           toLocalCard(draft, index + runDrafts.length, tunePatternNames)
         )),
@@ -355,22 +381,43 @@ Page({
       themeTags: [],
       lengthHint: null,
     }
-    if (work.latestGeneration?.result) {
+    const latest = work.latestGeneration
+    if (latest && ACTIVE_GENERATION_STATUSES.has(latest.status)) {
+      activateCreationRun({
+        runId: latest.id,
+        eventsUrl: `/creation-runs/${encodeURIComponent(latest.id)}/events`,
+        snapshotUrl: `/creation-runs/${encodeURIComponent(latest.id)}`,
+        creationId: work.id,
+        prompt: work.prompt,
+        assetIds: work.assetIds || [],
+        assetKinds: (work.assets || []).map((asset) => asset.kind),
+        preferences,
+        posterEnabled: true,
+        remainingQuota: null,
+        lastEventId: '0-0',
+        queue: null,
+      })
+      wx.navigateTo({
+        url: `/pages/creating/index?runId=${encodeURIComponent(latest.id)}&fromDraft=1`,
+      })
+      return
+    }
+    if (latest?.result) {
       savePendingCreation({
         prompt: work.prompt,
         assetIds: work.assetIds || [],
         assetKinds: (work.assets || []).map((asset) => asset.kind),
         preferences,
-        generationId: work.latestGeneration.id,
+        generationId: latest.id,
         workId: work.id,
-        result: work.latestGeneration.result,
+        result: latest.result,
         remainingQuota: null,
         draftSaved: true,
         saved: false,
         published: false,
       })
       wx.navigateTo({
-        url: `/pages/creating/index?generationId=${encodeURIComponent(work.latestGeneration.id)}&mode=draft`,
+        url: `/pages/creating/index?generationId=${encodeURIComponent(latest.id)}&mode=draft`,
       })
       return
     }

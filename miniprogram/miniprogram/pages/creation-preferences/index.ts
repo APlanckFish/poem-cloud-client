@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../../config/api'
+import type { PoemCategory } from '../../services/creation'
 import { ensureInstallation } from '../../services/installation'
 import {
   loadCreationPreferences,
@@ -27,6 +28,7 @@ Page({
     isSaving: false,
     loadFailed: false,
     returnToCreate: false,
+    requestedCategory: '' as PoemCategory | '',
     questionnaireId: '',
     questionnaireVersion: 0,
     questions: [] as PreferenceQuestion[],
@@ -43,7 +45,13 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
-    this.setData({ returnToCreate: options.returnTo === 'create' })
+    const requestedCategory = String(options.requestedCategory || '')
+    this.setData({
+      returnToCreate: options.returnTo === 'create',
+      requestedCategory: ['CLASSICAL', 'MODERN', 'CI'].includes(requestedCategory)
+        ? requestedCategory as PoemCategory
+        : '',
+    })
     void this.loadPreferences()
   },
 
@@ -181,6 +189,7 @@ Page({
       if (this.data.returnToCreate) {
         wx.setStorageSync(STORAGE_KEYS.creationResumeAfterPreferences, {
           answers: this.data.answers,
+          requestedCategory: this.data.requestedCategory,
         })
       }
       wx.hideLoading()

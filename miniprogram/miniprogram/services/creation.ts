@@ -333,6 +333,10 @@ export function activateSavedCreationRun(draft: SavedCreationRunDraft): void {
   wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
 }
 
+export function activateCreationRun(active: ActiveCreationRun): void {
+  wx.setStorageSync(STORAGE_KEYS.activeCreationRun, active)
+}
+
 export function deleteSavedCreationRunDraft(runId: string): void {
   wx.setStorageSync(
     STORAGE_KEYS.savedCreationRunDrafts,
