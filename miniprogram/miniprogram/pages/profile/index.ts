@@ -149,6 +149,10 @@ Page({
   },
 
   async refreshCommerceAvailability() {
+    if (!hasAccessToken()) {
+      this.setData({ commerceEnabled: false })
+      return
+    }
     try {
       const catalog = await loadCommerceCatalog()
       this.setData({ commerceEnabled: catalog.paymentEnabled })
@@ -209,6 +213,7 @@ Page({
         unlimited: false,
       },
       quotaLoaded: false,
+      commerceEnabled: false,
       quotaRingClass: 'quota-ring--0',
     })
   },
@@ -306,7 +311,7 @@ Page({
     try {
       const user = await loginWithWechat()
       this.applyUser(user)
-      await this.refreshProfile(false)
+      await Promise.all([this.refreshProfile(false), this.refreshCommerceAvailability()])
       loggedInUser = this.data.user
     } catch (error) {
       showErrorToast(error, { fallback: '登录失败，请稍后重试' })
