@@ -425,11 +425,9 @@ Page({
         if (latest.coreStatus === 'SUCCEEDED' && latest.result) {
           this.restoreCompletedSnapshot(latest.result)
         } else if (latest.coreStatus === 'FAILED' || latest.coreStatus === 'CANCELED') {
-          const failureAction =
-            latest.error?.code === 'POEM_VALIDATION_FAILED' ? 'RECREATE' : 'RECONNECT'
           this.setData({
             isFailed: true,
-            failureAction,
+            failureAction: 'RECREATE',
             streamMessage: latest.error?.message || '本次创作没有完成',
           })
         }
@@ -1343,7 +1341,7 @@ Page({
       }
       const message = String(data.message || '创作暂时中断，请稍后重试')
       const failureAction =
-        data.code === 'POEM_VALIDATION_FAILED' || data.retryable === false
+        data.scope === 'CORE' || data.code === 'POEM_VALIDATION_FAILED' || data.retryable === false
           ? 'RECREATE'
           : 'RECONNECT'
       this.setData({ isFailed: true, failureAction, streamMessage: message })
@@ -1550,11 +1548,9 @@ Page({
         return
       }
       if (snapshot.coreStatus === 'FAILED' || snapshot.coreStatus === 'CANCELED') {
-        const failureAction =
-          snapshot.error?.code === 'POEM_VALIDATION_FAILED' ? 'RECREATE' : 'RECONNECT'
         this.setData({
           isFailed: true,
-          failureAction,
+          failureAction: 'RECREATE',
           streamMessage: snapshot.error?.message || '本次创作没有完成',
         })
         return

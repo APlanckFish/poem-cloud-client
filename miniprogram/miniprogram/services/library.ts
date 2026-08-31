@@ -62,6 +62,19 @@ export interface LibraryWork {
       | 'REJECTED'
     result: PoemResult | null
   }
+  selectedGeneration?: {
+    id: string
+    status:
+      | 'QUEUED'
+      | 'ANALYZING_MATERIALS'
+      | 'RETRIEVING_KNOWLEDGE'
+      | 'GENERATING'
+      | 'SUCCEEDED'
+      | 'FAILED'
+      | 'CANCELED'
+      | 'REJECTED'
+    result: PoemResult | null
+  }
 }
 
 export type TunePatternNames = Record<string, string>
@@ -81,22 +94,6 @@ const CLASSICAL_FORM_NAMES: Record<string, string> = {
   DAYOU_SHI: '打油诗',
 }
 
-const STYLE_TAG_NAMES: Record<string, string> = {
-  SCENERY: '写景',
-  LANDSCAPE: '写景',
-  EMOTION: '抒情',
-  LYRIC: '抒情',
-  NARRATIVE: '叙事',
-  PHILOSOPHICAL: '哲思',
-  HOMESICKNESS: '思乡',
-}
-
-function styleTagName(tag: string | undefined): string {
-  if (!tag) return ''
-  if (/[\u3400-\u9fff]/.test(tag)) return tag
-  return STYLE_TAG_NAMES[tag.toUpperCase()] || ''
-}
-
 export function describeWorkType(
   work: Pick<
     LibraryWork,
@@ -112,8 +109,7 @@ export function describeWorkType(
   } else if (work.classicalFormCode) {
     typeName = CLASSICAL_FORM_NAMES[work.classicalFormCode] || '古体诗'
   }
-  const styleName = styleTagName(work.preferences?.styleTags?.[0])
-  return styleName ? `${typeName} · ${styleName}` : typeName
+  return typeName
 }
 
 export async function loadTunePatternNames(): Promise<TunePatternNames> {

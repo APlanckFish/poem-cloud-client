@@ -392,22 +392,27 @@ Page({
         })
         return
       }
-      if (latest?.result) {
+      const editableGeneration = work.selectedGeneration?.result
+        ? work.selectedGeneration
+        : latest?.result
+          ? latest
+          : null
+      if (editableGeneration?.result) {
         savePendingCreation({
           prompt: work.prompt,
           assetIds: work.assetIds || [],
           assetKinds: (work.assets || []).map((asset) => asset.kind),
           preferences,
-          generationId: latest.id,
+          generationId: editableGeneration.id,
           workId: work.id,
-          result: latest.result,
+          result: editableGeneration.result,
           remainingQuota: null,
           draftSaved: true,
           saved: false,
           published: false,
         })
         wx.navigateTo({
-          url: `/pages/creating/index?generationId=${encodeURIComponent(latest.id)}&mode=draft`,
+          url: `/pages/creating/index?generationId=${encodeURIComponent(editableGeneration.id)}&mode=draft`,
         })
         return
       }
