@@ -77,6 +77,12 @@ interface PoemDisplayRun {
   invalid: boolean
 }
 
+interface PendingPoemPreview {
+  title: string
+  content: string
+  attempt: number
+}
+
 interface ValueChangeEvent {
   detail: {
     value: string
@@ -224,6 +230,7 @@ Page({
     friendSharePath: '',
     isRecreating: false,
     isTyping: false,
+    isErasingPoem: false,
     isLeaving: false,
     showExitDraftDialog: false,
     showProfileSetup: false,
@@ -249,6 +256,8 @@ Page({
   stream: null as SseSubscription | null,
   reconnectCount: 0,
   typingTimer: null as ReturnType<typeof setTimeout> | null,
+  poemEraseTimer: null as ReturnType<typeof setTimeout> | null,
+  pendingPoemPreview: null as PendingPoemPreview | null,
   poemQueue: [] as string[],
   finalPoemContent: '',
   receivedPoemContent: '',
@@ -305,6 +314,7 @@ Page({
     this.stream?.abort()
     this.stream = null
     this.clearTypingTimer()
+    this.clearPoemErase()
     this.clearTraceTyping()
     this.stopQueuePolling()
     this.stopGenerationProgress()
@@ -830,6 +840,77 @@ Page({
     this.poemQueue = []
   },
 
+  clearPoemErase() {
+    if (this.poemEraseTimer) clearTimeout(this.poemEraseTimer)
+    this.poemEraseTimer = null
+    this.pendingPoemPreview = null
+    if (this.data.isErasingPoem) this.setData({ isErasingPoem: false })
+  },
+
+  applyPoemPreview(preview: PendingPoemPreview) {
+    const content = stripPoemLeadingWhitespace(preview.content)
+    if (!content) return
+    this.clearTypingTimer()
+    this.finalPoemContent = ''
+    this.receivedPoemContent = content
+    this.validationMarks = []
+    this.generationAttempt = preview.attempt
+    this.pendingPoemPreview = null
+    if (this.isApplyingHistoricalEvents) {
+      this.setData({
+        poemTitle: preview.title || '无题',
+        poemContent: content,
+        poemDisplayRuns: buildPoemDisplayRuns(content, []),
+        isTyping: false,
+        isErasingPoem: false,
+      })
+      return
+    }
+    this.setData({
+      poemTitle: preview.title || '无题',
+      poemContent: '',
+      poemDisplayRuns: [],
+      isTyping: false,
+      isErasingPoem: false,
+      streamMessage: `第 ${preview.attempt} 稿已经写成，正在誊写并审校`,
+    })
+    this.enqueuePoemText(content)
+  },
+
+  erasePoemForRewrite(attempt: number) {
+    this.clearTypingTimer()
+    this.finalPoemContent = ''
+    this.receivedPoemContent = ''
+    if (this.isApplyingHistoricalEvents || !this.data.poemContent) {
+      this.validationMarks = []
+      this.setData({
+        poemContent: '',
+        poemDisplayRuns: [],
+        isTyping: false,
+        isErasingPoem: false,
+      })
+      return
+    }
+    if (this.poemEraseTimer) clearTimeout(this.poemEraseTimer)
+    this.setData({
+      isTyping: false,
+      isErasingPoem: true,
+      streamMessage: `第 ${attempt} 稿已经写成，正在擦去旧稿`,
+    })
+    this.poemEraseTimer = setTimeout(() => {
+      this.poemEraseTimer = null
+      this.validationMarks = []
+      const pending = this.pendingPoemPreview
+      this.setData({
+        poemContent: '',
+        poemDisplayRuns: [],
+        isErasingPoem: false,
+      }, () => {
+        if (pending) this.applyPoemPreview(pending)
+      })
+    }, 420)
+  },
+
   updatePoemContent(content: string) {
     this.setData({
       poemContent: content,
@@ -1129,21 +1210,43 @@ Page({
       this.refreshGenerationProgress()
       return
     }
+    if (event.event === 'poem.preview') {
+      const preview: PendingPoemPreview = {
+        title: String(data.title || '无题'),
+        content: String(data.content || ''),
+        attempt: Math.max(1, Number(data.attempt || this.generationAttempt)),
+      }
+      if (!preview.content.trim()) return
+      if (this.data.isErasingPoem) {
+        this.pendingPoemPreview = preview
+      } else {
+        this.applyPoemPreview(preview)
+      }
+      return
+    }
     if (event.event === 'poem.reset') {
+      const attempt = Number(data.attempt || this.generationAttempt + 1)
+      const isValidationRewrite = data.reason === 'VALIDATION_REWRITE'
+      const message = isValidationRewrite
+        ? '新一稿已经写成，正在替换审校未通过的旧稿'
+        : '模型响应出现波动，正在自动重新落笔'
+      if (isValidationRewrite) {
+        this.erasePoemForRewrite(attempt)
+        this.enqueueTypedCreationTrace(message)
+        this.startGenerationProgress('WRITING', attempt)
+        return
+      }
+      this.clearPoemErase()
       this.clearTypingTimer()
       this.finalPoemContent = ''
       this.receivedPoemContent = ''
       this.validationMarks = []
-      const attempt = Number(data.attempt || this.generationAttempt + 1)
-      const isValidationRewrite = data.reason === 'VALIDATION_REWRITE'
-      const message = isValidationRewrite
-        ? '格律审校提出修改意见，正在重新落笔'
-        : '模型响应出现波动，正在自动重新落笔'
       this.setData({
-        ...(!isValidationRewrite ? { poemTitle: '' } : {}),
+        poemTitle: '',
         poemContent: '',
         poemDisplayRuns: [],
         isTyping: false,
+        isErasingPoem: false,
         streamMessage: message,
       })
       this.enqueueTypedCreationTrace(message)
@@ -1177,6 +1280,15 @@ Page({
               && typeof mark.character === 'string',
           )
         : []
+      if (
+        !data.valid
+        && this.receivedPoemContent
+        && this.data.poemContent !== this.receivedPoemContent
+      ) {
+        this.clearTypingTimer()
+        this.updatePoemContent(this.receivedPoemContent)
+        this.setData({ isTyping: false })
+      }
       this.applyValidationMarks(data.valid ? [] : marks)
       this.enqueueTypedCreationTrace(message)
       this.stopGenerationProgress()
@@ -1921,6 +2033,7 @@ Page({
       })
       this.stream?.abort()
       this.clearTypingTimer()
+      this.clearPoemErase()
       this.clearTraceTyping()
       this.stopGenerationProgress()
       this.finalPoemContent = ''

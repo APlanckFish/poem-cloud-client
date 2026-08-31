@@ -180,7 +180,7 @@
         <view wx:if="{{poemTitle || coreReady}}" class="result-paper__form poem-display">
           {{poemCategoryLabel}}
         </view>
-        <text wx:if="{{poemContent}}" class="result-paper__poem poem-display" user-select><text
+        <text wx:if="{{poemContent}}" class="result-paper__poem poem-display {{isErasingPoem ? 'result-paper__poem--erasing' : ''}}" user-select><text
           wx:for="{{poemDisplayRuns}}"
           wx:key="index"
           class="{{item.invalid ? 'result-paper__poem-error' : ''}}"
