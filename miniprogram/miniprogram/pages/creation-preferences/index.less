@@ -1,6 +1,15 @@
+.preference-shell {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background: #faf9f5;
+}
+
 .preference-page {
   position: relative;
-  height: calc(100vh - 44px - env(safe-area-inset-top));
+  min-height: 0;
+  flex: 1;
   overflow: hidden;
   background: #faf9f5;
 }
@@ -207,16 +216,11 @@
   right: 0;
   bottom: 0;
   left: 0;
-  padding-top: 22rpx;
-  padding-right: 47rpx;
-  padding-left: 42rpx;
-  background: #faf9f5;
-}
-
-.footer__actions {
   display: flex;
   align-items: center;
   gap: 49rpx;
+  padding: 22rpx 47rpx calc(24rpx + env(safe-area-inset-bottom)) 42rpx;
+  background: #faf9f5;
 }
 
 .footer__previous {

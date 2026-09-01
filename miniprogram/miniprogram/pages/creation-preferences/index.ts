@@ -42,18 +42,19 @@ Page({
     progressWidth: '25%',
     isLastQuestion: false,
     primaryText: '下一步',
-    safeAreaBottom: 0,
+    viewportHeight: 0,
   },
 
   onLoad(options: Record<string, string | undefined>) {
-    const systemInfo = wx.getSystemInfoSync()
-    const safeAreaBottom = Math.max(
-      0,
-      systemInfo.screenHeight - (systemInfo.safeArea?.bottom ?? systemInfo.screenHeight),
-    )
+    const getWindowInfo = (wx as unknown as {
+      getWindowInfo?: () => { windowHeight: number }
+    }).getWindowInfo
+    const windowInfo = typeof getWindowInfo === 'function'
+      ? getWindowInfo()
+      : wx.getSystemInfoSync()
     const requestedCategory = String(options.requestedCategory || '')
     this.setData({
-      safeAreaBottom,
+      viewportHeight: windowInfo.windowHeight,
       returnToCreate: options.returnTo === 'create',
       requestedCategory: ['CLASSICAL', 'MODERN', 'CI'].includes(requestedCategory)
         ? requestedCategory as PoemCategory

@@ -1,6 +1,7 @@
-<navigation-bar title="创作偏好" back="{{true}}" color="#202824" background="#faf9f5"></navigation-bar>
+<view class="preference-shell" style="height: {{viewportHeight}}px">
+  <navigation-bar title="创作偏好" back="{{true}}" color="#202824" background="#faf9f5"></navigation-bar>
 
-<view class="preference-page">
+  <view class="preference-page">
   <view wx:if="{{isLoading}}" class="state-view">
     <text>正在加载…</text>
   </view>
@@ -87,23 +88,22 @@
       </view>
     </scroll-view>
 
-    <view class="footer" style="padding-bottom: calc(24rpx + {{safeAreaBottom}}px)">
-      <view class="footer__actions">
-        <view
-          wx:if="{{currentIndex > 0}}"
-          class="footer__previous"
-          bindtap="previousQuestion"
-          hover-class="footer__previous--pressed"
-          aria-role="button"
-        >上一步</view>
-        <view
-          class="footer__primary {{currentIndex === 0 ? 'footer__primary--full' : ''}} {{isSaving ? 'footer__primary--disabled' : ''}}"
-          bindtap="nextQuestion"
-          hover-class="footer__primary--pressed"
-          aria-role="button"
-          aria-disabled="{{isSaving}}"
-        >{{primaryText}}</view>
-      </view>
+    <view class="footer">
+      <view
+        wx:if="{{currentIndex > 0}}"
+        class="footer__previous"
+        bindtap="previousQuestion"
+        hover-class="footer__previous--pressed"
+        aria-role="button"
+      >上一步</view>
+      <view
+        class="footer__primary {{currentIndex === 0 ? 'footer__primary--full' : ''}} {{isSaving ? 'footer__primary--disabled' : ''}}"
+        bindtap="nextQuestion"
+        hover-class="footer__primary--pressed"
+        aria-role="button"
+        aria-disabled="{{isSaving}}"
+      >{{primaryText}}</view>
     </view>
-  </block>
+    </block>
+  </view>
 </view>
