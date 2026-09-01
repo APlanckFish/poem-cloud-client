@@ -87,7 +87,7 @@
       </view>
     </scroll-view>
 
-    <view class="footer">
+    <view class="footer" style="padding-bottom: calc(24rpx + {{safeAreaBottom}}px)">
       <view class="footer__actions">
         <view
           wx:if="{{currentIndex > 0}}"
@@ -104,7 +104,6 @@
           aria-disabled="{{isSaving}}"
         >{{primaryText}}</view>
       </view>
-      <view class="footer__safe-area"></view>
     </view>
   </block>
 </view>

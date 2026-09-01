@@ -42,11 +42,18 @@ Page({
     progressWidth: '25%',
     isLastQuestion: false,
     primaryText: '下一步',
+    safeAreaBottom: 0,
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    const systemInfo = wx.getSystemInfoSync()
+    const safeAreaBottom = Math.max(
+      0,
+      systemInfo.screenHeight - (systemInfo.safeArea?.bottom ?? systemInfo.screenHeight),
+    )
     const requestedCategory = String(options.requestedCategory || '')
     this.setData({
+      safeAreaBottom,
       returnToCreate: options.returnTo === 'create',
       requestedCategory: ['CLASSICAL', 'MODERN', 'CI'].includes(requestedCategory)
         ? requestedCategory as PoemCategory
