@@ -804,6 +804,8 @@ Page({
     this.generationAttempt = attempt
     if (mode === 'VALIDATING') {
       this.updateStageProgress('POEM_GENERATION', `正在进行第 ${attempt} 轮格律审校`)
+    } else if (attempt > 1) {
+      this.updateStageProgress('POEM_GENERATION', `正在进行第 ${attempt} 轮落笔`)
     }
   },
 
@@ -1069,7 +1071,13 @@ Page({
       }
       this.setStage(stage, false)
       this.setData({ streamMessage: message })
-      this.enqueueTypedStageTrace(stage, message)
+      if (stage === 'POEM_GENERATION') {
+        // “正在落笔”必须立即可见，不能排在前序逐字日志之后，
+        // 否则模型已经开始生成时用户仍会误以为流程停在上一阶段。
+        this.appendStageTrace(stage, message)
+      } else {
+        this.enqueueTypedStageTrace(stage, message)
+      }
       if (stage === 'POETIC_RETRIEVAL') {
         const insights = this.pendingPoeticInsights as string[]
         this.enqueueTypedStageTraces(stage, insights)
@@ -1185,6 +1193,10 @@ Page({
         this.clearStageProgress('POEM_GENERATION')
         this.setData({ streamMessage: text })
         this.enqueueTypedCreationTrace(text)
+        if (data.phase === 'VALIDATION_REWRITE_STARTED') {
+          const attempt = Math.max(2, Number(data.attempt || this.generationAttempt + 1))
+          this.startGenerationProgress('WRITING', attempt)
+        }
       }
       return
     }
