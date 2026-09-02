@@ -50,7 +50,6 @@ export const STORAGE_KEYS = {
   communityNeedsRefresh: 'poem_cloud_community_needs_refresh',
   publicationFlipHints: 'poem_cloud_publication_flip_hints',
   creationResumeAfterPreferences: 'poem_cloud_creation_resume_after_preferences',
-  clientDataResetVersion: 'poem_cloud_client_data_reset_version',
 } as const
 
 export function getApiBaseUrl(): string {

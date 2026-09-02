@@ -24,9 +24,16 @@ export function ensureInstallation(): Promise<InstallationResponse> {
   }
 
   let installationKey = wx.getStorageSync(STORAGE_KEYS.installationKey)
-  if (typeof installationKey !== 'string' || installationKey.length < 16) {
+  const installationToken = wx.getStorageSync(STORAGE_KEYS.installationToken)
+  const hasInstallationKey =
+    typeof installationKey === 'string' && installationKey.length >= 16
+  const hasInstallationToken =
+    typeof installationToken === 'string' && installationToken.length > 0
+  if (!hasInstallationKey || !hasInstallationToken) {
     installationKey = createInstallationKey()
     wx.setStorageSync(STORAGE_KEYS.installationKey, installationKey)
+    wx.removeStorageSync(STORAGE_KEYS.installationId)
+    wx.removeStorageSync(STORAGE_KEYS.installationToken)
   }
 
   installationPromise = request<InstallationResponse>({
@@ -34,8 +41,6 @@ export function ensureInstallation(): Promise<InstallationResponse> {
     method: 'POST',
     data: { installationKey },
     authenticated: false,
-    // Existing keys may only rotate their token after proving possession of the
-    // previous token. A brand-new installation naturally sends no header.
     includeInstallation: true,
   })
     .then((installation) => {
