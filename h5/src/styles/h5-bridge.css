@@ -429,6 +429,8 @@
 
 .mp-community .poem-excerpt {
   display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 .mp-community .poem-cover,

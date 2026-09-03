@@ -117,7 +117,7 @@ function toCard(
   return {
     id: publication.id,
     title: publication.title,
-    excerpt: normalizePoemContent(publication.content).replace(/\n+/g, ' ').trim(),
+    excerpt: normalizePoemContent(publication.content).trim(),
     category: categoryName(publication, tunePatternNames),
     sourceCategory: publication.category,
     tunePatternCode: publication.tunePatternCode || '',

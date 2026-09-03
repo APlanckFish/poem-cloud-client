@@ -32,7 +32,7 @@ function card(publication: CommunityPublication, index: number): Card {
   const forms: Record<string, string> = { WUYAN_JUEJU: '五言绝句', QIYAN_JUEJU: '七言绝句', WUYAN_LVSHI: '五言律诗', QIYAN_LVSHI: '七言律诗', DAYOU_SHI: '打油诗' }
   return {
     id: publication.id, title: publication.title,
-    excerpt: publication.content.replace(/\\n|\n/g, ' ').trim(),
+    excerpt: publication.content.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n').trim(),
     category: publication.category === 'MODERN' ? '现代诗' : publication.category === 'CI' ? '词' : forms[publication.classicalFormCode || ''] || '古体诗',
     author: publication.author.nickname, authorInitial: publication.author.nickname.slice(0, 1) || '诗',
     authorAvatarUrl: publication.author.avatarUrl || '', likes: publication.likeCount,
