@@ -28,11 +28,27 @@ const developmentPreviewCards: Card[] = [
   { id: 'preview-3', title: '雾锁远山', excerpt: '雾锁远山淡，舟横野渡闲。晨钟穿水过，惊起白云还。', category: '词', author: '云起', authorInitial: '云', authorAvatarUrl: '', likes: 96, likedByMe: false, cover: '/assets/images/cover-ridge.jpg' },
 ]
 
+function formatCardPoemContent(value: string, category: PoemCategory): string {
+  const normalized = value.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n').trim()
+  if (category === 'MODERN') return normalized
+  return normalized
+    .split(/\n\s*\n/)
+    .map((stanza) =>
+      stanza
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join('')
+        .replace(/([。！？!?][”’》」』】]*)(?!$)/g, '$1\n'),
+    )
+    .join('\n\n')
+}
+
 function card(publication: CommunityPublication, index: number): Card {
   const forms: Record<string, string> = { WUYAN_JUEJU: '五言绝句', QIYAN_JUEJU: '七言绝句', WUYAN_LVSHI: '五言律诗', QIYAN_LVSHI: '七言律诗', DAYOU_SHI: '打油诗' }
   return {
     id: publication.id, title: publication.title,
-    excerpt: publication.content.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n').trim(),
+    excerpt: formatCardPoemContent(publication.content, publication.category),
     category: publication.category === 'MODERN' ? '现代诗' : publication.category === 'CI' ? '词' : forms[publication.classicalFormCode || ''] || '古体诗',
     author: publication.author.nickname, authorInitial: publication.author.nickname.slice(0, 1) || '诗',
     authorAvatarUrl: publication.author.avatarUrl || '', likes: publication.likeCount,

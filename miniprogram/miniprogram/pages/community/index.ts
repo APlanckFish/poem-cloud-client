@@ -100,6 +100,22 @@ function normalizePoemContent(value: string): string {
   return value.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n')
 }
 
+function formatCardPoemContent(value: string, category: PoemCategory): string {
+  const normalized = normalizePoemContent(value).trim()
+  if (category === 'MODERN') return normalized
+  return normalized
+    .split(/\n\s*\n/)
+    .map((stanza) =>
+      stanza
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join('')
+        .replace(/([。！？!?][”’》」』】]*)(?!$)/g, '$1\n'),
+    )
+    .join('\n\n')
+}
+
 function normalizeTuneSearch(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, '')
 }
@@ -117,7 +133,7 @@ function toCard(
   return {
     id: publication.id,
     title: publication.title,
-    excerpt: normalizePoemContent(publication.content).trim(),
+    excerpt: formatCardPoemContent(publication.content, publication.category),
     category: categoryName(publication, tunePatternNames),
     sourceCategory: publication.category,
     tunePatternCode: publication.tunePatternCode || '',
