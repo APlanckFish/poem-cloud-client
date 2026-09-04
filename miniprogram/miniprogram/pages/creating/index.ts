@@ -969,7 +969,7 @@ Page({
 
   applyValidationStarted(data: Record<string, unknown>) {
     const attempt = Number(data.attempt || this.generationAttempt)
-    const message = `正在进行第 ${attempt} 轮格律与押韵校验`
+    const message = `正在进行第 ${attempt} 轮体裁结构、格律与押韵校验`
     this.setData({ streamMessage: message })
     this.enqueueTypedCreationTrace(message)
     this.startGenerationProgress('VALIDATING', attempt)
@@ -979,11 +979,19 @@ Page({
     const issues = Array.isArray(data.issues)
       ? data.issues.filter((issue): issue is string => typeof issue === 'string').slice(0, 3)
       : []
-    const message = data.valid
-      ? `${String(data.rhymeBook || '')}格律校验通过${data.meterSummary ? `：${String(data.meterSummary)}` : ''}`
-      : Number(data.attempt || 1) >= 3
+    const attempt = Number(data.attempt || 1)
+    let message = ''
+    if (data.valid) {
+      message = `${String(data.rhymeBook || '')}格律校验通过${data.meterSummary ? `：${String(data.meterSummary)}` : ''}`
+    } else if (data.structureValid === false) {
+      message = attempt >= 3
+        ? `三轮创作仍未符合所选体裁，本稿不能保存${issues.length ? `：${issues.join('；')}` : ''}`
+        : `体裁结构校验未通过${issues.length ? `：${issues.join('；')}` : '，正在按校验意见重写'}`
+    } else {
+      message = attempt >= 3
         ? `三轮审校完成，问题字已标注；当前版本仍可保存${issues.length ? `：${issues.join('；')}` : ''}`
         : `格律校验未通过${issues.length ? `：${issues.join('；')}` : '，正在按审校意见重写'}`
+    }
     this.setData({ streamMessage: message })
     const marks = Array.isArray(data.marks)
       ? data.marks.filter(

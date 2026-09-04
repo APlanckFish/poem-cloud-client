@@ -33,6 +33,8 @@ export interface PoemResult {
   validation?: {
     valid: boolean
     issues: string[]
+    structureValid?: boolean
+    structureIssues?: string[]
     rhymeBook: '平水韵' | '词林正韵' | '中华新韵' | '不适用'
     meterSummary: string
     attempt: number
