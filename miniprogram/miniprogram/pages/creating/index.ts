@@ -73,6 +73,7 @@ interface TraceTypingTarget {
 }
 
 interface PoemDisplayRun {
+  key: string
   text: string
   invalid: boolean
 }
@@ -81,6 +82,11 @@ interface PendingPoemPreview {
   title: string
   content: string
   attempt: number
+}
+
+interface PoemPresentationEvent {
+  event: string
+  data: Record<string, unknown>
 }
 
 interface ValueChangeEvent {
@@ -148,11 +154,12 @@ function buildPoemDisplayRuns(
   let lineIndex = 0
   let characterIndex = 0
   let lineHasHan = false
+  let absoluteIndex = 0
 
   const append = (text: string, invalid: boolean) => {
     const previous = runs[runs.length - 1]
     if (previous && previous.invalid === invalid) previous.text += text
-    else runs.push({ text, invalid })
+    else runs.push({ key: `${absoluteIndex}-${invalid ? 'invalid' : 'normal'}`, text, invalid })
   }
 
   for (const character of Array.from(content)) {
@@ -168,6 +175,7 @@ function buildPoemDisplayRuns(
       characterIndex = 0
       lineHasHan = false
     }
+    absoluteIndex += 1
   }
   return runs
 }
@@ -262,6 +270,10 @@ Page({
   finalPoemContent: '',
   receivedPoemContent: '',
   validationMarks: [] as PoemValidationMark[],
+  poemPresentationQueue: [] as PoemPresentationEvent[],
+  isPresentingPoemEvent: false,
+  isDispatchingPoemEvent: false,
+  poemReviewTimer: null as ReturnType<typeof setTimeout> | null,
   generationAttempt: 1,
   generationMode: 'WRITING' as 'WRITING' | 'VALIDATING',
   pendingPoeticInsights: [] as string[],
@@ -314,6 +326,7 @@ Page({
     this.stream?.abort()
     this.stream = null
     this.clearTypingTimer()
+    this.clearPoemPresentation()
     this.clearPoemErase()
     this.clearTraceTyping()
     this.stopQueuePolling()
@@ -397,16 +410,22 @@ Page({
   async restoreDurableTimeline(active: ActiveCreationRun) {
     try {
       const history = await loadCreationHistory(active.runId)
+      const animateCurrentRun = !this.data.openedFromDraft && active.lastEventId === '0-0'
       this.resetCreationHistory()
       this.isApplyingHistoricalEvents = true
       try {
         for (const entry of history) {
           for (const event of entry.events) {
-            this.handleStreamEvent({
-              id: '',
-              event: event.event,
-              data: { ...event.data, seq: event.seq },
-            })
+            const data = { ...event.data, seq: event.seq }
+            if (
+              animateCurrentRun
+              && entry.snapshot.generationId === active.runId
+              && this.shouldSequencePoemEvent(event.event, data)
+            ) {
+              this.enqueuePoemPresentation({ event: event.event, data })
+            } else {
+              this.handleStreamEvent({ id: '', event: event.event, data })
+            }
           }
         }
       } finally {
@@ -414,6 +433,11 @@ Page({
       }
       const latest = history[history.length - 1]?.snapshot
       if (latest) {
+        if (latest.lastEventId && latest.lastEventId !== active.lastEventId) {
+          const resumedActive = { ...active, lastEventId: latest.lastEventId }
+          this.setData({ activeRun: resumedActive })
+          updateActiveCreationCursor(latest.lastEventId)
+        }
         if (
           latest.coreStatus === 'QUEUED'
           && latest.baseGenerationId
@@ -422,7 +446,13 @@ Page({
           this.ensureRevision(latest.generationId, latest.input.instruction, 'waiting')
         }
         this.restoreSnapshotInsights(latest)
-        if (latest.coreStatus === 'SUCCEEDED' && latest.result) {
+        if (
+          latest.coreStatus === 'SUCCEEDED'
+          && latest.result
+          && !(animateCurrentRun && (
+            this.isPresentingPoemEvent || this.poemPresentationQueue.length > 0
+          ))
+        ) {
           this.restoreCompletedSnapshot(latest.result)
         } else if (latest.coreStatus === 'FAILED' || latest.coreStatus === 'CANCELED') {
           this.setData({
@@ -663,7 +693,7 @@ Page({
   enqueueTypedTrace(target: TraceTypingTarget) {
     const text = target.text.trim()
     if (!text) return
-    if (this.isApplyingHistoricalEvents) {
+    if (this.isApplyingHistoricalEvents && !this.isDispatchingPoemEvent) {
       if (target.kind === 'revision') this.appendRevisionTrace(target.index, text)
       else this.appendStageTrace(this.data.steps[target.index]?.key || 'POEM_GENERATION', text)
       return
@@ -847,6 +877,14 @@ Page({
     if (this.data.isErasingPoem) this.setData({ isErasingPoem: false })
   },
 
+  clearPoemPresentation() {
+    if (this.poemReviewTimer) clearTimeout(this.poemReviewTimer)
+    this.poemReviewTimer = null
+    this.poemPresentationQueue = []
+    this.isPresentingPoemEvent = false
+    this.isDispatchingPoemEvent = false
+  },
+
   applyPoemPreview(preview: PendingPoemPreview) {
     const content = stripPoemLeadingWhitespace(preview.content)
     if (!content) return
@@ -856,7 +894,7 @@ Page({
     this.validationMarks = []
     this.generationAttempt = preview.attempt
     this.pendingPoemPreview = null
-    if (this.isApplyingHistoricalEvents) {
+    if (this.isApplyingHistoricalEvents && !this.isDispatchingPoemEvent) {
       this.setData({
         poemTitle: preview.title || '无题',
         poemContent: content,
@@ -881,7 +919,10 @@ Page({
     this.clearTypingTimer()
     this.finalPoemContent = ''
     this.receivedPoemContent = ''
-    if (this.isApplyingHistoricalEvents || !this.data.poemContent) {
+    if (
+      (this.isApplyingHistoricalEvents && !this.isDispatchingPoemEvent)
+      || !this.data.poemContent
+    ) {
       this.validationMarks = []
       this.setData({
         poemContent: '',
@@ -907,6 +948,7 @@ Page({
         isErasingPoem: false,
       }, () => {
         if (pending) this.applyPoemPreview(pending)
+        if (this.isPresentingPoemEvent) this.completePoemPresentation()
       })
     }, 420)
   },
@@ -925,12 +967,97 @@ Page({
     })
   },
 
-  finishTyping() {
-    this.setData({ isTyping: false })
-    this.typingTimer = null
-    if (this.coreConfirmed && !this.activeTraceTyping && this.traceTypingQueue.length === 0) {
-      this.finalizeCoreReady()
+  applyValidationStarted(data: Record<string, unknown>) {
+    const attempt = Number(data.attempt || this.generationAttempt)
+    const message = `正在进行第 ${attempt} 轮格律与押韵校验`
+    this.setData({ streamMessage: message })
+    this.enqueueTypedCreationTrace(message)
+    this.startGenerationProgress('VALIDATING', attempt)
+  },
+
+  applyValidationCompleted(data: Record<string, unknown>) {
+    const issues = Array.isArray(data.issues)
+      ? data.issues.filter((issue): issue is string => typeof issue === 'string').slice(0, 3)
+      : []
+    const message = data.valid
+      ? `${String(data.rhymeBook || '')}格律校验通过${data.meterSummary ? `：${String(data.meterSummary)}` : ''}`
+      : Number(data.attempt || 1) >= 3
+        ? `三轮审校完成，问题字已标注；当前版本仍可保存${issues.length ? `：${issues.join('；')}` : ''}`
+        : `格律校验未通过${issues.length ? `：${issues.join('；')}` : '，正在按审校意见重写'}`
+    this.setData({ streamMessage: message })
+    const marks = Array.isArray(data.marks)
+      ? data.marks.filter(
+          (mark): mark is PoemValidationMark =>
+            Boolean(mark)
+            && Number.isInteger(mark.lineIndex)
+            && Number.isInteger(mark.characterIndex)
+            && typeof mark.character === 'string',
+        )
+      : []
+    this.applyValidationMarks(data.valid ? [] : marks)
+    this.enqueueTypedCreationTrace(message)
+    this.stopGenerationProgress()
+  },
+
+  shouldSequencePoemEvent(event: string, data: Record<string, unknown>) {
+    return event === 'poem.preview'
+      || event === 'validation.started'
+      || event === 'validation.completed'
+      || event === 'poem.completed'
+      || event === 'core.done'
+      || (event === 'poem.reset' && data.reason === 'VALIDATION_REWRITE')
+      || (event === 'poem.progress' && String(data.text || '').trim().startsWith('审校 ·'))
+  },
+
+  enqueuePoemPresentation(event: PoemPresentationEvent) {
+    this.poemPresentationQueue.push(event)
+    this.processNextPoemPresentation()
+  },
+
+  processNextPoemPresentation() {
+    if (this.isPresentingPoemEvent) return
+    const next = this.poemPresentationQueue.shift()
+    if (!next) return
+    this.isPresentingPoemEvent = true
+    this.isDispatchingPoemEvent = true
+    try {
+      this.handleStreamEvent({ id: '', event: next.event, data: next.data })
+    } finally {
+      this.isDispatchingPoemEvent = false
     }
+    if (
+      (next.event === 'poem.preview' || next.event === 'poem.completed')
+      && (this.data.isTyping || this.poemQueue.length > 0)
+    ) return
+    if (
+      next.event === 'poem.reset'
+      && next.data.reason === 'VALIDATION_REWRITE'
+      && this.data.isErasingPoem
+    ) return
+    if (next.event === 'validation.completed') {
+      this.poemReviewTimer = setTimeout(() => {
+        this.poemReviewTimer = null
+        this.completePoemPresentation()
+      }, 900)
+      return
+    }
+    this.completePoemPresentation()
+  },
+
+  completePoemPresentation() {
+    if (!this.isPresentingPoemEvent) return
+    this.isPresentingPoemEvent = false
+    this.processNextPoemPresentation()
+  },
+
+  finishTyping() {
+    this.typingTimer = null
+    this.setData({ isTyping: false }, () => {
+      if (this.isPresentingPoemEvent) this.completePoemPresentation()
+      else if (this.coreConfirmed && !this.activeTraceTyping && this.traceTypingQueue.length === 0) {
+        this.finalizeCoreReady()
+      }
+    })
   },
 
   enqueuePoemText(text: string) {
@@ -1046,6 +1173,14 @@ Page({
     }
 
     const data = event.data
+    if (
+      !this.isDispatchingPoemEvent
+      && !this.isApplyingHistoricalEvents
+      && this.shouldSequencePoemEvent(event.event, data)
+    ) {
+      this.enqueuePoemPresentation({ event: event.event, data })
+      return
+    }
     if (this.data.isQueued) this.applyQueueStatus(null)
     if (event.event === 'revision.started') {
       const generationId = String(data.generationId || this.data.activeRun?.runId || '')
@@ -1264,48 +1399,15 @@ Page({
       return
     }
     if (event.event === 'validation.started') {
-      const attempt = Number(data.attempt || this.generationAttempt)
-      const message = `正在进行第 ${attempt} 轮格律与押韵校验`
-      this.setData({ streamMessage: message })
-      this.enqueueTypedCreationTrace(message)
-      this.startGenerationProgress('VALIDATING', attempt)
+      this.applyValidationStarted(data)
       return
     }
     if (event.event === 'validation.completed') {
-      const issues = Array.isArray(data.issues)
-        ? data.issues.filter((issue): issue is string => typeof issue === 'string').slice(0, 3)
-        : []
-      const message = data.valid
-        ? `${String(data.rhymeBook || '')}格律校验通过${data.meterSummary ? `：${String(data.meterSummary)}` : ''}`
-        : Number(data.attempt || 1) >= 3
-          ? `三轮审校完成，问题字已标注；当前版本仍可保存${issues.length ? `：${issues.join('；')}` : ''}`
-          : `格律校验未通过${issues.length ? `：${issues.join('；')}` : '，正在按审校意见重写'}`
-      this.setData({ streamMessage: message })
-      const marks = Array.isArray(data.marks)
-        ? data.marks.filter(
-            (mark): mark is PoemValidationMark =>
-              Boolean(mark)
-              && Number.isInteger(mark.lineIndex)
-              && Number.isInteger(mark.characterIndex)
-              && typeof mark.character === 'string',
-          )
-        : []
-      if (
-        !data.valid
-        && this.receivedPoemContent
-        && this.data.poemContent !== this.receivedPoemContent
-      ) {
-        this.clearTypingTimer()
-        this.updatePoemContent(this.receivedPoemContent)
-        this.setData({ isTyping: false })
-      }
-      this.applyValidationMarks(data.valid ? [] : marks)
-      this.enqueueTypedCreationTrace(message)
-      this.stopGenerationProgress()
+      this.applyValidationCompleted(data)
       return
     }
     if (event.event === 'poem.completed') {
-      if (this.isApplyingHistoricalEvents) return
+      if (this.isApplyingHistoricalEvents && !this.isDispatchingPoemEvent) return
       if (this.data.isReplayMode) {
         this.applyReplayResult(data as unknown as PoemResult)
       } else {
@@ -1314,7 +1416,7 @@ Page({
       return
     }
     if (event.event === 'core.done' && data.status === 'SUCCEEDED') {
-      if (this.isApplyingHistoricalEvents) return
+      if (this.isApplyingHistoricalEvents && !this.isDispatchingPoemEvent) return
       this.stopGenerationProgress()
       this.coreConfirmed = true
       if (
@@ -1368,7 +1470,6 @@ Page({
     const content = stripPoemLeadingWhitespace(result.content || '')
     if (!active || !content) return
     const normalizedResult = { ...result, content }
-    this.validationMarks = result.validation?.marks ?? []
     const baselineDraft = this.data.openedFromDraft ? this.draftBaselineCreation : null
     const creation: PendingCreation = {
       prompt: active.prompt,

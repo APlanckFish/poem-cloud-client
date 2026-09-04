@@ -11,7 +11,6 @@ import {
   loadCreationRunSnapshotById,
   type LocalCreationDraft,
   type PendingCreation,
-  saveCreationEditDraft,
   savePendingCreation,
 } from '../../services/creation'
 import type { LibraryWork } from '../../services/library'
@@ -416,24 +415,13 @@ Page({
         })
         return
       }
-      saveCreationEditDraft({
-        workId: work.id,
-        version: work.version,
-        prompt: work.prompt,
-        assetIds: work.assetIds || [],
-        assets: (work.assets || []).flatMap((asset) => (
-          asset.id && asset.accessUrl
-            ? [{
-                id: asset.id,
-                kind: asset.kind,
-                accessUrl: asset.accessUrl,
-                thumbnailUrl: asset.thumbnailUrl,
-              }]
-            : []
-        )),
-        preferences,
-      })
-      wx.switchTab({ url: '/pages/create/index' })
+      if (latest) {
+        wx.navigateTo({
+          url: `/pages/creating/index?generationId=${encodeURIComponent(latest.id)}&mode=draft`,
+        })
+        return
+      }
+      wx.showToast({ title: '草稿暂无可查看的创作记录', icon: 'none' })
       return
     }
     const savedRun = getSavedCreationRunDrafts().find(

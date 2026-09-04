@@ -182,11 +182,11 @@
         </view>
         <text wx:if="{{poemContent}}" class="result-paper__poem poem-display {{isErasingPoem ? 'result-paper__poem--erasing' : ''}}" user-select><text
           wx:for="{{poemDisplayRuns}}"
-          wx:key="index"
+          wx:key="key"
           class="{{item.invalid ? 'result-paper__poem-error' : ''}}"
         >{{item.text}}</text><text wx:if="{{isTyping}}" class="result-paper__caret">丨</text></text>
         <view wx:if="{{coreReady}}" class="result-paper__signature poem-display">
-          <text>由你的文字与素材生成</text>
+          <text>由AI生成，仅供参考</text>
           <image
             class="result-paper__brand"
             src="/assets/images/brand-icon.png"
